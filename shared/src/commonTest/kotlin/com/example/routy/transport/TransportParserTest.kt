@@ -12,11 +12,37 @@ class TransportParserTest {
     @Test fun parsesDocumentedCasingAndPreservesUnicode() {
         val network = parser.network(fixture)
         assertEquals(GeoPoint(41.63, 41.64), network.stops.single().position)
-        assertEquals("ბათუმი", network.stops.single().name.resolve(Language.Georgian, "fallback"))
-        assertEquals("2A", network.routes.single().name.resolve(Language.English, "fallback"))
+        assertEquals(
+            "ბათუმი",
+            network.stops
+                .single()
+                .name
+                .resolve(Language.Georgian, "fallback"),
+        )
+        assertEquals(
+            "2A",
+            network.routes
+                .single()
+                .name
+                .resolve(Language.English, "fallback"),
+        )
         assertEquals(GeoPoint(41.62, 41.61), network.geometries["r"]!!.points.first())
-        assertEquals(listOf(ScheduleTime(7, 13), ScheduleTime(8, 0)), network.stops.single().services.single().times)
-        assertEquals(77, network.stops.single().services.single().sourceGroup)
+        assertEquals(
+            listOf(ScheduleTime(7, 13), ScheduleTime(8, 0)),
+            network.stops
+                .single()
+                .services
+                .single()
+                .times,
+        )
+        assertEquals(
+            77,
+            network.stops
+                .single()
+                .services
+                .single()
+                .sourceGroup,
+        )
     }
 
     @Test fun parsesLiveCasingWithoutInterpretingStatus() {
@@ -32,7 +58,13 @@ class TransportParserTest {
 
     @Test fun unknownRouteMetadataDoesNotBreakStopDatabase() {
         val network = parser.network(fixture.replace("{\"RouteNameEN\":\"2A\",\"RouteSortOrder\":25}", "[1,2]"))
-        assertEquals("r", network.routes.single().name.resolve(Language.English, "r"))
+        assertEquals(
+            "r",
+            network.routes
+                .single()
+                .name
+                .resolve(Language.English, "r"),
+        )
     }
 
     @Test fun fallbackSkipsBlankNames() {
@@ -47,6 +79,18 @@ class TransportParserTest {
     }
 
     companion object {
-        val fixture = """{"data":{"busStops":{"s":{"BusStopIdGeoGps":"s","BusStopNameKA":"ბათუმი","BusStopLatitude":41.63,"BusStopLongitude":41.64,"routes":{"r":{"Status":77,"Order":2,"times":["08:00","07:13"]}}}},"routesNames":{"r":{"RouteNameEN":"2A","RouteSortOrder":25}},"routeCoordinatesGrouped":{"r":[{"lat":41.62,"lon":41.61},{"lat":41.64,"lon":41.65}]},"unknown":true}}"""
+        val fixture =
+            """
+            {"data":{
+              "busStops":{"s":{
+                "BusStopIdGeoGps":"s","BusStopNameKA":"ბათუმი",
+                "BusStopLatitude":41.63,"BusStopLongitude":41.64,
+                "routes":{"r":{"Status":77,"Order":2,"times":["08:00","07:13"]}}
+              }},
+              "routesNames":{"r":{"RouteNameEN":"2A","RouteSortOrder":25}},
+              "routeCoordinatesGrouped":{"r":[{"lat":41.62,"lon":41.61},{"lat":41.64,"lon":41.65}]},
+              "unknown":true
+            }}
+            """.trimIndent()
     }
 }

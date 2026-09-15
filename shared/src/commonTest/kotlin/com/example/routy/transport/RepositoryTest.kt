@@ -1,4 +1,5 @@
 @file:OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+
 package com.example.routy.transport
 
 import com.example.routy.core.transport.data.*
@@ -12,71 +13,140 @@ import kotlinx.coroutines.test.*
 import kotlin.test.*
 
 class RepositoryTest {
-    private class Remote(var failure: Boolean = false, var payload: String = TransportParserTest.fixture) : TransportRemoteDataSource {
+    private class Remote(
+        var failure: Boolean = false,
+        var payload: String = TransportParserTest.fixture,
+    ) : TransportRemoteDataSource {
         var calls = 0
-        override suspend fun database(): String { calls++; if (failure) error("offline"); return payload }
-        override suspend fun vehicles(routeId: String): String { calls++; if (failure) error("offline"); return """{"data":[{"Lat":41.6,"Lon":41.6,"Name":"bus"}]}""" }
+
+        override suspend fun database(): String {
+            calls++
+            if (failure) error("offline")
+            return payload
+        }
+
+        override suspend fun vehicles(routeId: String): String {
+            calls++
+            if (failure) error("offline")
+            return """{"data":[{"Lat":41.6,"Lon":41.6,"Name":"bus"}]}"""
+        }
     }
-    private class Local(var cache: CachedDatabase? = null) : TransportLocalDataSource {
+
+    private class Local(
+        var cache: CachedDatabase? = null,
+    ) : TransportLocalDataSource {
         override suspend fun read() = cache
-        override suspend fun write(database: CachedDatabase) { cache = database }
+
+        override suspend fun write(database: CachedDatabase) {
+            cache = database
+        }
     }
 
-    @Test fun cacheAndNetworkMatrix() = runTest {
-        for (cached in listOf(false, true)) for (failure in listOf(false, true)) {
-            val local = Local(if (cached) CachedDatabase(TransportParserTest.fixture, 1) else null)
-            val repository = OfflineTransportRepository(Remote(failure), local, TransportParser(), EpochClock { 10 }, TransportConfig(), StandardTestDispatcher(testScheduler))
+    @Test fun cacheAndNetworkMatrix() =
+        runTest {
+            for (cached in listOf(false, true)) {
+                for (failure in listOf(false, true)) {
+                    val local = Local(if (cached) CachedDatabase(TransportParserTest.fixture, 1) else null)
+                    val repository =
+                        OfflineTransportRepository(
+                            Remote(failure),
+                            local,
+                            TransportParser(),
+                            EpochClock {
+                                10
+                            },
+                            TransportConfig(),
+                            StandardTestDispatcher(testScheduler),
+                        )
+                    repository.refresh()
+                    assertEquals(cached || !failure, repository.state.value.network != null)
+                    assertEquals(failure, repository.state.value.isStale)
+                    assertFalse(repository.state.value.isRefreshing)
+                    if (!failure) assertEquals(10, local.cache!!.updatedAtMillis)
+                }
+            }
+        }
+
+    @Test fun malformedNetworkPreservesPersistentCache() =
+        runTest {
+            val cache = CachedDatabase(TransportParserTest.fixture, 1)
+            val local = Local(cache)
+            val repository =
+                OfflineTransportRepository(
+                    Remote(payload = "{}"),
+                    local,
+                    TransportParser(),
+                    EpochClock {
+                        10
+                    },
+                    TransportConfig(),
+                    StandardTestDispatcher(testScheduler),
+                )
             repository.refresh()
-            assertEquals(cached || !failure, repository.state.value.network != null)
-            assertEquals(failure, repository.state.value.isStale)
-            assertFalse(repository.state.value.isRefreshing)
-            if (!failure) assertEquals(10, local.cache!!.updatedAtMillis)
+            assertEquals(cache, local.cache)
+            assertEquals(AppError.InvalidData, repository.state.value.error)
+            assertNotNull(repository.state.value.network)
         }
-    }
 
-    @Test fun malformedNetworkPreservesPersistentCache() = runTest {
-        val cache = CachedDatabase(TransportParserTest.fixture, 1)
-        val local = Local(cache)
-        val repository = OfflineTransportRepository(Remote(payload = "{}"), local, TransportParser(), EpochClock { 10 }, TransportConfig(), StandardTestDispatcher(testScheduler))
-        repository.refresh()
-        assertEquals(cache, local.cache)
-        assertEquals(AppError.InvalidData, repository.state.value.error)
-        assertNotNull(repository.state.value.network)
-    }
+    @Test fun cachedContentIsEmittedBeforeNetworkCompletes() =
+        runTest {
+            val gate = CompletableDeferred<Unit>()
+            val remote =
+                object : TransportRemoteDataSource {
+                    override suspend fun database(): String {
+                        gate.await()
+                        return TransportParserTest.fixture
+                    }
 
-    @Test fun cachedContentIsEmittedBeforeNetworkCompletes() = runTest {
-        val gate = CompletableDeferred<Unit>()
-        val remote = object : TransportRemoteDataSource {
-            override suspend fun database(): String { gate.await(); return TransportParserTest.fixture }
-            override suspend fun vehicles(routeId: String) = ""
+                    override suspend fun vehicles(routeId: String) = ""
+                }
+            val repository =
+                OfflineTransportRepository(
+                    remote,
+                    Local(CachedDatabase(TransportParserTest.fixture, 1)),
+                    TransportParser(),
+                    EpochClock {
+                        10
+                    },
+                    TransportConfig(),
+                    StandardTestDispatcher(testScheduler),
+                )
+            val job = launch { repository.refresh() }
+            runCurrent()
+            assertNotNull(repository.state.value.network)
+            assertTrue(repository.state.value.isRefreshing)
+            gate.complete(Unit)
+            job.join()
         }
-        val repository = OfflineTransportRepository(remote, Local(CachedDatabase(TransportParserTest.fixture, 1)), TransportParser(), EpochClock { 10 }, TransportConfig(), StandardTestDispatcher(testScheduler))
-        val job = launch { repository.refresh() }
-        runCurrent()
-        assertNotNull(repository.state.value.network)
-        assertTrue(repository.state.value.isRefreshing)
-        gate.complete(Unit)
-        job.join()
-    }
 
-    @Test fun vehicleRetentionExpiresAndPollingCancels() = runTest {
-        val remote = Remote()
-        val repository = PollingVehicleRepository(remote, TransportParser(), EpochClock { testScheduler.currentTime }, TransportConfig(), StandardTestDispatcher(testScheduler))
-        val states = mutableListOf<VehicleState>()
-        val job = launch { repository.observeVehicles("r").toList(states) }
-        runCurrent()
-        assertEquals(1, states.last().vehicles.size)
-        remote.failure = true
-        advanceTimeBy(5_001)
-        assertTrue(states.last().isStale)
-        assertEquals(1, states.last().vehicles.size)
-        advanceTimeBy(30_000)
-        assertTrue(states.last().vehicles.isEmpty())
-        job.cancelAndJoin()
-        val calls = remote.calls
-        advanceTimeBy(20_000)
-        assertEquals(calls, remote.calls)
-    }
+    @Test fun vehicleRetentionExpiresAndPollingCancels() =
+        runTest {
+            val remote = Remote()
+            val repository =
+                PollingVehicleRepository(
+                    remote,
+                    TransportParser(),
+                    EpochClock {
+                        testScheduler.currentTime
+                    },
+                    TransportConfig(),
+                    StandardTestDispatcher(testScheduler),
+                )
+            val states = mutableListOf<VehicleState>()
+            val job = launch { repository.observeVehicles("r").toList(states) }
+            runCurrent()
+            assertEquals(1, states.last().vehicles.size)
+            remote.failure = true
+            advanceTimeBy(5_001)
+            assertTrue(states.last().isStale)
+            assertEquals(1, states.last().vehicles.size)
+            advanceTimeBy(30_000)
+            assertTrue(states.last().vehicles.isEmpty())
+            job.cancelAndJoin()
+            val calls = remote.calls
+            advanceTimeBy(20_000)
+            assertEquals(calls, remote.calls)
+        }
 
     @Test fun localSearchAndOrderingUseSourceGroups() {
         val network = TransportParser().network(TransportParserTest.fixture)

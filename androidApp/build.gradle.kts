@@ -1,6 +1,7 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
+    alias(libs.plugins.ktlint)
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.composeCompiler)
 }
@@ -12,6 +13,7 @@ kotlin {
 }
 dependencies {
     implementation(project(":shared"))
+    implementation(libs.ktor.okhttp)
 
     implementation(libs.androidx.activity.compose)
 
@@ -21,12 +23,21 @@ dependencies {
 
 android {
     namespace = "com.example.routy"
-    compileSdk = libs.versions.android.compileSdk.get().toInt()
+    compileSdk =
+        libs.versions.android.compileSdk
+            .get()
+            .toInt()
 
     defaultConfig {
         applicationId = "com.example.routy"
-        minSdk = libs.versions.android.minSdk.get().toInt()
-        targetSdk = libs.versions.android.targetSdk.get().toInt()
+        minSdk =
+            libs.versions.android.minSdk
+                .get()
+                .toInt()
+        targetSdk =
+            libs.versions.android.targetSdk
+                .get()
+                .toInt()
         versionCode = 1
         versionName = "1.0"
     }
@@ -40,7 +51,7 @@ android {
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
+                "proguard-rules.pro",
             )
         }
     }
@@ -51,4 +62,8 @@ android {
     buildFeatures {
         compose = true
     }
+}
+
+ktlint {
+    filter { exclude { it.file.path.contains("/build/") } }
 }

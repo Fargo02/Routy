@@ -21,7 +21,9 @@ data class VehicleState(
 
 interface TransportRepository {
     val state: StateFlow<NetworkState>
+
     suspend fun refresh()
+
     /** One foreground owner collects this to refresh the database periodically. */
     fun observeNetwork(): Flow<NetworkState>
 }
@@ -31,4 +33,6 @@ interface VehicleRepository {
     fun observeVehicles(routeId: String): Flow<VehicleState>
 }
 
-fun interface EpochClock { fun nowMillis(): Long }
+fun interface EpochClock {
+    fun nowMillis(): Long
+}

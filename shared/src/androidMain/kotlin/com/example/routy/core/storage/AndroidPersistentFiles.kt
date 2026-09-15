@@ -7,13 +7,25 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
 
-class AndroidPersistentFiles(context: Context) : PersistentFiles {
+class AndroidPersistentFiles(
+    context: Context,
+) : PersistentFiles {
     private val directory = File(context.applicationContext.filesDir, "routy").apply { mkdirs() }
-    override suspend fun read(name: String): String? = withContext(Dispatchers.IO) {
-        val file = AtomicFile(File(directory, name))
-        try { file.openRead().bufferedReader().use { it.readText() } } catch (_: java.io.FileNotFoundException) { null }
-    }
-    override suspend fun write(name: String, content: String) = withContext(Dispatchers.IO) {
+
+    override suspend fun read(name: String): String? =
+        withContext(Dispatchers.IO) {
+            val file = AtomicFile(File(directory, name))
+            try {
+                file.openRead().bufferedReader().use { it.readText() }
+            } catch (_: java.io.FileNotFoundException) {
+                null
+            }
+        }
+
+    override suspend fun write(
+        name: String,
+        content: String,
+    ) = withContext(Dispatchers.IO) {
         val file = AtomicFile(File(directory, name))
         val output = file.startWrite()
         try {

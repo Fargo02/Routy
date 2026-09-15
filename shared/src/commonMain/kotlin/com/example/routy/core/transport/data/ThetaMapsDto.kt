@@ -5,7 +5,9 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
 
 @Serializable
-internal data class DbResponse(val data: DbDto)
+internal data class DbResponse(
+    val data: DbDto,
+)
 
 @Serializable
 internal data class DbDto(
@@ -35,10 +37,15 @@ internal data class ServiceDto(
 )
 
 @Serializable
-internal data class PointDto(val lat: Double, val lon: Double)
+internal data class PointDto(
+    val lat: Double,
+    val lon: Double,
+)
 
 @Serializable
-internal data class VehiclesResponse(val data: List<VehicleDto>)
+internal data class VehiclesResponse(
+    val data: List<VehicleDto>,
+)
 
 @Serializable
 internal data class VehicleDto(

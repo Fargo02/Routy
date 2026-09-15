@@ -11,23 +11,27 @@ class PollingVehicleRepository(
     private val config: TransportConfig,
     private val dispatcher: CoroutineDispatcher = Dispatchers.Default,
 ) : VehicleRepository {
-    override fun observeVehicles(routeId: String): Flow<VehicleState> = flow {
-        require(routeId.isNotBlank())
-        var previous = VehicleState()
-        emit(previous)
-        while (currentCoroutineContext().isActive) {
-            previous = when (val result = transportOperation(dispatcher) { parser.vehicles(remote.vehicles(routeId), routeId) }) {
-                is Outcome.Success -> VehicleState(result.value, isLoading = false, updatedAtMillis = clock.nowMillis())
-                is Outcome.Failure -> {
-                    val age = previous.updatedAtMillis?.let { clock.nowMillis() - it }
-                    previous.copy(
-                        vehicles = if (age != null && age in 0..config.vehicleRetentionMillis) previous.vehicles else emptyList(),
-                        isLoading = false, isStale = true, error = result.error,
-                    )
-                }
-            }
+    override fun observeVehicles(routeId: String): Flow<VehicleState> =
+        flow {
+            require(routeId.isNotBlank())
+            var previous = VehicleState()
             emit(previous)
-            delay(config.vehicleRefreshMillis)
+            while (currentCoroutineContext().isActive) {
+                previous =
+                    when (val result = transportOperation(dispatcher) { parser.vehicles(remote.vehicles(routeId), routeId) }) {
+                        is Outcome.Success -> VehicleState(result.value, isLoading = false, updatedAtMillis = clock.nowMillis())
+                        is Outcome.Failure -> {
+                            val age = previous.updatedAtMillis?.let { clock.nowMillis() - it }
+                            previous.copy(
+                                vehicles = if (age != null && age in 0..config.vehicleRetentionMillis) previous.vehicles else emptyList(),
+                                isLoading = false,
+                                isStale = true,
+                                error = result.error,
+                            )
+                        }
+                    }
+                emit(previous)
+                delay(config.vehicleRefreshMillis)
+            }
         }
-    }
 }
