@@ -1,13 +1,19 @@
 package com.example.routy
 
 import android.os.Bundle
+import android.content.res.Configuration
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.getValue
+import androidx.core.view.WindowCompat
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.example.routy.core.di.AppGraph
 import com.example.routy.core.logging.PlatformLogger
+import com.example.routy.core.preferences.domain.Appearance
 import com.example.routy.core.storage.AndroidPersistentFiles
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.okhttp.OkHttp
@@ -25,7 +31,19 @@ class MainActivity : ComponentActivity() {
                         GraphModel(AppGraph(HttpClient(OkHttp), AndroidPersistentFiles(applicationContext), logger = PlatformLogger())) as T
                 },
             )[GraphModel::class.java]
-        setContent { App(model.graph) }
+        setContent {
+            val preferences by model.graph.settings.state.collectAsStateWithLifecycle()
+            val dark =
+                preferences.appearance == Appearance.Dark ||
+                    (
+                        preferences.appearance == Appearance.System &&
+                            resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK == Configuration.UI_MODE_NIGHT_YES
+                    )
+            SideEffect {
+                WindowCompat.getInsetsController(window, window.decorView).isAppearanceLightStatusBars = !dark
+            }
+            App(model.graph)
+        }
     }
 }
 
