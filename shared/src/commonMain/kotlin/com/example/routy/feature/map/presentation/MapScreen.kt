@@ -1,5 +1,9 @@
 package com.example.routy.feature.map.presentation
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,12 +24,14 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -50,6 +56,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -136,6 +144,8 @@ fun MapScreen(
     var focusLocation by remember { mutableStateOf(false) }
     var vehicleDetailsVisible by rememberSaveable { mutableStateOf(false) }
     var routeInfoVisible by rememberSaveable { mutableStateOf(false) }
+    var routeInfoRouteId by rememberSaveable { mutableStateOf<String?>(null) }
+    var routeInfoSwipeDistance by remember { mutableStateOf(0f) }
     var selectedVehicle by rememberSaveable { mutableStateOf<String?>(null) }
     var selectedStop by rememberSaveable { mutableStateOf<String?>(null) }
 
@@ -156,15 +166,6 @@ fun MapScreen(
             state.stops,
             selectedStop,
         ) { stopsGeoJson(state.stops.filter { it.id == selectedStop }) }
-    val selectedVehicleJson =
-        remember(vehicles.vehicles, selectedVehicle) {
-            vehiclesGeoJson(
-                vehicles.vehicles.filter {
-                    it.id ==
-                        selectedVehicle
-                },
-            )
-        }
     val dark = MaterialTheme.colorScheme.background.red < 0.3f
     val mapState =
         rememberMapState(
@@ -182,8 +183,6 @@ fun MapScreen(
             val stopSource = rememberGeoJsonSource(GeoJsonData.JsonString(state.stopGeoJson))
             val vehicleSource = rememberGeoJsonSource(GeoJsonData.JsonString(vehicleJson))
             val selectionSource = rememberGeoJsonSource(GeoJsonData.JsonString(selectedStopJson))
-            val vehicleSelectionSource =
-                rememberGeoJsonSource(GeoJsonData.JsonString(selectedVehicleJson))
             state.geometries.forEachIndexed { index, geometry ->
                 val routeSource =
                     rememberGeoJsonSource(GeoJsonData.JsonString(routeGeoJson(listOf(geometry))))
@@ -261,14 +260,6 @@ fun MapScreen(
                         ?.let { model.actionHandler(MapAction.SelectVehicle(it)) }
                     ClickResult.Consume
                 },
-            )
-            CircleLayer(
-                "selected-vehicle",
-                vehicleSelectionSource,
-                color = const(palette.selected),
-                radius = const(10.dp),
-                strokeColor = const(MaterialTheme.colorScheme.onSurface),
-                strokeWidth = const(3.dp),
             )
             if (locationEnabled) LocationPuck(idPrefix = "user", locationState = location)
         }
@@ -452,7 +443,10 @@ fun MapScreen(
             ) {
                 if (state.selectedRouteIds.isNotEmpty()) {
                     SmallFloatingActionButton(
-                        { routeInfoVisible = true },
+                        {
+                            routeInfoRouteId = state.routeId
+                            routeInfoVisible = true
+                        },
                         containerColor = MaterialTheme.colorScheme.surface,
                     ) {
                         RoutyIcon(Glyph.Routes, strings[TextKey.Live])
@@ -478,33 +472,82 @@ fun MapScreen(
         }
     }
     if (routeInfoVisible) {
+        val routeIds = state.selectedRouteIds
+        val activeRouteId = routeInfoRouteId?.takeIf { it in routeIds } ?: routeIds.lastOrNull()
+        val activeRouteIndex = routeIds.indexOf(activeRouteId)
+        val activeVehicles = vehicles.vehicles.filter { it.routeId == activeRouteId }
         ModalBottomSheet(
             onDismissRequest = { routeInfoVisible = false },
             containerColor = MaterialTheme.colorScheme.surface,
             contentWindowInsets = { WindowInsets.safeDrawing.only(WindowInsetsSides.Top) },
         ) {
             Column(
-                Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp)
+                    .pointerInput(routeIds, activeRouteId) {
+                        detectHorizontalDragGestures(
+                            onDragStart = { routeInfoSwipeDistance = 0f },
+                            onHorizontalDrag = { _, dragAmount -> routeInfoSwipeDistance += dragAmount },
+                            onDragEnd = {
+                                routeInfoRouteId =
+                                    when {
+                                        routeInfoSwipeDistance <= -48f -> routeIds.getOrNull(activeRouteIndex + 1)
+                                        routeInfoSwipeDistance >= 48f -> routeIds.getOrNull(activeRouteIndex - 1)
+                                        else -> routeInfoRouteId
+                                    }
+                            },
+                        )
+                    },
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                state.network.network
-                    ?.routes
-                    ?.firstOrNull { it.id == state.routeId }
-                    ?.let { route ->
-                        Text(
-                            route.name.resolve(strings.language, route.id),
-                            Modifier.padding(horizontal = 24.dp),
-                            style = MaterialTheme.typography.headlineSmall,
-                        )
-                        FilledTonalButton(
-                            onClick = { model.actionHandler(MapAction.ToggleSelectedRouteFavorite) },
-                            modifier = Modifier.padding(horizontal = 24.dp),
-                        ) {
-                            RoutyIcon(Glyph.Star)
-                            Spacer(Modifier.width(8.dp))
-                            Text(strings[if (route.id in state.favoriteRouteIds) TextKey.Saved else TextKey.Save])
+                AnimatedContent(
+                    targetState = activeRouteId,
+                    transitionSpec = {
+                        val forward = routeIds.indexOf(targetState) > routeIds.indexOf(initialState)
+                        if (forward) {
+                            slideInHorizontally { it } togetherWith slideOutHorizontally { -it }
+                        } else {
+                            slideInHorizontally { -it } togetherWith slideOutHorizontally { it }
                         }
-                    }
+                    },
+                    label = "route-info-transition",
+                ) { displayedRouteId ->
+                    val displayedIndex = routeIds.indexOf(displayedRouteId)
+                    state.network.network
+                        ?.routes
+                        ?.firstOrNull { it.id == displayedRouteId }
+                        ?.let { route ->
+                            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                Row(
+                                    Modifier.fillMaxWidth().padding(horizontal = 12.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    IconButton(
+                                        onClick = { routeInfoRouteId = routeIds.getOrNull(displayedIndex - 1) },
+                                        enabled = displayedIndex > 0,
+                                    ) { RoutyIcon(Glyph.Chevron, modifier = Modifier.graphicsLayer(rotationZ = 180f)) }
+                                    Text(
+                                        route.name.resolve(strings.language, route.id),
+                                        Modifier.weight(1f),
+                                        style = MaterialTheme.typography.headlineSmall,
+                                    )
+                                    IconButton(
+                                        onClick = { routeInfoRouteId = routeIds.getOrNull(displayedIndex + 1) },
+                                        enabled = displayedIndex in 0 until routeIds.lastIndex,
+                                    ) { RoutyIcon(Glyph.Chevron) }
+                                }
+                                FilledTonalButton(
+                                    onClick = { model.actionHandler(MapAction.ToggleRouteFavorite(route.id)) },
+                                    modifier = Modifier.padding(horizontal = 24.dp),
+                                ) {
+                                    RoutyIcon(Glyph.Star)
+                                    Spacer(Modifier.width(8.dp))
+                                    Text(strings[if (route.id in state.favoriteRouteIds) TextKey.Saved else TextKey.Save])
+                                }
+                            }
+                        }
+                }
                 Text(
                     strings[TextKey.Live],
                     Modifier.padding(horizontal = 24.dp),
@@ -514,19 +557,19 @@ fun MapScreen(
                     when {
                         vehicles.isLoading -> strings[TextKey.Loading]
                         vehicles.isStale -> strings[TextKey.Stale]
-                        vehicles.vehicles.isEmpty() -> strings[TextKey.NoBuses]
-                        else -> "${vehicles.vehicles.size} ${strings[TextKey.Vehicle]}"
+                        activeVehicles.isEmpty() -> strings[TextKey.NoBuses]
+                        else -> "${activeVehicles.size} ${strings[TextKey.Vehicle]}"
                     },
                     Modifier.padding(horizontal = 24.dp),
                     style = MaterialTheme.typography.bodyMedium,
                 )
-                if (vehicles.vehicles.isNotEmpty()) {
+                if (activeVehicles.isNotEmpty()) {
                     LazyRow(
                         Modifier.fillMaxWidth(),
                         contentPadding = PaddingValues(horizontal = 24.dp),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        items(vehicles.vehicles, key = { it.id }) { vehicle ->
+                        items(activeVehicles, key = { it.id }) { vehicle ->
                             AssistChip(
                                 onClick = {
                                     routeInfoVisible = false
@@ -540,9 +583,9 @@ fun MapScreen(
                 TextButton(
                     onClick = {
                         routeInfoVisible = false
-                        model.actionHandler(MapAction.OpenRouteDetails)
+                        activeRouteId?.let { model.actionHandler(MapAction.OpenRouteDetails(it)) }
                     },
-                    modifier = Modifier.padding(horizontal = 24.dp),
+                    modifier = Modifier.padding(horizontal = 24.dp).padding(bottom = 12.dp),
                 ) { Text(strings[TextKey.Details]) }
             }
         }
@@ -673,6 +716,7 @@ fun MapScreen(
     if (locationPrompt) {
         AlertDialog(
             onDismissRequest = { locationPrompt = false },
+            containerColor = MaterialTheme.colorScheme.surface,
             title = { Text(strings[TextKey.MyLocation]) },
             text = { Text(strings[TextKey.LocationHelp]) },
             confirmButton = {
@@ -697,6 +741,7 @@ fun MapScreen(
             val vehicle = vehicles.vehicles.firstOrNull { it.id == id }
             AlertDialog(
                 onDismissRequest = { vehicleDetailsVisible = false },
+                containerColor = MaterialTheme.colorScheme.surface,
                 title = { Text("${strings[TextKey.Vehicle]} $id") },
                 text = { Text(strings[if (vehicles.isStale || vehicle == null) TextKey.Stale else TextKey.Live]) },
                 confirmButton = {

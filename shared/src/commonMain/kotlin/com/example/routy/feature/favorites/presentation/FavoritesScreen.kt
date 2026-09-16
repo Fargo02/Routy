@@ -192,6 +192,7 @@ fun FavoritesScreen(
     stopRemovalConfirmationId?.let { stopId ->
         AlertDialog(
             onDismissRequest = { stopRemovalConfirmationId = null },
+            containerColor = MaterialTheme.colorScheme.surface,
             title = { Text(strings[TextKey.RemoveFavoriteTitle]) },
             text = { Text(strings[TextKey.RemoveFavoriteBody]) },
             confirmButton = {
@@ -254,6 +255,7 @@ private fun FavoriteSwipeToDismiss(
     if (removalConfirmationVisible) {
         AlertDialog(
             onDismissRequest = { removalConfirmationVisible = false },
+            containerColor = MaterialTheme.colorScheme.surface,
             title = { Text(strings[TextKey.RemoveFavoriteTitle]) },
             text = { Text(strings[TextKey.RemoveFavoriteBody]) },
             confirmButton = {

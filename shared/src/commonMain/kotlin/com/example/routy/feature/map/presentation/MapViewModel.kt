@@ -124,10 +124,7 @@ class MapViewModel(
             MapAction.ClearSelectedRoutes -> savedState["routeIds"] = emptyList<String>()
             MapAction.ClearSelectedStop -> sendEffect(MapEffect.ClearStopSelection)
             is MapAction.SaveCamera -> saveCamera(action.camera)
-            MapAction.ToggleSelectedRouteFavorite ->
-                selectedRouteIds.value.lastOrNull()?.let { routeId ->
-                    viewModelScope.launch { favorites.route(routeId) }
-                }
+            is MapAction.ToggleRouteFavorite -> viewModelScope.launch { favorites.route(action.id) }
             MapAction.OpenSearch -> setSearchOpen(true)
             MapAction.CloseSearch -> closeSearch()
             is MapAction.SearchQueryChanged -> setSearchQuery(action.query)
@@ -144,7 +141,7 @@ class MapViewModel(
             is MapAction.ShowStopOnMap -> sendEffect(MapEffect.ShowStopOnMap(action.id))
             is MapAction.SelectVehicle -> sendEffect(MapEffect.ShowVehicle(action.id))
             MapAction.OpenStops -> sendEffect(MapEffect.Navigate(Stops))
-            MapAction.OpenRouteDetails -> selectedRouteIds.value.lastOrNull()?.let { sendEffect(MapEffect.Navigate(RouteDetails(it))) }
+            is MapAction.OpenRouteDetails -> sendEffect(MapEffect.Navigate(RouteDetails(action.id)))
             MapAction.MyLocation -> sendEffect(MapEffect.RequestLocation)
             MapAction.Retry -> viewModelScope.launch { transport.refresh() }
         }

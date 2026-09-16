@@ -13,7 +13,9 @@ sealed interface MapAction {
         val camera: MapCamera,
     ) : MapAction
 
-    data object ToggleSelectedRouteFavorite : MapAction
+    data class ToggleRouteFavorite(
+        val id: String,
+    ) : MapAction
 
     data object OpenSearch : MapAction
 
@@ -47,7 +49,9 @@ sealed interface MapAction {
 
     data object OpenStops : MapAction
 
-    data object OpenRouteDetails : MapAction
+    data class OpenRouteDetails(
+        val id: String,
+    ) : MapAction
 
     data object MyLocation : MapAction
 
