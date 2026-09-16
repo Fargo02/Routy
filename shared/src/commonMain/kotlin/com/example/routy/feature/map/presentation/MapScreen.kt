@@ -20,7 +20,9 @@ import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -30,6 +32,7 @@ import androidx.compose.material3.AssistChip
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
@@ -434,6 +437,7 @@ fun MapScreen(
                                 selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
                                 selectedLeadingIconColor = MaterialTheme.colorScheme.onPrimary,
                             ),
+                        border = null,
                     )
                 }
             }
@@ -452,6 +456,32 @@ fun MapScreen(
                         RoutyIcon(Glyph.Routes, strings[TextKey.Live])
                     }
                 }
+                MapZoomButton(
+                    label = "Приблизить карту",
+                    symbol = "+",
+                    onClick = {
+                        scope.launch {
+                            mapState.animateCameraPosition(
+                                mapState.cameraPosition.copy(
+                                    zoom = (mapState.cameraPosition.zoom + 1.0).coerceAtMost(20.0),
+                                ),
+                            )
+                        }
+                    },
+                )
+                MapZoomButton(
+                    label = "Отдалить карту",
+                    symbol = "−",
+                    onClick = {
+                        scope.launch {
+                            mapState.animateCameraPosition(
+                                mapState.cameraPosition.copy(
+                                    zoom = (mapState.cameraPosition.zoom - 1.0).coerceAtLeast(1.0),
+                                ),
+                            )
+                        }
+                    },
+                )
                 SmallFloatingActionButton({
                     model.actionHandler(MapAction.OpenStops)
                 }, containerColor = MaterialTheme.colorScheme.surface) {
@@ -771,5 +801,29 @@ fun MapScreen(
                 },
             )
         }
+    }
+}
+
+@Composable
+private fun MapZoomButton(
+    label: String,
+    symbol: String,
+    onClick: () -> Unit,
+) {
+    FilledTonalIconButton(
+        onClick = onClick,
+        modifier = Modifier.size(48.dp),
+        shape = RoundedCornerShape(12.dp),
+        colors =
+            androidx.compose.material3.IconButtonDefaults.filledTonalIconButtonColors(
+                containerColor = MaterialTheme.colorScheme.surface,
+                contentColor = MaterialTheme.colorScheme.primary,
+            ),
+    ) {
+        Text(
+            text = symbol,
+            style = MaterialTheme.typography.headlineMedium,
+            modifier = Modifier.semantics { contentDescription = label },
+        )
     }
 }
