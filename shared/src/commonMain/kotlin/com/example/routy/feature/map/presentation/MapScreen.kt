@@ -1,6 +1,7 @@
 package com.example.routy.feature.map.presentation
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
@@ -17,6 +18,8 @@ import com.example.routy.core.localization.*
 import com.example.routy.core.mvi.CollectEffects
 import com.example.routy.core.navigation.Destination
 import com.example.routy.feature.map.presentation.state.*
+import com.example.routy.feature.routes.domain.SearchRoutesUseCase
+import com.example.routy.feature.stops.domain.SearchStopsUseCase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -53,7 +56,33 @@ fun MapScreen(
             ?.routes
             .orEmpty()
             .let { routes -> routes.filter { it.id in state.favoriteRouteIds } + routes.filterNot { it.id in state.favoriteRouteIds } }
+    val routeSearch = remember { SearchRoutesUseCase() }
+    val stopSearch = remember { SearchStopsUseCase() }
     val scope = rememberCoroutineScope()
+    var searchVisible by rememberSaveable { mutableStateOf(false) }
+    var searchQuery by rememberSaveable { mutableStateOf("") }
+    val searchResults =
+        remember(state.network.network, searchQuery) {
+            routeSearch(
+                state.network.network
+                    ?.routes
+                    .orEmpty(),
+                searchQuery,
+            )
+        }
+    val stopSearchResults =
+        remember(state.network.network, searchQuery) {
+            if (searchQuery.isBlank()) {
+                emptyList()
+            } else {
+                stopSearch(
+                    state.network.network
+                        ?.stops
+                        .orEmpty(),
+                    searchQuery,
+                )
+            }
+        }
     var locationEnabled by rememberSaveable { mutableStateOf(false) }
     var focusLocation by remember { mutableStateOf(false) }
     var vehicleDetailsVisible by rememberSaveable { mutableStateOf(false) }
@@ -202,7 +231,7 @@ fun MapScreen(
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 Surface(
-                    onClick = { model.actionHandler(MapAction.OpenSearch) },
+                    onClick = { searchVisible = true },
                     shape = MaterialTheme.shapes.large,
                     shadowElevation = 8.dp,
                 ) {
@@ -322,6 +351,32 @@ fun MapScreen(
                         model.actionHandler(MapAction.OpenRouteDetails)
                     },
                 ) { Text(strings[TextKey.Details]) }
+            }
+        }
+    }
+    if (searchVisible) {
+        ModalBottomSheet(onDismissRequest = { searchVisible = false }) {
+            LazyColumn(
+                Modifier.fillMaxWidth(),
+                contentPadding = PaddingValues(horizontal = 24.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                item { SearchField(searchQuery, strings[TextKey.Search]) { searchQuery = it } }
+                items(searchResults, key = { "route:${it.id}" }) { route ->
+                    RouteCard(route) {
+                        searchVisible = false
+                        model.actionHandler(MapAction.SelectRoute(route.id))
+                    }
+                }
+                items(stopSearchResults, key = { "stop:${it.id}" }) { stop ->
+                    StopCard(
+                        stop = stop,
+                        onClick = {
+                            searchVisible = false
+                            model.actionHandler(MapAction.SelectStop(stop.id))
+                        },
+                    )
+                }
             }
         }
     }

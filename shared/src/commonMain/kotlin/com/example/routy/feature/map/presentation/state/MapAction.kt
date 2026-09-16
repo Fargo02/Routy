@@ -13,8 +13,6 @@ sealed interface MapAction {
         val id: String,
     ) : MapAction
 
-    data object OpenSearch : MapAction
-
     data object OpenStops : MapAction
 
     data object OpenRouteDetails : MapAction

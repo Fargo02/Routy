@@ -11,8 +11,6 @@ import com.example.routy.feature.map.navigation.Map
 import com.example.routy.feature.map.navigation.navigateToMapScreen
 import com.example.routy.feature.route_details.navigation.RouteDetails
 import com.example.routy.feature.route_details.navigation.navigateToRouteDetailsScreen
-import com.example.routy.feature.routes.navigation.Routes
-import com.example.routy.feature.routes.navigation.navigateToRoutesScreen
 import com.example.routy.feature.settings.navigation.Settings
 import com.example.routy.feature.settings.navigation.navigateToSettingsScreen
 import com.example.routy.feature.stop_details.navigation.StopDetails
@@ -39,7 +37,6 @@ inline fun <reified T : Any> NavController.navigateIfResumed(
 fun NavController.navigateTo(destination: Destination) {
     when (destination) {
         Map -> navigateToMapScreen()
-        Routes -> navigateToRoutesScreen()
         Stops -> navigateToStopsScreen()
         Favorites -> navigateToFavoritesScreen()
         Settings -> navigateToSettingsScreen()

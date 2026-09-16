@@ -10,7 +10,6 @@ import com.example.routy.feature.favorites.domain.FavoritesUseCase
 import com.example.routy.feature.map.presentation.state.*
 import com.example.routy.feature.route_details.domain.GetRouteDetailsUseCase
 import com.example.routy.feature.route_details.navigation.RouteDetails
-import com.example.routy.feature.routes.navigation.Routes
 import com.example.routy.feature.stop_details.navigation.StopDetails
 import com.example.routy.feature.stops.navigation.Stops
 import kotlinx.coroutines.Dispatchers
@@ -75,7 +74,6 @@ class MapViewModel(
             }
             is MapAction.SelectStop -> sendEffect(MapEffect.Navigate(StopDetails(action.id)))
             is MapAction.SelectVehicle -> sendEffect(MapEffect.ShowVehicle(action.id))
-            MapAction.OpenSearch -> sendEffect(MapEffect.Navigate(Routes))
             MapAction.OpenStops -> sendEffect(MapEffect.Navigate(Stops))
             MapAction.OpenRouteDetails -> selectedRouteIds.value.lastOrNull()?.let { sendEffect(MapEffect.Navigate(RouteDetails(it))) }
             MapAction.MyLocation -> sendEffect(MapEffect.RequestLocation)

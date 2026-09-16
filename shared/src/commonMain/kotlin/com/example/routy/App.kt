@@ -55,8 +55,6 @@ import com.example.routy.feature.map.presentation.state.MapAction
 import com.example.routy.feature.route_details.domain.GetRouteDetailsUseCase
 import com.example.routy.feature.route_details.navigation.RouteDetails
 import com.example.routy.feature.route_details.navigation.routeDetailsScreen
-import com.example.routy.feature.routes.navigation.Routes
-import com.example.routy.feature.routes.navigation.routesScreen
 import com.example.routy.feature.settings.navigation.Settings
 import com.example.routy.feature.settings.navigation.settingsScreen
 import com.example.routy.feature.settings.presentation.SettingsViewModel
@@ -122,7 +120,6 @@ fun App(graph: AppGraph) {
                 Box(Modifier.fillMaxSize()) {
                     NavHost(navController = navController, startDestination = Map) {
                         mapScreen(map, navController::navigateTo)
-                        routesScreen(graph.transport, navController::navigateTo)
                         stopsScreen(graph.transport, navController::navigateTo)
                         favoritesScreen(graph.transport, graph.favorites, navController::navigateTo)
                         settingsScreen(settings)
@@ -152,7 +149,7 @@ fun App(graph: AppGraph) {
                     }
                     FloatingBottomNavigation(
                         modifier = Modifier.align(Alignment.BottomCenter),
-                        items = listOf(Map, Routes, Favorites, Settings),
+                        items = listOf(Map, Favorites, Settings),
                         selected = visibleDestination,
                         onNavigate = navController::navigateTo,
                     )
@@ -165,7 +162,6 @@ fun App(graph: AppGraph) {
 private fun NavDestination?.matches(item: BottomNavigationItem): Boolean =
     when (item) {
         Map -> hasRouteType<Map>()
-        Routes -> hasRouteType<Routes>()
         Favorites -> hasRouteType<Favorites>()
         Settings -> hasRouteType<Settings>()
         else -> false
@@ -217,7 +213,6 @@ private fun FloatingBottomNavigation(
 
 private fun NavDestination?.title(): TextKey =
     when {
-        hasRouteType<Routes>() -> TextKey.Routes
         hasRouteType<Stops>() -> TextKey.Stops
         hasRouteType<Favorites>() -> TextKey.Favorites
         hasRouteType<Settings>() -> TextKey.Settings
