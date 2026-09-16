@@ -1,8 +1,5 @@
 package com.example.routy.feature.map.presentation
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -27,6 +24,7 @@ import com.example.routy.feature.map.presentation.state.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.yield
 import kotlinx.serialization.json.jsonPrimitive
 import org.maplibre.compose.camera.CameraPosition
 import org.maplibre.compose.expressions.dsl.const
@@ -63,7 +61,9 @@ fun MapScreen(
     val scope = rememberCoroutineScope()
     val searchFocusRequester = remember { FocusRequester() }
     val keyboard = LocalSoftwareKeyboardController.current
-    val searchSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
+    val searchBottomPadding = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + 16.dp
+    val searchSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    var searchFieldQuery by rememberSaveable { mutableStateOf("") }
     var locationEnabled by rememberSaveable { mutableStateOf(false) }
     var focusLocation by remember { mutableStateOf(false) }
     var vehicleDetailsVisible by rememberSaveable { mutableStateOf(false) }
@@ -78,7 +78,11 @@ fun MapScreen(
     val vehicleJson by produceState(EMPTY_GEOJSON, vehicles.vehicles) {
         value = withContext(Dispatchers.Default) { vehiclesGeoJson(vehicles.vehicles) }
     }
-    val selectedStopJson = remember(state.stops, selectedStop) { stopsGeoJson(state.stops.filter { it.id == selectedStop }) }
+    val selectedStopJson =
+        remember(
+            state.stops,
+            selectedStop,
+        ) { stopsGeoJson(state.stops.filter { it.id == selectedStop }) }
     val selectedVehicleJson =
         remember(vehicles.vehicles, selectedVehicle) {
             vehiclesGeoJson(
@@ -92,17 +96,37 @@ fun MapScreen(
     val mapState =
         rememberMapState(
             baseStyle = BaseStyle.Uri(if (dark) style.dark else style.light),
-            initialCameraPosition = CameraPosition(target = Position(longitude = 41.6367, latitude = 41.6461), zoom = 13.0),
+            initialCameraPosition =
+                CameraPosition(
+                    target =
+                        Position(
+                            longitude = 41.6367,
+                            latitude = 41.6461,
+                        ),
+                    zoom = 13.0,
+                ),
         ) {
             val stopSource = rememberGeoJsonSource(GeoJsonData.JsonString(state.stopGeoJson))
             val vehicleSource = rememberGeoJsonSource(GeoJsonData.JsonString(vehicleJson))
             val selectionSource = rememberGeoJsonSource(GeoJsonData.JsonString(selectedStopJson))
-            val vehicleSelectionSource = rememberGeoJsonSource(GeoJsonData.JsonString(selectedVehicleJson))
+            val vehicleSelectionSource =
+                rememberGeoJsonSource(GeoJsonData.JsonString(selectedVehicleJson))
             state.geometries.forEachIndexed { index, geometry ->
-                val routeSource = rememberGeoJsonSource(GeoJsonData.JsonString(routeGeoJson(listOf(geometry))))
+                val routeSource =
+                    rememberGeoJsonSource(GeoJsonData.JsonString(routeGeoJson(listOf(geometry))))
                 val routeColor = palette.routeColors[index % palette.routeColors.size]
-                LineLayer("route-outline-${geometry.routeId}", routeSource, color = const(palette.routeOutline), width = const(8.dp))
-                LineLayer("route-${geometry.routeId}", routeSource, color = const(routeColor), width = const(5.dp))
+                LineLayer(
+                    "route-outline-${geometry.routeId}",
+                    routeSource,
+                    color = const(palette.routeOutline),
+                    width = const(8.dp),
+                )
+                LineLayer(
+                    "route-${geometry.routeId}",
+                    routeSource,
+                    color = const(routeColor),
+                    width = const(5.dp),
+                )
             }
             CircleLayer(
                 "stops",
@@ -165,6 +189,7 @@ fun MapScreen(
                 selectedVehicle = it.id
                 vehicleDetailsVisible = true
             }
+
             MapEffect.RequestLocation -> {
                 locationEnabled = true
                 focusLocation = true
@@ -178,9 +203,15 @@ fun MapScreen(
             }
         }
     }
-    LaunchedEffect(mapState) { mapState.events.collect { if (it is MapEvent.StyleLoadFailed) mapError = true } }
+    LaunchedEffect(mapState) {
+        mapState.events.collect {
+            if (it is MapEvent.StyleLoadFailed) mapError = true
+        }
+    }
     LaunchedEffect(state.search.isOpen) {
         if (state.search.isOpen) {
+            searchFieldQuery = state.search.query
+            yield()
             searchFocusRequester.requestFocus()
             keyboard?.show()
             searchSheetState.expand()
@@ -195,7 +226,15 @@ fun MapScreen(
     }
     LaunchedEffect(selectedStop) {
         state.stops.firstOrNull { it.id == selectedStop }?.let {
-            mapState.animateCameraPosition(mapState.cameraPosition.copy(target = Position(it.position.longitude, it.position.latitude)))
+            mapState.animateCameraPosition(
+                mapState.cameraPosition.copy(
+                    target =
+                        Position(
+                            it.position.longitude,
+                            it.position.latitude,
+                        ),
+                ),
+            )
         }
     }
     LaunchedEffect(focusLocation, location.lastLocation) {
@@ -209,7 +248,10 @@ fun MapScreen(
     ScreenScaffold(hasTopBarOverlay = false) { screenPadding ->
         Box(Modifier.fillMaxSize()) {
             MaplibreMap(
-                modifier = Modifier.fillMaxSize().semantics { contentDescription = strings[TextKey.Map] },
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .semantics { contentDescription = strings[TextKey.Map] },
                 state = mapState,
                 overlay = {},
             )
@@ -217,27 +259,29 @@ fun MapScreen(
                 Modifier
                     .align(Alignment.TopCenter)
                     .fillMaxWidth()
-                    .padding(start = 16.dp, top = screenPadding.calculateTopPadding() + 16.dp, end = 16.dp),
+                    .padding(
+                        start = 16.dp,
+                        top = screenPadding.calculateTopPadding() + 16.dp,
+                        end = 16.dp,
+                    ),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                AnimatedVisibility(
-                    visible = !state.search.isOpen,
-                    enter = fadeIn(),
-                    exit = fadeOut(),
+                Surface(
+                    onClick = { model.actionHandler(MapAction.OpenSearch) },
+                    shape = MaterialTheme.shapes.large,
+                    shadowElevation = 8.dp,
                 ) {
-                    Surface(
-                        onClick = { model.actionHandler(MapAction.OpenSearch) },
-                        shape = MaterialTheme.shapes.large,
-                        shadowElevation = 8.dp,
+                    Row(
+                        Modifier.fillMaxWidth().padding(18.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
-                        Row(
-                            Modifier.fillMaxWidth().padding(18.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        ) {
-                            RoutyIcon(Glyph.Search)
-                            Text(strings[TextKey.Search], Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
-                        }
+                        RoutyIcon(Glyph.Search)
+                        Text(
+                            strings[TextKey.Search],
+                            Modifier.weight(1f),
+                            style = MaterialTheme.typography.bodyLarge,
+                        )
                     }
                 }
                 if (state.network.network == null ||
@@ -296,10 +340,20 @@ fun MapScreen(
                 }
                 SmallFloatingActionButton({
                     model.actionHandler(MapAction.OpenStops)
-                }, containerColor = MaterialTheme.colorScheme.surface) { RoutyIcon(Glyph.Stop, strings[TextKey.Nearby]) }
+                }, containerColor = MaterialTheme.colorScheme.surface) {
+                    RoutyIcon(
+                        Glyph.Stop,
+                        strings[TextKey.Nearby],
+                    )
+                }
                 SmallFloatingActionButton({
                     model.actionHandler(MapAction.MyLocation)
-                }, containerColor = MaterialTheme.colorScheme.surface) { RoutyIcon(Glyph.Location, strings[TextKey.MyLocation]) }
+                }, containerColor = MaterialTheme.colorScheme.surface) {
+                    RoutyIcon(
+                        Glyph.Location,
+                        strings[TextKey.MyLocation],
+                    )
+                }
             }
         }
     }
@@ -351,39 +405,66 @@ fun MapScreen(
         }
     }
     if (state.search.isOpen) {
+        val hasCurrentSearchResults = state.search.query == searchFieldQuery
         ModalBottomSheet(
             onDismissRequest = { model.actionHandler(MapAction.CloseSearch) },
             sheetState = searchSheetState,
             containerColor = palette.searchSheet,
             scrimColor = Color.Black.copy(alpha = 0.32f),
+            contentWindowInsets = { WindowInsets.safeDrawing.only(WindowInsetsSides.Top) },
         ) {
             LazyColumn(
-                Modifier.fillMaxWidth().imePadding(),
-                contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp),
+                Modifier.fillMaxSize().imePadding(),
+                contentPadding = PaddingValues(top = 8.dp, bottom = searchBottomPadding),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 item {
                     SearchField(
-                        value = state.search.query,
+                        value = searchFieldQuery,
                         placeholder = strings[TextKey.Search],
-                        onChange = { model.actionHandler(MapAction.SearchQueryChanged(it)) },
-                        modifier = Modifier.focusRequester(searchFocusRequester),
-                        onClear = { model.actionHandler(MapAction.ClearSearch) },
+                        onChange = {
+                            searchFieldQuery = it
+                            model.actionHandler(MapAction.SearchQueryChanged(it))
+                        },
+                        modifier = Modifier.padding(horizontal = 20.dp).focusRequester(searchFocusRequester),
+                        onClear = {
+                            searchFieldQuery = ""
+                            model.actionHandler(MapAction.ClearSearch)
+                        },
                     )
                 }
-                if (state.search.query.isBlank()) {
-                    item { Text(strings[TextKey.QuickSelect], style = MaterialTheme.typography.titleMedium) }
+                if (searchFieldQuery.isBlank()) {
                     item {
-                        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(
+                            strings[TextKey.QuickSelect],
+                            Modifier.padding(horizontal = 20.dp),
+                            style = MaterialTheme.typography.titleMedium,
+                        )
+                    }
+                    item {
+                        LazyRow(
+                            modifier = Modifier.fillParentMaxWidth(),
+                            contentPadding = PaddingValues(horizontal = 20.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
                             items(state.search.quickRoutes, key = { it.id }) { route ->
                                 FilterChip(
                                     selected = route.id in state.selectedRouteIds,
-                                    onClick = { model.actionHandler(MapAction.SelectSearchRoute(route.id)) },
+                                    onClick = {
+                                        model.actionHandler(
+                                            MapAction.SelectSearchRoute(
+                                                route.id,
+                                            ),
+                                        )
+                                    },
                                     label = {
                                         Row(verticalAlignment = Alignment.CenterVertically) {
                                             if (route.id in state.favoriteRouteIds) {
                                                 CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.tertiary) {
-                                                    RoutyIcon(Glyph.Star, strings[TextKey.Favorites])
+                                                    RoutyIcon(
+                                                        Glyph.Star,
+                                                        strings[TextKey.Favorites],
+                                                    )
                                                 }
                                                 Spacer(Modifier.width(4.dp))
                                             }
@@ -395,34 +476,50 @@ fun MapScreen(
                         }
                     }
                 }
-                if (state.search.routes.isNotEmpty()) {
-                    item { Text(strings[TextKey.Routes], style = MaterialTheme.typography.titleMedium) }
+                if (hasCurrentSearchResults && state.search.routes.isNotEmpty()) {
+                    item {
+                        Text(
+                            strings[TextKey.Routes],
+                            Modifier.padding(horizontal = 20.dp),
+                            style = MaterialTheme.typography.titleMedium,
+                        )
+                    }
                     items(state.search.routes, key = { "route:${it.id}" }) { route ->
-                        RouteCard(
-                            route = route,
-                            stopCount = state.search.routeStopCounts[route.id],
-                            onClick = { model.actionHandler(MapAction.SelectSearchRoute(route.id)) },
+                        Box(Modifier.padding(horizontal = 20.dp)) {
+                            RouteCard(
+                                route = route,
+                                stopCount = state.search.routeStopCounts[route.id],
+                                onClick = { model.actionHandler(MapAction.SelectSearchRoute(route.id)) },
+                            )
+                        }
+                    }
+                }
+                if (hasCurrentSearchResults && state.search.stops.isNotEmpty()) {
+                    item {
+                        Text(
+                            strings[TextKey.Stops],
+                            Modifier.padding(horizontal = 20.dp),
+                            style = MaterialTheme.typography.titleMedium,
                         )
                     }
                 }
-                if (state.search.stops.isNotEmpty()) {
-                    item { Text(strings[TextKey.Stops], style = MaterialTheme.typography.titleMedium) }
+                if (hasCurrentSearchResults) items(state.search.stops, key = { "stop:${it.id}" }) { stop ->
+                    Box(Modifier.padding(horizontal = 20.dp)) {
+                        StopCard(
+                            stop = stop,
+                            subtitle =
+                                stop.services
+                                    .map { it.routeId }
+                                    .distinct()
+                                    .joinToString(" · "),
+                            onClick = {
+                                model.actionHandler(MapAction.SelectSearchStop(stop.id))
+                            },
+                        )
+                    }
                 }
-                items(state.search.stops, key = { "stop:${it.id}" }) { stop ->
-                    StopCard(
-                        stop = stop,
-                        subtitle =
-                            stop.services
-                                .map { it.routeId }
-                                .distinct()
-                                .joinToString(" · "),
-                        onClick = {
-                            model.actionHandler(MapAction.SelectSearchStop(stop.id))
-                        },
-                    )
-                }
-                if (state.search.query.isNotBlank() && state.search.routes.isEmpty() && state.search.stops.isEmpty()) {
-                    item { SearchEmptyState() }
+                if (hasCurrentSearchResults && searchFieldQuery.isNotBlank() && state.search.routes.isEmpty() && state.search.stops.isEmpty()) {
+                    item { SearchEmptyState(Modifier.padding(horizontal = 20.dp)) }
                 }
             }
         }
@@ -442,7 +539,11 @@ fun MapScreen(
                     }
                 }) { Text(strings[TextKey.MyLocation]) }
             },
-            dismissButton = { TextButton({ locationPrompt = false }) { Text(strings[TextKey.Close]) } },
+            dismissButton = {
+                TextButton({
+                    locationPrompt = false
+                }) { Text(strings[TextKey.Close]) }
+            },
         )
     }
     if (vehicleDetailsVisible) {
@@ -457,7 +558,14 @@ fun MapScreen(
                         vehicle?.let {
                             scope.launch {
                                 mapState.animateCameraPosition(
-                                    CameraPosition(target = Position(it.position.longitude, it.position.latitude), zoom = 16.0),
+                                    CameraPosition(
+                                        target =
+                                            Position(
+                                                it.position.longitude,
+                                                it.position.latitude,
+                                            ),
+                                        zoom = 16.0,
+                                    ),
                                 )
                             }
                         }
@@ -465,7 +573,11 @@ fun MapScreen(
                             null
                     }) { Text(strings[TextKey.ShowMap]) }
                 },
-                dismissButton = { TextButton({ vehicleDetailsVisible = false }) { Text(strings[TextKey.Close]) } },
+                dismissButton = {
+                    TextButton({
+                        vehicleDetailsVisible = false
+                    }) { Text(strings[TextKey.Close]) }
+                },
             )
         }
     }

@@ -18,9 +18,25 @@ class SearchRoutesUseCaseTest {
         assertEquals(listOf("2", "2A", "20", "12"), results.map { it.id })
     }
 
-    private fun route(number: String) =
+    @Test
+    fun technicalRouteIdsDoNotMatchWhenTheRouteHasAName() {
+        val results =
+            SearchRoutesUseCase()(
+                listOf(route(id = "5ed6077c340f60873ff9e1be", number = "7"), route(id = "34", number = "34")),
+                "34",
+            )
+
+        assertEquals(listOf("34"), results.map { it.id })
+    }
+
+    private fun route(number: String) = route(id = number, number = number)
+
+    private fun route(
+        id: String,
+        number: String,
+    ) =
         Route(
-            id = number,
+            id = id,
             name = LocalizedName(english = number, georgian = null, original = null),
             sortOrder = null,
         )

@@ -244,10 +244,10 @@ fun StopCard(
 }
 
 @Composable
-fun SearchEmptyState() {
+fun SearchEmptyState(modifier: Modifier = Modifier) {
     val strings = LocalStrings.current
     Column(
-        Modifier.fillMaxWidth().padding(vertical = 32.dp),
+        modifier.fillMaxWidth().padding(vertical = 32.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {

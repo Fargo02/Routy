@@ -33,8 +33,8 @@ class MapViewModel(
 
     private val selectedRouteIds =
         savedState.getStateFlow("routeIds", savedState.get<String>("routeId")?.let(::listOf).orEmpty())
-    private val searchOpen = savedState.getStateFlow("searchOpen", false)
-    private val searchQuery = savedState.getStateFlow("searchQuery", "")
+    private val searchOpen = MutableStateFlow(savedState.get<Boolean>("searchOpen") ?: false)
+    private val searchQuery = MutableStateFlow(savedState.get<String>("searchQuery") ?: "")
     private val searchRequest = combine(searchOpen, searchQuery) { isOpen, query -> isOpen to query }
     val uiState =
         combine(transport.state, selectedRouteIds, favorites.state, searchRequest) { network, routeIds, saved, search ->
@@ -94,10 +94,10 @@ class MapViewModel(
     fun actionHandler(action: MapAction) {
         when (action) {
             is MapAction.SelectRoute -> toggleRoute(action.id)
-            MapAction.OpenSearch -> savedState["searchOpen"] = true
+            MapAction.OpenSearch -> setSearchOpen(true)
             MapAction.CloseSearch -> closeSearch()
-            is MapAction.SearchQueryChanged -> savedState["searchQuery"] = action.query
-            MapAction.ClearSearch -> savedState["searchQuery"] = ""
+            is MapAction.SearchQueryChanged -> setSearchQuery(action.query)
+            MapAction.ClearSearch -> setSearchQuery("")
             is MapAction.SelectSearchRoute -> {
                 closeSearch()
                 toggleRoute(action.id)
@@ -121,8 +121,18 @@ class MapViewModel(
     }
 
     private fun closeSearch() {
-        savedState["searchOpen"] = false
-        savedState["searchQuery"] = ""
+        setSearchOpen(false)
+        setSearchQuery("")
+    }
+
+    private fun setSearchOpen(isOpen: Boolean) {
+        searchOpen.value = isOpen
+        savedState["searchOpen"] = isOpen
+    }
+
+    private fun setSearchQuery(query: String) {
+        searchQuery.value = query
+        savedState["searchQuery"] = query
     }
 
     private fun sendEffect(effect: MapEffect) {
