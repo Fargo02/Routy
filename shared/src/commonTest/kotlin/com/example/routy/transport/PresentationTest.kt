@@ -3,9 +3,9 @@
 package com.example.routy.transport
 
 import androidx.lifecycle.ViewModelStore
-import com.example.routy.core.navigation.Destination
 import com.example.routy.core.transport.data.TransportParser
 import com.example.routy.core.transport.domain.*
+import com.example.routy.feature.route_details.navigation.RouteDetails
 import com.example.routy.feature.routes.domain.SearchRoutesUseCase
 import com.example.routy.feature.routes.presentation.*
 import com.example.routy.feature.routes.presentation.state.*
@@ -51,7 +51,7 @@ class PresentationTest {
                 )
                 val effect = async { model.effects.first() }
                 model.actionHandler(RoutesAction.Select("r"))
-                assertEquals(RoutesEffect.Navigate(Destination.RouteDetails("r")), effect.await())
+                assertEquals(RoutesEffect.Navigate(RouteDetails("r")), effect.await())
                 source.value = NetworkState(error = AppError.NoInternet)
                 assertEquals(
                     AppError.NoInternet,

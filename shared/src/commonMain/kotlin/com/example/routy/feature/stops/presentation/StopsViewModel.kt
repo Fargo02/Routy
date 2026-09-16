@@ -2,8 +2,8 @@ package com.example.routy.feature.stops.presentation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.routy.core.navigation.Destination
 import com.example.routy.core.transport.domain.*
+import com.example.routy.feature.stop_details.navigation.StopDetails
 import com.example.routy.feature.stops.domain.SearchStopsUseCase
 import com.example.routy.feature.stops.presentation.state.*
 import kotlinx.coroutines.Dispatchers
@@ -27,7 +27,7 @@ class StopsViewModel(
     fun actionHandler(action: StopsAction) {
         when (action) {
             is StopsAction.Search -> query.value = action.query
-            is StopsAction.Select -> sendEffect(StopsEffect.Navigate(Destination.StopDetails(action.id)))
+            is StopsAction.Select -> sendEffect(StopsEffect.Navigate(StopDetails(action.id)))
             StopsAction.Retry -> viewModelScope.launch { transport.refresh() }
         }
     }

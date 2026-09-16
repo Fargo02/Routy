@@ -5,10 +5,14 @@ package com.example.routy.feature.map.presentation
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.routy.core.navigation.Destination
 import com.example.routy.core.transport.domain.*
 import com.example.routy.feature.map.presentation.state.*
 import com.example.routy.feature.route_details.domain.GetRouteDetailsUseCase
+import com.example.routy.feature.route_details.navigation.RouteDetails
+import com.example.routy.feature.routes.navigation.Routes
+import com.example.routy.feature.settings.navigation.Settings
+import com.example.routy.feature.stop_details.navigation.StopDetails
+import com.example.routy.feature.stops.navigation.Stops
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.*
@@ -53,12 +57,12 @@ class MapViewModel(
     fun actionHandler(action: MapAction) {
         when (action) {
             is MapAction.SelectRoute -> savedState["routeId"] = action.id
-            is MapAction.SelectStop -> sendEffect(MapEffect.Navigate(Destination.StopDetails(action.id)))
+            is MapAction.SelectStop -> sendEffect(MapEffect.Navigate(StopDetails(action.id)))
             is MapAction.SelectVehicle -> sendEffect(MapEffect.ShowVehicle(action.id))
-            MapAction.OpenSearch -> sendEffect(MapEffect.Navigate(Destination.Routes))
-            MapAction.OpenStops -> sendEffect(MapEffect.Navigate(Destination.Stops))
-            MapAction.OpenSettings -> sendEffect(MapEffect.Navigate(Destination.Settings))
-            MapAction.OpenRouteDetails -> selectedRoute.value?.let { sendEffect(MapEffect.Navigate(Destination.RouteDetails(it))) }
+            MapAction.OpenSearch -> sendEffect(MapEffect.Navigate(Routes))
+            MapAction.OpenStops -> sendEffect(MapEffect.Navigate(Stops))
+            MapAction.OpenSettings -> sendEffect(MapEffect.Navigate(Settings))
+            MapAction.OpenRouteDetails -> selectedRoute.value?.let { sendEffect(MapEffect.Navigate(RouteDetails(it))) }
             MapAction.FitRoute -> sendEffect(MapEffect.FitRoute)
             MapAction.MyLocation -> sendEffect(MapEffect.RequestLocation)
             MapAction.Retry -> viewModelScope.launch { transport.refresh() }

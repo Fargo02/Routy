@@ -2,11 +2,11 @@ package com.example.routy.feature.route_details.presentation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.routy.core.navigation.Destination
 import com.example.routy.core.transport.domain.*
 import com.example.routy.feature.favorites.domain.FavoritesUseCase
 import com.example.routy.feature.route_details.domain.*
 import com.example.routy.feature.route_details.presentation.state.*
+import com.example.routy.feature.stop_details.navigation.StopDetails
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -40,7 +40,7 @@ class RouteDetailsViewModel(
                     val result = favorites.route(routeId)
                     if (result is Outcome.Failure) sendEffect(RouteDetailsEffect.Error(result.error))
                 }
-            is RouteDetailsAction.SelectStop -> sendEffect(RouteDetailsEffect.Navigate(Destination.StopDetails(action.id)))
+            is RouteDetailsAction.SelectStop -> sendEffect(RouteDetailsEffect.Navigate(StopDetails(action.id)))
             RouteDetailsAction.ShowMap -> sendEffect(RouteDetailsEffect.ShowMap(routeId))
             RouteDetailsAction.Retry -> viewModelScope.launch { transport.refresh() }
         }
