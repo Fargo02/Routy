@@ -196,7 +196,11 @@ fun MapScreen(
         }
     }
     Box(Modifier.fillMaxSize()) {
-        MaplibreMap(Modifier.fillMaxSize().semantics { contentDescription = strings[TextKey.Map] }, state = mapState)
+        MaplibreMap(
+            modifier = Modifier.fillMaxSize().semantics { contentDescription = strings[TextKey.Map] },
+            state = mapState,
+            overlay = {},
+        )
         Column(Modifier.align(Alignment.TopCenter).fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Surface(onClick = { model.actionHandler(MapAction.OpenSearch) }, shape = MaterialTheme.shapes.large, shadowElevation = 8.dp) {
                 Row(
