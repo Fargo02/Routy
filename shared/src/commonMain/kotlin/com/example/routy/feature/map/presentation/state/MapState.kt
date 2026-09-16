@@ -7,9 +7,11 @@ import com.example.routy.feature.map.presentation.EMPTY_GEOJSON
 
 data class MapState(
     val network: NetworkState = NetworkState(),
-    val routeId: String? = null,
+    val selectedRouteIds: List<String> = emptyList(),
     val stops: List<BusStop> = emptyList(),
-    val geometry: RouteGeometry? = null,
+    val geometries: List<RouteGeometry> = emptyList(),
     val stopGeoJson: String = EMPTY_GEOJSON,
-    val routeGeoJson: String = EMPTY_GEOJSON,
-)
+) {
+    val routeId: String?
+        get() = selectedRouteIds.lastOrNull()
+}

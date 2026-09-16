@@ -37,6 +37,7 @@ data class MapStyleConfig(
     val dark: String = "https://tiles.openfreemap.org/styles/dark",
 )
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MapScreen(
     model: MapViewModel,
@@ -51,11 +52,11 @@ fun MapScreen(
     var locationEnabled by rememberSaveable { mutableStateOf(false) }
     var focusLocation by remember { mutableStateOf(false) }
     var vehicleDetailsVisible by rememberSaveable { mutableStateOf(false) }
+    var routeInfoVisible by rememberSaveable { mutableStateOf(false) }
     var selectedVehicle by rememberSaveable { mutableStateOf<String?>(null) }
     var selectedStop by rememberSaveable { mutableStateOf<String?>(null) }
 
     var mapError by remember { mutableStateOf(false) }
-    var lastFittedRoute by rememberSaveable { mutableStateOf<String?>(null) }
     val location = rememberLocationState(enabled = locationEnabled)
     val systemSettings = rememberSystemSettingsLauncher()
     var locationPrompt by remember { mutableStateOf(false) }
@@ -78,13 +79,16 @@ fun MapScreen(
             baseStyle = BaseStyle.Uri(if (dark) style.dark else style.light),
             initialCameraPosition = CameraPosition(target = Position(longitude = 41.6367, latitude = 41.6461), zoom = 13.0),
         ) {
-            val routeSource = rememberGeoJsonSource(GeoJsonData.JsonString(state.routeGeoJson))
             val stopSource = rememberGeoJsonSource(GeoJsonData.JsonString(state.stopGeoJson))
             val vehicleSource = rememberGeoJsonSource(GeoJsonData.JsonString(vehicleJson))
             val selectionSource = rememberGeoJsonSource(GeoJsonData.JsonString(selectedStopJson))
             val vehicleSelectionSource = rememberGeoJsonSource(GeoJsonData.JsonString(selectedVehicleJson))
-            LineLayer("route-outline", routeSource, color = const(palette.routeOutline), width = const(8.dp))
-            LineLayer("route", routeSource, color = const(palette.route), width = const(5.dp))
+            state.geometries.forEachIndexed { index, geometry ->
+                val routeSource = rememberGeoJsonSource(GeoJsonData.JsonString(routeGeoJson(listOf(geometry))))
+                val routeColor = palette.routeColors[index % palette.routeColors.size]
+                LineLayer("route-outline-${geometry.routeId}", routeSource, color = const(palette.routeOutline), width = const(8.dp))
+                LineLayer("route-${geometry.routeId}", routeSource, color = const(routeColor), width = const(5.dp))
+            }
             CircleLayer(
                 "stops",
                 stopSource,
@@ -139,19 +143,6 @@ fun MapScreen(
             if (locationEnabled) LocationPuck(idPrefix = "user", locationState = location)
         }
 
-    suspend fun fitSelectedRoute() {
-        state.geometry?.points?.takeIf { it.isNotEmpty() }?.let { points ->
-            mapState.animateCameraToBounds(
-                org.maplibre.spatialk.geojson.BoundingBox(
-                    west = points.minOf { it.longitude },
-                    south = points.minOf { it.latitude },
-                    east = points.maxOf { it.longitude },
-                    north = points.maxOf { it.latitude },
-                ),
-                padding = PaddingValues(70.dp),
-            )
-        }
-    }
     CollectEffects(model.effects) {
         when (it) {
             is MapEffect.Navigate -> navigate(it.destination)
@@ -159,7 +150,6 @@ fun MapScreen(
                 selectedVehicle = it.id
                 vehicleDetailsVisible = true
             }
-            MapEffect.FitRoute -> fitSelectedRoute()
             MapEffect.RequestLocation -> {
                 locationEnabled = true
                 focusLocation = true
@@ -174,14 +164,10 @@ fun MapScreen(
         }
     }
     LaunchedEffect(mapState) { mapState.events.collect { if (it is MapEvent.StyleLoadFailed) mapError = true } }
-    LaunchedEffect(state.routeId, state.geometry?.routeId) {
+    LaunchedEffect(state.selectedRouteIds) {
         selectedVehicle = null
         vehicleDetailsVisible = false
-        if (state.routeId == null) lastFittedRoute = null
-        if (state.geometry != null && state.routeId != lastFittedRoute) {
-            fitSelectedRoute()
-            lastFittedRoute = state.routeId
-        }
+        routeInfoVisible = false
     }
     LaunchedEffect(selectedStop) {
         state.stops.firstOrNull { it.id == selectedStop }?.let {
@@ -224,27 +210,6 @@ fun MapScreen(
                         Text(strings[TextKey.Search], Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
                     }
                 }
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    item {
-                        FilterChip(
-                            state.routeId == null,
-                            { model.actionHandler(MapAction.SelectRoute(null)) },
-                            label = { Text(strings[TextKey.AllRoutes]) },
-                        )
-                    }
-                    items(
-                        state.network.network
-                            ?.routes
-                            .orEmpty(),
-                        key = { it.id },
-                    ) { route ->
-                        FilterChip(state.routeId == route.id, {
-                            model.actionHandler(MapAction.SelectRoute(route.id))
-                        }, label = {
-                            Text(route.name.resolve(strings.language, route.id))
-                        }, colors = FilterChipDefaults.filterChipColors(containerColor = MaterialTheme.colorScheme.surface))
-                    }
-                }
                 if (state.network.network == null ||
                     state.network.error != null
                 ) {
@@ -255,44 +220,40 @@ fun MapScreen(
                         shape = MaterialTheme.shapes.medium,
                     ) { Text(strings[TextKey.MapUnavailable], Modifier.padding(16.dp)) }
                 }
-                if (state.routeId != null) {
-                    Surface(shape = MaterialTheme.shapes.medium, shadowElevation = 3.dp) {
-                        Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Text(strings[TextKey.Live], style = MaterialTheme.typography.titleMedium)
-                            Text(
-                                when {
-                                    vehicles.isLoading -> strings[TextKey.Loading]
-                                    vehicles.isStale -> strings[TextKey.Stale]
-                                    vehicles.vehicles.isEmpty() -> strings[TextKey.NoBuses]
-                                    else -> "${vehicles.vehicles.size} ${strings[TextKey.Vehicle]}"
-                                },
-                                style = MaterialTheme.typography.bodySmall,
-                            )
-                            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                items(vehicles.vehicles, key = { it.id }) { vehicle ->
-                                    AssistChip(
-                                        { model.actionHandler(MapAction.SelectVehicle(vehicle.id)) },
-                                        label = { Text("${strings[TextKey.Vehicle]} ${vehicle.id}") },
-                                    )
-                                }
-                            }
-                            TextButton({ model.actionHandler(MapAction.OpenRouteDetails) }) { Text(strings[TextKey.Details]) }
-                        }
-                    }
+            }
+            LazyRow(
+                modifier =
+                    Modifier
+                        .align(Alignment.TopCenter)
+                        .fillMaxWidth()
+                        .padding(top = screenPadding.calculateTopPadding() + 84.dp),
+                contentPadding = PaddingValues(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                items(
+                    state.network.network
+                        ?.routes
+                        .orEmpty(),
+                    key = { it.id },
+                ) { route ->
+                    FilterChip(
+                        selected = route.id in state.selectedRouteIds,
+                        onClick = { model.actionHandler(MapAction.SelectRoute(route.id)) },
+                        label = { Text(route.name.resolve(strings.language, route.id)) },
+                        colors = FilterChipDefaults.filterChipColors(containerColor = MaterialTheme.colorScheme.surface),
+                    )
                 }
             }
             Column(
                 Modifier.align(Alignment.BottomEnd).padding(end = 16.dp, bottom = 132.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                if (state.geometry !=
-                    null
-                ) {
+                if (state.selectedRouteIds.isNotEmpty()) {
                     SmallFloatingActionButton(
-                        { model.actionHandler(MapAction.FitRoute) },
+                        { routeInfoVisible = true },
                         containerColor = MaterialTheme.colorScheme.surface,
                     ) {
-                        RoutyIcon(Glyph.Routes, strings[TextKey.FitRoute])
+                        RoutyIcon(Glyph.Routes, strings[TextKey.Live])
                     }
                 }
                 SmallFloatingActionButton({
@@ -301,6 +262,53 @@ fun MapScreen(
                 SmallFloatingActionButton({
                     model.actionHandler(MapAction.MyLocation)
                 }, containerColor = MaterialTheme.colorScheme.surface) { RoutyIcon(Glyph.Location, strings[TextKey.MyLocation]) }
+            }
+        }
+    }
+    if (routeInfoVisible) {
+        ModalBottomSheet(onDismissRequest = { routeInfoVisible = false }) {
+            Column(
+                Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                state.network.network
+                    ?.routes
+                    ?.firstOrNull { it.id == state.routeId }
+                    ?.let { route ->
+                        Text(
+                            route.name.resolve(strings.language, route.id),
+                            style = MaterialTheme.typography.headlineSmall,
+                        )
+                    }
+                Text(strings[TextKey.Live], style = MaterialTheme.typography.titleMedium)
+                Text(
+                    when {
+                        vehicles.isLoading -> strings[TextKey.Loading]
+                        vehicles.isStale -> strings[TextKey.Stale]
+                        vehicles.vehicles.isEmpty() -> strings[TextKey.NoBuses]
+                        else -> "${vehicles.vehicles.size} ${strings[TextKey.Vehicle]}"
+                    },
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+                if (vehicles.vehicles.isNotEmpty()) {
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        items(vehicles.vehicles, key = { it.id }) { vehicle ->
+                            AssistChip(
+                                onClick = {
+                                    routeInfoVisible = false
+                                    model.actionHandler(MapAction.SelectVehicle(vehicle.id))
+                                },
+                                label = { Text("${strings[TextKey.Vehicle]} ${vehicle.id}") },
+                            )
+                        }
+                    }
+                }
+                TextButton(
+                    onClick = {
+                        routeInfoVisible = false
+                        model.actionHandler(MapAction.OpenRouteDetails)
+                    },
+                ) { Text(strings[TextKey.Details]) }
             }
         }
     }

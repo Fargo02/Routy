@@ -11,7 +11,5 @@ sealed interface MapEffect {
         val id: String,
     ) : MapEffect
 
-    data object FitRoute : MapEffect
-
     data object RequestLocation : MapEffect
 }

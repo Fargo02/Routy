@@ -26,28 +26,40 @@ class MapViewModel(
     private val _effects = Channel<MapEffect>(Channel.BUFFERED)
     val effects = _effects.receiveAsFlow()
 
-    private val selectedRoute = savedState.getStateFlow<String?>("routeId", null)
+    private val selectedRouteIds =
+        savedState.getStateFlow("routeIds", savedState.get<String>("routeId")?.let(::listOf).orEmpty())
     val uiState =
-        combine(transport.state, selectedRoute) { network, routeId ->
-            val route = network.network?.let { data -> routeId?.let { details(data, it) } }
+        combine(transport.state, selectedRouteIds) { network, routeIds ->
+            val routes = network.network?.let { data -> routeIds.mapNotNull { details(data, it) } }.orEmpty()
             val stops =
-                if (routeId == null) {
+                if (routeIds.isEmpty()) {
                     network.network?.stops.orEmpty()
                 } else {
-                    route
-                        ?.groups
-                        ?.values
-                        ?.flatten()
-                        ?.map { it.stop }
-                        ?.distinctBy { it.id }
-                        .orEmpty()
+                    routes
+                        .flatMap { it.groups.values.flatten() }
+                        .map { it.stop }
+                        .distinctBy { it.id }
                 }
-            MapState(network, routeId, stops, route?.geometry, stopsGeoJson(stops), routeGeoJson(route?.geometry))
+            val geometries = routes.mapNotNull { it.geometry }
+            MapState(network, routeIds, stops, geometries, stopsGeoJson(stops))
         }.flowOn(Dispatchers.Default).stateIn(viewModelScope, SharingStarted.WhileSubscribed(0), MapState())
     val vehicles =
-        selectedRoute
-            .flatMapLatest { id -> if (id == null) flowOf(VehicleState(isLoading = false)) else vehicles(id) }
-            .stateIn(
+        selectedRouteIds
+            .flatMapLatest { routeIds ->
+                if (routeIds.isEmpty()) {
+                    flowOf(VehicleState(isLoading = false))
+                } else {
+                    combine(routeIds.map { vehicles(it) }) { states ->
+                        VehicleState(
+                            vehicles = states.flatMap { it.vehicles },
+                            isLoading = states.any { it.isLoading },
+                            isStale = states.any { it.isStale },
+                            updatedAtMillis = states.mapNotNull { it.updatedAtMillis }.maxOrNull(),
+                            error = states.firstNotNullOfOrNull { it.error },
+                        )
+                    }
+                }
+            }.stateIn(
                 viewModelScope,
                 SharingStarted.WhileSubscribed(stopTimeoutMillis = 0, replayExpirationMillis = 0),
                 VehicleState(isLoading = false),
@@ -55,13 +67,15 @@ class MapViewModel(
 
     fun actionHandler(action: MapAction) {
         when (action) {
-            is MapAction.SelectRoute -> savedState["routeId"] = action.id
+            is MapAction.SelectRoute -> {
+                val selected = selectedRouteIds.value
+                savedState["routeIds"] = if (action.id in selected) selected - action.id else selected + action.id
+            }
             is MapAction.SelectStop -> sendEffect(MapEffect.Navigate(StopDetails(action.id)))
             is MapAction.SelectVehicle -> sendEffect(MapEffect.ShowVehicle(action.id))
             MapAction.OpenSearch -> sendEffect(MapEffect.Navigate(Routes))
             MapAction.OpenStops -> sendEffect(MapEffect.Navigate(Stops))
-            MapAction.OpenRouteDetails -> selectedRoute.value?.let { sendEffect(MapEffect.Navigate(RouteDetails(it))) }
-            MapAction.FitRoute -> sendEffect(MapEffect.FitRoute)
+            MapAction.OpenRouteDetails -> selectedRouteIds.value.lastOrNull()?.let { sendEffect(MapEffect.Navigate(RouteDetails(it))) }
             MapAction.MyLocation -> sendEffect(MapEffect.RequestLocation)
             MapAction.Retry -> viewModelScope.launch { transport.refresh() }
         }

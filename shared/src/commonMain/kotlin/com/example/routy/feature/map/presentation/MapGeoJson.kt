@@ -31,22 +31,22 @@ fun stopsGeoJson(stops: List<BusStop>): String = collection(stops.map { point(it
 
 fun vehiclesGeoJson(vehicles: List<Vehicle>): String = collection(vehicles.map { point(it.id, it.position) })
 
-fun routeGeoJson(geometry: RouteGeometry?): String {
-    if (geometry == null || geometry.points.size < 2) return EMPTY_GEOJSON
-    return collection(
-        listOf(
-            buildJsonObject {
-                put("type", "Feature")
-                put("id", geometry.routeId)
-                putJsonObject("properties") { }
-                putJsonObject("geometry") {
-                    put("type", "LineString")
-                    put(
-                        "coordinates",
-                        JsonArray(geometry.points.map { JsonArray(listOf(JsonPrimitive(it.longitude), JsonPrimitive(it.latitude))) }),
-                    )
+fun routeGeoJson(geometries: List<RouteGeometry>): String =
+    collection(
+        geometries
+            .filter { it.points.size >= 2 }
+            .map { geometry ->
+                buildJsonObject {
+                    put("type", "Feature")
+                    put("id", geometry.routeId)
+                    putJsonObject("properties") { }
+                    putJsonObject("geometry") {
+                        put("type", "LineString")
+                        put(
+                            "coordinates",
+                            JsonArray(geometry.points.map { JsonArray(listOf(JsonPrimitive(it.longitude), JsonPrimitive(it.latitude))) }),
+                        )
+                    }
                 }
             },
-        ),
     )
-}

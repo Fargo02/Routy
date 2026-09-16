@@ -2,7 +2,7 @@ package com.example.routy.feature.map.presentation.state
 
 sealed interface MapAction {
     data class SelectRoute(
-        val id: String?,
+        val id: String,
     ) : MapAction
 
     data class SelectStop(
@@ -18,8 +18,6 @@ sealed interface MapAction {
     data object OpenStops : MapAction
 
     data object OpenRouteDetails : MapAction
-
-    data object FitRoute : MapAction
 
     data object MyLocation : MapAction
 

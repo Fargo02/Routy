@@ -25,9 +25,18 @@ data class RoutyPalette(
     val route: Color,
     val routeOutline: Color,
     val selected: Color,
+    val routeColors: List<Color>,
 )
 
-val LocalRoutyPalette = staticCompositionLocalOf { RoutyPalette(Color(0xFF2563EB), Color.White, Color(0xFFFFB800)) }
+val LocalRoutyPalette =
+    staticCompositionLocalOf {
+        RoutyPalette(
+            route = Color(0xFF2563EB),
+            routeOutline = Color.White,
+            selected = Color(0xFFFFB800),
+            routeColors = routeColors,
+        )
+    }
 
 @Composable
 fun RoutyTheme(
@@ -37,7 +46,7 @@ fun RoutyTheme(
 ) {
     val dark = appearance == Appearance.Dark || (appearance == Appearance.System && isSystemInDarkTheme())
     val colors = colorScheme(colorTheme, dark)
-    val palette = RoutyPalette(colors.primary, colors.surface, colors.tertiary)
+    val palette = RoutyPalette(colors.primary, colors.surface, colors.tertiary, routeColors)
     CompositionLocalProvider(LocalRoutyPalette provides palette) {
         MaterialTheme(
             colorScheme = colors,
@@ -65,6 +74,18 @@ fun RoutyTheme(
         )
     }
 }
+
+private val routeColors =
+    listOf(
+        Color(0xFF2563EB),
+        Color(0xFFEF4444),
+        Color(0xFF16A34A),
+        Color(0xFFF59E0B),
+        Color(0xFF7C3AED),
+        Color(0xFF06B6D4),
+        Color(0xFFEC4899),
+        Color(0xFF64748B),
+    )
 
 private fun colorScheme(
     theme: ColorTheme,

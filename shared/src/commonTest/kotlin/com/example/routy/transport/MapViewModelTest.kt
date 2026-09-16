@@ -55,7 +55,7 @@ class MapViewModelTest {
                 store.put("map", model)
                 backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { model.uiState.collect() }
                 val static = model.uiState.first { it.routeId == "r" }
-                assertEquals("r", static.geometry?.routeId)
+                assertEquals("r", static.geometries.singleOrNull()?.routeId)
                 assertEquals(0, active)
                 val visible = launch { model.vehicles.collect() }
                 runCurrent()
@@ -63,9 +63,9 @@ class MapViewModelTest {
                 assertSame(static, model.uiState.value)
                 model.actionHandler(MapAction.SelectRoute("another"))
                 runCurrent()
-                assertEquals("another", handle.get<String>("routeId"))
-                assertEquals(1, active)
-                assertEquals(2, subscriptions)
+                assertEquals(listOf("r", "another"), handle.get<List<String>>("routeIds"))
+                assertEquals(2, active)
+                assertEquals(3, subscriptions)
                 visible.cancelAndJoin()
                 runCurrent()
                 assertEquals(0, active)
