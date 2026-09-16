@@ -1,15 +1,15 @@
 package com.example.routy
 
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -18,7 +18,12 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -38,6 +43,7 @@ import com.example.routy.core.localization.Strings
 import com.example.routy.core.localization.TextKey
 import com.example.routy.core.mvi.CollectEffects
 import com.example.routy.core.navigation.BottomNavigationItem
+import com.example.routy.core.navigation.Destination
 import com.example.routy.core.navigation.navigateTo
 import com.example.routy.feature.favorites.navigation.Favorites
 import com.example.routy.feature.favorites.navigation.favoritesScreen
@@ -116,21 +122,9 @@ fun App(graph: AppGraph) {
                         )
                     }
                 },
-                bottomBar = {
-                    NavigationBar {
-                        listOf<BottomNavigationItem>(Map, Routes, Favorites).forEach { item ->
-                            NavigationBarItem(
-                                selected = currentDestination.matches(item),
-                                onClick = { navController.navigateTo(item) },
-                                icon = { RoutyIcon(item.icon) },
-                                label = { Text(strings[item.title]) },
-                            )
-                        }
-                    }
-                },
                 snackbarHost = { SnackbarHost(snackbar) },
-            ) { padding ->
-                Box(Modifier.fillMaxSize().padding(padding)) {
+            ) {
+                Box(Modifier.fillMaxSize()) {
                     NavHost(navController = navController, startDestination = Map) {
                         mapScreen(map, navController::navigateTo)
                         routesScreen(graph.transport, navController::navigateTo)
@@ -161,6 +155,12 @@ fun App(graph: AppGraph) {
                             message = { snackbar.showSnackbar(it) },
                         )
                     }
+                    FloatingBottomNavigation(
+                        modifier = Modifier.align(Alignment.BottomCenter),
+                        items = listOf(Map, Routes, Favorites),
+                        selected = visibleDestination,
+                        onNavigate = navController::navigateTo,
+                    )
                 }
             }
         }
@@ -174,6 +174,50 @@ private fun NavDestination?.matches(item: BottomNavigationItem): Boolean =
         Favorites -> hasRouteType<Favorites>()
         else -> false
     }
+
+@Composable
+private fun FloatingBottomNavigation(
+    modifier: Modifier = Modifier,
+    items: List<BottomNavigationItem>,
+    selected: NavDestination?,
+    onNavigate: (Destination) -> Unit,
+) {
+    Box(
+        modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = 32.dp, vertical = 12.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Surface(
+            color = Color(0xFF0A0B0D),
+            contentColor = Color(0xFF93959E),
+            shape = RoundedCornerShape(40.dp),
+            shadowElevation = 12.dp,
+        ) {
+            Row(
+                Modifier.fillMaxWidth().height(76.dp).padding(horizontal = 8.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                items.forEach { item ->
+                    val isSelected = selected.matches(item)
+                    Surface(
+                        onClick = { onNavigate(item) },
+                        modifier =
+                            Modifier
+                                .size(56.dp)
+                                .semantics { contentDescription = item.title.name },
+                        color =
+                            if (isSelected) MaterialTheme.colorScheme.surfaceVariant else Color.Transparent,
+                        contentColor =
+                            if (isSelected) MaterialTheme.colorScheme.onSurfaceVariant else Color(0xFF93959E),
+                        shape = CircleShape,
+                    ) {
+                        Box(contentAlignment = Alignment.Center) { RoutyIcon(item.icon) }
+                    }
+                }
+            }
+        }
+    }
+}
 
 private fun NavDestination?.title(): TextKey =
     when {

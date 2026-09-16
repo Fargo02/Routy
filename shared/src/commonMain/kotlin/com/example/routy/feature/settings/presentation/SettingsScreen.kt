@@ -9,6 +9,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.routy.core.designsystem.ScreenScaffold
 import com.example.routy.core.localization.*
 import com.example.routy.core.preferences.domain.Appearance
 import com.example.routy.core.transport.domain.Language
@@ -18,47 +19,54 @@ import com.example.routy.feature.settings.presentation.state.SettingsAction
 fun SettingsScreen(model: SettingsViewModel) {
     val state by model.uiState.collectAsStateWithLifecycle()
     val strings = LocalStrings.current
-    Column(
-        Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-            .verticalScroll(rememberScrollState())
-            .padding(24.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-    ) {
-        Text(strings[TextKey.Language], style = MaterialTheme.typography.titleLarge)
-        Language.entries.forEach { language ->
-            FilterChip(state.language == language, { model.actionHandler(SettingsAction.SetLanguage(language)) }, label = {
-                Text(
-                    strings[
-                        if (language ==
-                            Language.English
-                        ) {
-                            TextKey.English
-                        } else {
-                            TextKey.Georgian
-                        },
-                    ],
+    ScreenScaffold { screenPadding ->
+        Column(
+            Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background)
+                .verticalScroll(rememberScrollState())
+                .padding(
+                    start = 24.dp,
+                    top = screenPadding.calculateTopPadding() + 24.dp,
+                    end = 24.dp,
+                    bottom = screenPadding.calculateBottomPadding() + 24.dp,
+                ),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            Text(strings[TextKey.Language], style = MaterialTheme.typography.titleLarge)
+            Language.entries.forEach { language ->
+                FilterChip(state.language == language, { model.actionHandler(SettingsAction.SetLanguage(language)) }, label = {
+                    Text(
+                        strings[
+                            if (language ==
+                                Language.English
+                            ) {
+                                TextKey.English
+                            } else {
+                                TextKey.Georgian
+                            },
+                        ],
+                    )
+                })
+            }
+            HorizontalDivider()
+            Text(strings[TextKey.Appearance], style = MaterialTheme.typography.titleLarge)
+            Appearance.entries.forEach { appearance ->
+                val key =
+                    when (appearance) {
+                        Appearance.System -> TextKey.System
+                        Appearance.Light -> TextKey.Light
+                        Appearance.Dark -> TextKey.Dark
+                    }
+                FilterChip(
+                    state.appearance == appearance,
+                    { model.actionHandler(SettingsAction.SetAppearance(appearance)) },
+                    label = { Text(strings[key]) },
                 )
-            })
+            }
+            HorizontalDivider()
+            Text(strings[TextKey.LocationHelp])
+            Text(strings[TextKey.About], color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
-        HorizontalDivider()
-        Text(strings[TextKey.Appearance], style = MaterialTheme.typography.titleLarge)
-        Appearance.entries.forEach { appearance ->
-            val key =
-                when (appearance) {
-                    Appearance.System -> TextKey.System
-                    Appearance.Light -> TextKey.Light
-                    Appearance.Dark -> TextKey.Dark
-                }
-            FilterChip(
-                state.appearance == appearance,
-                { model.actionHandler(SettingsAction.SetAppearance(appearance)) },
-                label = { Text(strings[key]) },
-            )
-        }
-        HorizontalDivider()
-        Text(strings[TextKey.LocationHelp])
-        Text(strings[TextKey.About], color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }

@@ -27,14 +27,22 @@ fun StopsScreen(
             is StopsEffect.Navigate -> navigate(it.destination)
         }
     }
-    LazyColumn(
-        Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background),
-        contentPadding = PaddingValues(20.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        item { SearchField(state.query, strings[TextKey.SearchStops]) { model.actionHandler(StopsAction.Search(it)) } }
-        item { StatusPanel(state.network) { model.actionHandler(StopsAction.Retry) } }
-        if (state.items.isEmpty() && state.network.network != null) item { EmptyPanel() }
-        items(state.items, key = { it.id }) { item -> StopCard(item, { model.actionHandler(StopsAction.Select(item.id)) }) }
+    ScreenScaffold { screenPadding ->
+        LazyColumn(
+            Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background),
+            contentPadding =
+                PaddingValues(
+                    start = 20.dp,
+                    top = screenPadding.calculateTopPadding() + 20.dp,
+                    end = 20.dp,
+                    bottom = screenPadding.calculateBottomPadding() + 20.dp,
+                ),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            item { SearchField(state.query, strings[TextKey.SearchStops]) { model.actionHandler(StopsAction.Search(it)) } }
+            item { StatusPanel(state.network) { model.actionHandler(StopsAction.Retry) } }
+            if (state.items.isEmpty() && state.network.network != null) item { EmptyPanel() }
+            items(state.items, key = { it.id }) { item -> StopCard(item, { model.actionHandler(StopsAction.Select(item.id)) }) }
+        }
     }
 }

@@ -32,64 +32,72 @@ fun RouteDetailsScreen(
             is RouteDetailsEffect.Error -> message(strings.error(it.error))
         }
     }
-    LazyColumn(
-        Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background),
-        contentPadding = PaddingValues(20.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        item { StatusPanel(state.network) { model.actionHandler(RouteDetailsAction.Retry) } }
-        val details = state.details
-        if (details != null) {
-            item {
-                Text(details.route.name.resolve(strings.language, details.route.id), style = MaterialTheme.typography.headlineLarge)
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Button({ model.actionHandler(RouteDetailsAction.ShowMap) }) { Text(strings[TextKey.ShowMap]) }
-                    FilledTonalButton({ model.actionHandler(RouteDetailsAction.ToggleFavorite) }) {
-                        RoutyIcon(Glyph.Star)
-                        Spacer(Modifier.width(8.dp))
-                        Text(strings[if (state.favorite) TextKey.Saved else TextKey.Save])
+    ScreenScaffold { screenPadding ->
+        LazyColumn(
+            Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background),
+            contentPadding =
+                PaddingValues(
+                    start = 20.dp,
+                    top = screenPadding.calculateTopPadding() + 20.dp,
+                    end = 20.dp,
+                    bottom = screenPadding.calculateBottomPadding() + 20.dp,
+                ),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            item { StatusPanel(state.network) { model.actionHandler(RouteDetailsAction.Retry) } }
+            val details = state.details
+            if (details != null) {
+                item {
+                    Text(details.route.name.resolve(strings.language, details.route.id), style = MaterialTheme.typography.headlineLarge)
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Button({ model.actionHandler(RouteDetailsAction.ShowMap) }) { Text(strings[TextKey.ShowMap]) }
+                        FilledTonalButton({ model.actionHandler(RouteDetailsAction.ToggleFavorite) }) {
+                            RoutyIcon(Glyph.Star)
+                            Spacer(Modifier.width(8.dp))
+                            Text(strings[if (state.favorite) TextKey.Saved else TextKey.Save])
+                        }
                     }
                 }
-            }
-            item {
-                Text(strings[TextKey.Live], style = MaterialTheme.typography.titleMedium)
-                Text(
-                    when {
-                        vehicles.isLoading -> strings[TextKey.Loading]
-                        vehicles.isStale -> strings[TextKey.Stale]
-                        vehicles.vehicles.isEmpty() -> strings[TextKey.NoBuses]
-                        else -> vehicles.vehicles.joinToString(" • ") { it.id }
-                    },
-                    style = MaterialTheme.typography.bodyMedium,
-                )
-            }
-            item { Text(strings[TextKey.ScheduleNote], style = MaterialTheme.typography.bodySmall) }
-            details.groups.forEach { (group, stops) ->
                 item {
+                    Text(strings[TextKey.Live], style = MaterialTheme.typography.titleMedium)
                     Text(
-                        if (group ==
-                            null
-                        ) {
-                            strings[TextKey.Unspecified]
-                        } else {
-                            "${strings[TextKey.Group]} $group"
+                        when {
+                            vehicles.isLoading -> strings[TextKey.Loading]
+                            vehicles.isStale -> strings[TextKey.Stale]
+                            vehicles.vehicles.isEmpty() -> strings[TextKey.NoBuses]
+                            else -> vehicles.vehicles.joinToString(" • ") { it.id }
                         },
-                        style = MaterialTheme.typography.titleMedium,
+                        style = MaterialTheme.typography.bodyMedium,
                     )
                 }
-                items(stops, key = { "$group:${it.stop.id}" }) { item ->
-                    StopCard(
-                        item.stop,
-                        { model.actionHandler(RouteDetailsAction.SelectStop(item.stop.id)) },
-                        item.service.times
-                            .take(4)
-                            .joinToString(" • ")
-                            .ifEmpty { strings[TextKey.NoSchedule] },
-                    )
+                item { Text(strings[TextKey.ScheduleNote], style = MaterialTheme.typography.bodySmall) }
+                details.groups.forEach { (group, stops) ->
+                    item {
+                        Text(
+                            if (group ==
+                                null
+                            ) {
+                                strings[TextKey.Unspecified]
+                            } else {
+                                "${strings[TextKey.Group]} $group"
+                            },
+                            style = MaterialTheme.typography.titleMedium,
+                        )
+                    }
+                    items(stops, key = { "$group:${it.stop.id}" }) { item ->
+                        StopCard(
+                            item.stop,
+                            { model.actionHandler(RouteDetailsAction.SelectStop(item.stop.id)) },
+                            item.service.times
+                                .take(4)
+                                .joinToString(" • ")
+                                .ifEmpty { strings[TextKey.NoSchedule] },
+                        )
+                    }
                 }
+            } else if (state.network.network != null) {
+                item { EmptyPanel() }
             }
-        } else if (state.network.network != null) {
-            item { EmptyPanel() }
         }
     }
 }

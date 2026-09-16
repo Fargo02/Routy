@@ -195,96 +195,115 @@ fun MapScreen(
             }
         }
     }
-    Box(Modifier.fillMaxSize()) {
-        MaplibreMap(
-            modifier = Modifier.fillMaxSize().semantics { contentDescription = strings[TextKey.Map] },
-            state = mapState,
-            overlay = {},
-        )
-        Column(Modifier.align(Alignment.TopCenter).fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Surface(onClick = { model.actionHandler(MapAction.OpenSearch) }, shape = MaterialTheme.shapes.large, shadowElevation = 8.dp) {
-                Row(
-                    Modifier.fillMaxWidth().padding(18.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    RoutyIcon(Glyph.Search)
-                    Text(strings[TextKey.Search], Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
-                }
-            }
-            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                item {
-                    FilterChip(
-                        state.routeId == null,
-                        { model.actionHandler(MapAction.SelectRoute(null)) },
-                        label = { Text(strings[TextKey.AllRoutes]) },
-                    )
-                }
-                items(
-                    state.network.network
-                        ?.routes
-                        .orEmpty(),
-                    key = { it.id },
-                ) { route ->
-                    FilterChip(state.routeId == route.id, {
-                        model.actionHandler(MapAction.SelectRoute(route.id))
-                    }, label = {
-                        Text(route.name.resolve(strings.language, route.id))
-                    }, colors = FilterChipDefaults.filterChipColors(containerColor = MaterialTheme.colorScheme.surface))
-                }
-            }
-            if (state.network.network == null ||
-                state.network.error != null
+    ScreenScaffold(hasTopBarOverlay = false) { screenPadding ->
+        Box(Modifier.fillMaxSize()) {
+            MaplibreMap(
+                modifier = Modifier.fillMaxSize().semantics { contentDescription = strings[TextKey.Map] },
+                state = mapState,
+                overlay = {},
+            )
+            Column(
+                Modifier
+                    .align(Alignment.TopCenter)
+                    .fillMaxWidth()
+                    .padding(start = 16.dp, top = screenPadding.calculateTopPadding() + 16.dp, end = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                StatusPanel(state.network) { model.actionHandler(MapAction.Retry) }
-            }
-            if (mapError) Surface(shape = MaterialTheme.shapes.medium) { Text(strings[TextKey.MapUnavailable], Modifier.padding(16.dp)) }
-            if (state.routeId != null) {
-                Surface(shape = MaterialTheme.shapes.medium, shadowElevation = 3.dp) {
-                    Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Text(strings[TextKey.Live], style = MaterialTheme.typography.titleMedium)
-                        Text(
-                            when {
-                                vehicles.isLoading -> strings[TextKey.Loading]
-                                vehicles.isStale -> strings[TextKey.Stale]
-                                vehicles.vehicles.isEmpty() -> strings[TextKey.NoBuses]
-                                else -> "${vehicles.vehicles.size} ${strings[TextKey.Vehicle]}"
-                            },
-                            style = MaterialTheme.typography.bodySmall,
+                Surface(
+                    onClick = { model.actionHandler(MapAction.OpenSearch) },
+                    shape = MaterialTheme.shapes.large,
+                    shadowElevation = 8.dp,
+                ) {
+                    Row(
+                        Modifier.fillMaxWidth().padding(18.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        RoutyIcon(Glyph.Search)
+                        Text(strings[TextKey.Search], Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
+                    }
+                }
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    item {
+                        FilterChip(
+                            state.routeId == null,
+                            { model.actionHandler(MapAction.SelectRoute(null)) },
+                            label = { Text(strings[TextKey.AllRoutes]) },
                         )
-                        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            items(vehicles.vehicles, key = { it.id }) { vehicle ->
-                                AssistChip(
-                                    { model.actionHandler(MapAction.SelectVehicle(vehicle.id)) },
-                                    label = { Text("${strings[TextKey.Vehicle]} ${vehicle.id}") },
-                                )
+                    }
+                    items(
+                        state.network.network
+                            ?.routes
+                            .orEmpty(),
+                        key = { it.id },
+                    ) { route ->
+                        FilterChip(state.routeId == route.id, {
+                            model.actionHandler(MapAction.SelectRoute(route.id))
+                        }, label = {
+                            Text(route.name.resolve(strings.language, route.id))
+                        }, colors = FilterChipDefaults.filterChipColors(containerColor = MaterialTheme.colorScheme.surface))
+                    }
+                }
+                if (state.network.network == null ||
+                    state.network.error != null
+                ) {
+                    StatusPanel(state.network) { model.actionHandler(MapAction.Retry) }
+                }
+                if (mapError) {
+                    Surface(
+                        shape = MaterialTheme.shapes.medium,
+                    ) { Text(strings[TextKey.MapUnavailable], Modifier.padding(16.dp)) }
+                }
+                if (state.routeId != null) {
+                    Surface(shape = MaterialTheme.shapes.medium, shadowElevation = 3.dp) {
+                        Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Text(strings[TextKey.Live], style = MaterialTheme.typography.titleMedium)
+                            Text(
+                                when {
+                                    vehicles.isLoading -> strings[TextKey.Loading]
+                                    vehicles.isStale -> strings[TextKey.Stale]
+                                    vehicles.vehicles.isEmpty() -> strings[TextKey.NoBuses]
+                                    else -> "${vehicles.vehicles.size} ${strings[TextKey.Vehicle]}"
+                                },
+                                style = MaterialTheme.typography.bodySmall,
+                            )
+                            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                items(vehicles.vehicles, key = { it.id }) { vehicle ->
+                                    AssistChip(
+                                        { model.actionHandler(MapAction.SelectVehicle(vehicle.id)) },
+                                        label = { Text("${strings[TextKey.Vehicle]} ${vehicle.id}") },
+                                    )
+                                }
                             }
+                            TextButton({ model.actionHandler(MapAction.OpenRouteDetails) }) { Text(strings[TextKey.Details]) }
                         }
-                        TextButton({ model.actionHandler(MapAction.OpenRouteDetails) }) { Text(strings[TextKey.Details]) }
                     }
                 }
             }
-        }
-        Column(
-            Modifier.align(Alignment.BottomEnd).padding(end = 16.dp, bottom = 72.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            if (state.geometry !=
-                null
+            Column(
+                Modifier.align(Alignment.BottomEnd).padding(end = 16.dp, bottom = 132.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                SmallFloatingActionButton({ model.actionHandler(MapAction.FitRoute) }, containerColor = MaterialTheme.colorScheme.surface) {
-                    RoutyIcon(Glyph.Routes, strings[TextKey.FitRoute])
+                if (state.geometry !=
+                    null
+                ) {
+                    SmallFloatingActionButton(
+                        { model.actionHandler(MapAction.FitRoute) },
+                        containerColor = MaterialTheme.colorScheme.surface,
+                    ) {
+                        RoutyIcon(Glyph.Routes, strings[TextKey.FitRoute])
+                    }
                 }
+                SmallFloatingActionButton({
+                    model.actionHandler(MapAction.OpenSettings)
+                }, containerColor = MaterialTheme.colorScheme.surface) { RoutyIcon(Glyph.Settings, strings[TextKey.Settings]) }
+                SmallFloatingActionButton({
+                    model.actionHandler(MapAction.OpenStops)
+                }, containerColor = MaterialTheme.colorScheme.surface) { RoutyIcon(Glyph.Stop, strings[TextKey.Nearby]) }
+                SmallFloatingActionButton({
+                    model.actionHandler(MapAction.MyLocation)
+                }, containerColor = MaterialTheme.colorScheme.surface) { RoutyIcon(Glyph.Location, strings[TextKey.MyLocation]) }
             }
-            SmallFloatingActionButton({
-                model.actionHandler(MapAction.OpenSettings)
-            }, containerColor = MaterialTheme.colorScheme.surface) { RoutyIcon(Glyph.Settings, strings[TextKey.Settings]) }
-            SmallFloatingActionButton({
-                model.actionHandler(MapAction.OpenStops)
-            }, containerColor = MaterialTheme.colorScheme.surface) { RoutyIcon(Glyph.Stop, strings[TextKey.Nearby]) }
-            SmallFloatingActionButton({
-                model.actionHandler(MapAction.MyLocation)
-            }, containerColor = MaterialTheme.colorScheme.surface) { RoutyIcon(Glyph.Location, strings[TextKey.MyLocation]) }
         }
     }
     if (locationPrompt) {

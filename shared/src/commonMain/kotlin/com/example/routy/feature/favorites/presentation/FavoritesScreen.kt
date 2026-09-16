@@ -25,20 +25,28 @@ fun FavoritesScreen(
             is FavoritesEffect.Navigate -> navigate(it.destination)
         }
     }
-    LazyColumn(
-        Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background),
-        contentPadding = PaddingValues(20.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        item { StatusPanel(state.network) { model.actionHandler(FavoritesAction.Retry) } }
-        if (state.routes.isEmpty() && state.stops.isEmpty() && state.network.network != null) item { EmptyPanel(TextKey.NoFavorites) }
-        items(
-            state.routes,
-            key = { "route:${it.id}" },
-        ) { route -> RouteCard(route, { model.actionHandler(FavoritesAction.SelectRoute(route.id)) }) }
-        items(
-            state.stops,
-            key = { "stop:${it.id}" },
-        ) { stop -> StopCard(stop, { model.actionHandler(FavoritesAction.SelectStop(stop.id)) }) }
+    ScreenScaffold { screenPadding ->
+        LazyColumn(
+            Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background),
+            contentPadding =
+                PaddingValues(
+                    start = 20.dp,
+                    top = screenPadding.calculateTopPadding() + 20.dp,
+                    end = 20.dp,
+                    bottom = screenPadding.calculateBottomPadding() + 20.dp,
+                ),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            item { StatusPanel(state.network) { model.actionHandler(FavoritesAction.Retry) } }
+            if (state.routes.isEmpty() && state.stops.isEmpty() && state.network.network != null) item { EmptyPanel(TextKey.NoFavorites) }
+            items(
+                state.routes,
+                key = { "route:${it.id}" },
+            ) { route -> RouteCard(route, { model.actionHandler(FavoritesAction.SelectRoute(route.id)) }) }
+            items(
+                state.stops,
+                key = { "stop:${it.id}" },
+            ) { stop -> StopCard(stop, { model.actionHandler(FavoritesAction.SelectStop(stop.id)) }) }
+        }
     }
 }

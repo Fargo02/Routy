@@ -27,15 +27,29 @@ fun RoutesScreen(
             is RoutesEffect.Navigate -> navigate(it.destination)
         }
     }
-    LazyColumn(
-        Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background),
-        contentPadding = PaddingValues(20.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        item { SearchField(state.query, strings[TextKey.Search]) { model.actionHandler(RoutesAction.Search(it)) } }
-        item { StatusPanel(state.network) { model.actionHandler(RoutesAction.Retry) } }
-        if (state.items.isEmpty() && state.stops.isEmpty() && state.network.network != null) item { EmptyPanel() }
-        items(state.items, key = { "route:${it.id}" }) { item -> RouteCard(item, { model.actionHandler(RoutesAction.Select(item.id)) }) }
-        items(state.stops, key = { "stop:${it.id}" }) { stop -> StopCard(stop, { model.actionHandler(RoutesAction.SelectStop(stop.id)) }) }
+    ScreenScaffold { screenPadding ->
+        LazyColumn(
+            Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background),
+            contentPadding =
+                PaddingValues(
+                    start = 20.dp,
+                    top = screenPadding.calculateTopPadding() + 20.dp,
+                    end = 20.dp,
+                    bottom = screenPadding.calculateBottomPadding() + 20.dp,
+                ),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            item { SearchField(state.query, strings[TextKey.Search]) { model.actionHandler(RoutesAction.Search(it)) } }
+            item { StatusPanel(state.network) { model.actionHandler(RoutesAction.Retry) } }
+            if (state.items.isEmpty() && state.stops.isEmpty() && state.network.network != null) item { EmptyPanel() }
+            items(
+                state.items,
+                key = { "route:${it.id}" },
+            ) { item -> RouteCard(item, { model.actionHandler(RoutesAction.Select(item.id)) }) }
+            items(
+                state.stops,
+                key = { "stop:${it.id}" },
+            ) { stop -> StopCard(stop, { model.actionHandler(RoutesAction.SelectStop(stop.id)) }) }
+        }
     }
 }
