@@ -1,40 +1,100 @@
 package com.example.routy.feature.map.presentation
 
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.AssistChip
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.LocalContentColor
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.SmallFloatingActionButton
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
-import androidx.compose.ui.semantics.*
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.example.routy.core.designsystem.*
-import com.example.routy.core.localization.*
+import com.example.routy.core.designsystem.Glyph
+import com.example.routy.core.designsystem.LocalRoutyPalette
+import com.example.routy.core.designsystem.RouteCard
+import com.example.routy.core.designsystem.RoutyIcon
+import com.example.routy.core.designsystem.ScreenScaffold
+import com.example.routy.core.designsystem.SearchEmptyState
+import com.example.routy.core.designsystem.SearchField
+import com.example.routy.core.designsystem.StatusPanel
+import com.example.routy.core.designsystem.StopCard
+import com.example.routy.core.localization.LocalStrings
+import com.example.routy.core.localization.TextKey
 import com.example.routy.core.mvi.CollectEffects
 import com.example.routy.core.navigation.Destination
-import com.example.routy.feature.map.presentation.state.*
+import com.example.routy.feature.map.presentation.state.MapAction
+import com.example.routy.feature.map.presentation.state.MapEffect
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.yield
 import kotlinx.serialization.json.jsonPrimitive
+import org.jetbrains.compose.resources.painterResource
 import org.maplibre.compose.camera.CameraPosition
 import org.maplibre.compose.expressions.dsl.const
+import org.maplibre.compose.expressions.dsl.feature
+import org.maplibre.compose.expressions.dsl.image
 import org.maplibre.compose.interaction.ClickResult
-import org.maplibre.compose.layers.*
-import org.maplibre.compose.location.*
-import org.maplibre.compose.map.*
-import org.maplibre.compose.sources.*
+import org.maplibre.compose.layers.CircleLayer
+import org.maplibre.compose.layers.LineLayer
+import org.maplibre.compose.layers.SymbolLayer
+import org.maplibre.compose.location.LocationPermission
+import org.maplibre.compose.location.LocationPuck
+import org.maplibre.compose.location.rememberLocationState
+import org.maplibre.compose.location.rememberSystemSettingsLauncher
+import org.maplibre.compose.map.MapEvent
+import org.maplibre.compose.map.MaplibreMap
+import org.maplibre.compose.map.rememberMapState
+import org.maplibre.compose.sources.GeoJsonData
+import org.maplibre.compose.sources.rememberGeoJsonSource
 import org.maplibre.compose.style.BaseStyle
 import org.maplibre.spatialk.geojson.Position
+import routy.shared.generated.resources.Res
+import routy.shared.generated.resources.bus
 
 /** Style provider is a replaceable presentation configuration, never a domain dependency. */
 data class MapStyleConfig(
@@ -61,7 +121,8 @@ fun MapScreen(
     val scope = rememberCoroutineScope()
     val searchFocusRequester = remember { FocusRequester() }
     val keyboard = LocalSoftwareKeyboardController.current
-    val searchBottomPadding = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + 16.dp
+    val searchBottomPadding =
+        WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + 16.dp
     val searchSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var searchFieldQuery by rememberSaveable { mutableStateOf("") }
     var locationEnabled by rememberSaveable { mutableStateOf(false) }
@@ -72,6 +133,7 @@ fun MapScreen(
     var selectedStop by rememberSaveable { mutableStateOf<String?>(null) }
 
     var mapError by remember { mutableStateOf(false) }
+    val busDirectionPainter = painterResource(Res.drawable.bus)
     val location = rememberLocationState(enabled = locationEnabled)
     val systemSettings = rememberSystemSettingsLauncher()
     var locationPrompt by remember { mutableStateOf(false) }
@@ -152,14 +214,13 @@ fun MapScreen(
                 strokeColor = const(MaterialTheme.colorScheme.onSurface),
                 strokeWidth = const(3.dp),
             )
-            CircleLayer(
+            SymbolLayer(
                 "vehicles",
                 vehicleSource,
-                color = const(MaterialTheme.colorScheme.onSurface),
-                radius = const(9.dp),
-                strokeColor = const(Color.White),
-                strokeWidth = const(3.dp),
-                hitPadding = 18.dp,
+                iconImage = image(busDirectionPainter),
+                iconSize = const(0.08f),
+                iconRotate = feature["heading"].cast(),
+                iconAllowOverlap = const(true),
                 onClick = { features ->
                     features
                         .firstOrNull()
@@ -431,7 +492,8 @@ fun MapScreen(
                             searchFieldQuery = it
                             model.actionHandler(MapAction.SearchQueryChanged(it))
                         },
-                        modifier = Modifier.padding(horizontal = 20.dp).focusRequester(searchFocusRequester),
+                        modifier = Modifier.padding(horizontal = 20.dp)
+                            .focusRequester(searchFocusRequester),
                         onClear = {
                             searchFieldQuery = ""
                             model.actionHandler(MapAction.ClearSearch)
@@ -508,7 +570,9 @@ fun MapScreen(
                         )
                     }
                 }
-                if (hasCurrentSearchResults) items(state.search.stops, key = { "stop:${it.id}" }) { stop ->
+                if (hasCurrentSearchResults) items(
+                    state.search.stops,
+                    key = { "stop:${it.id}" }) { stop ->
                     Box(Modifier.padding(horizontal = 20.dp)) {
                         StopCard(
                             stop = stop,

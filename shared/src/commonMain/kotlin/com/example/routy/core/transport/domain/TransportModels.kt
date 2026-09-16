@@ -83,6 +83,7 @@ data class Vehicle(
     val id: String,
     val routeId: String,
     val position: GeoPoint,
+    val headingDegrees: Float? = null,
 )
 
 data class TransportNetwork(

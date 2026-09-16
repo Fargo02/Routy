@@ -29,7 +29,26 @@ private fun collection(features: List<JsonObject>) =
 
 fun stopsGeoJson(stops: List<BusStop>): String = collection(stops.map { point(it.id, it.position) })
 
-fun vehiclesGeoJson(vehicles: List<Vehicle>): String = collection(vehicles.map { point(it.id, it.position) })
+fun vehiclesGeoJson(vehicles: List<Vehicle>): String =
+    collection(
+        vehicles.map { vehicle ->
+            buildJsonObject {
+                put("type", "Feature")
+                put("id", vehicle.id)
+                putJsonObject("properties") {
+                    put("id", vehicle.id)
+                    put("heading", vehicle.headingDegrees ?: 0f)
+                }
+                putJsonObject("geometry") {
+                    put("type", "Point")
+                    putJsonArray("coordinates") {
+                        add(vehicle.position.longitude)
+                        add(vehicle.position.latitude)
+                    }
+                }
+            }
+        },
+    )
 
 fun routeGeoJson(geometries: List<RouteGeometry>): String =
     collection(
