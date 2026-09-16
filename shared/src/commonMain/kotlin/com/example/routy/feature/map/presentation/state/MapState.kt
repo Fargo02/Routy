@@ -6,6 +6,12 @@ import com.example.routy.core.transport.domain.Route
 import com.example.routy.core.transport.domain.RouteGeometry
 import com.example.routy.feature.map.presentation.EMPTY_GEOJSON
 
+data class MapCamera(
+    val longitude: Double = 41.6367,
+    val latitude: Double = 41.6461,
+    val zoom: Double = 13.0,
+)
+
 data class MapState(
     val network: NetworkState = NetworkState(),
     val selectedRouteIds: List<String> = emptyList(),

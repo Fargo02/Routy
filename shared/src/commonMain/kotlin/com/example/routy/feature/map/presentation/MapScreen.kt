@@ -35,6 +35,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -68,6 +69,7 @@ import com.example.routy.core.localization.TextKey
 import com.example.routy.core.mvi.CollectEffects
 import com.example.routy.core.navigation.Destination
 import com.example.routy.feature.map.presentation.state.MapAction
+import com.example.routy.feature.map.presentation.state.MapCamera
 import com.example.routy.feature.map.presentation.state.MapEffect
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -110,8 +112,10 @@ fun MapScreen(
     model: MapViewModel,
     navigate: (Destination) -> Unit,
     style: MapStyleConfig = MapStyleConfig(),
+    isActive: Boolean = true,
 ) {
     val state by model.uiState.collectAsStateWithLifecycle()
+    val camera by model.camera.collectAsStateWithLifecycle()
     val vehicles by model.vehicles.collectAsStateWithLifecycle()
     val strings = LocalStrings.current
     val palette = LocalRoutyPalette.current
@@ -134,7 +138,7 @@ fun MapScreen(
     var selectedVehicle by rememberSaveable { mutableStateOf<String?>(null) }
     var selectedStop by rememberSaveable { mutableStateOf<String?>(null) }
 
-    PlatformBackHandler(enabled = state.selectedRouteIds.isNotEmpty()) {
+    PlatformBackHandler(enabled = isActive && state.selectedRouteIds.isNotEmpty()) {
         model.actionHandler(MapAction.ClearSelectedRoutes)
     }
 
@@ -168,10 +172,10 @@ fun MapScreen(
                 CameraPosition(
                     target =
                         Position(
-                            longitude = 41.6367,
-                            latitude = 41.6461,
+                            longitude = camera.longitude,
+                            latitude = camera.latitude,
                         ),
-                    zoom = 13.0,
+                    zoom = camera.zoom,
                 ),
         ) {
             val stopSource = rememberGeoJsonSource(GeoJsonData.JsonString(state.stopGeoJson))
@@ -296,6 +300,21 @@ fun MapScreen(
     LaunchedEffect(mapState) {
         mapState.events.collect {
             if (it is MapEvent.StyleLoadFailed) mapError = true
+        }
+    }
+    DisposableEffect(mapState) {
+        onDispose {
+            mapState.cameraPosition.let { position ->
+                model.actionHandler(
+                    MapAction.SaveCamera(
+                        MapCamera(
+                            longitude = position.target.longitude,
+                            latitude = position.target.latitude,
+                            zoom = position.zoom,
+                        ),
+                    ),
+                )
+            }
         }
     }
     LaunchedEffect(state.search.isOpen) {

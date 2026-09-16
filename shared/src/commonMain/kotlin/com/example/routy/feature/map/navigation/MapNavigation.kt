@@ -8,10 +8,7 @@ import androidx.navigation.compose.composable
 import com.example.routy.core.designsystem.Glyph
 import com.example.routy.core.localization.TextKey
 import com.example.routy.core.navigation.BottomNavigationItem
-import com.example.routy.core.navigation.Destination
 import com.example.routy.core.navigation.navigateIfResumed
-import com.example.routy.feature.map.presentation.MapScreen
-import com.example.routy.feature.map.presentation.MapViewModel
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -26,16 +23,11 @@ fun NavController.navigateToMapScreen() =
         launchSingleTop = true
     }
 
-fun NavGraphBuilder.mapScreen(
-    model: MapViewModel,
-    navigate: (Destination) -> Unit,
-) {
+fun NavGraphBuilder.mapScreen() {
     composable<Map>(
         enterTransition = { EnterTransition.None },
         exitTransition = { ExitTransition.None },
         popEnterTransition = { EnterTransition.None },
         popExitTransition = { ExitTransition.None },
-    ) {
-        MapScreen(model, navigate)
-    }
+    ) { }
 }

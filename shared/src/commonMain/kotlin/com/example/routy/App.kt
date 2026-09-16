@@ -50,6 +50,7 @@ import com.example.routy.feature.favorites.navigation.favoritesScreen
 import com.example.routy.feature.map.navigation.Map
 import com.example.routy.feature.map.navigation.mapScreen
 import com.example.routy.feature.map.navigation.navigateToMapScreen
+import com.example.routy.feature.map.presentation.MapScreen
 import com.example.routy.feature.map.presentation.MapViewModel
 import com.example.routy.feature.map.presentation.state.MapAction
 import com.example.routy.feature.route_details.domain.GetRouteDetailsUseCase
@@ -125,8 +126,13 @@ fun App(graph: AppGraph) {
                 snackbarHost = { SnackbarHost(snackbar) },
             ) {
                 Box(Modifier.fillMaxSize()) {
+                    MapScreen(
+                        model = map,
+                        navigate = navController::navigateTo,
+                        isActive = visibleDestination.hasRouteType<Map>(),
+                    )
                     NavHost(navController = navController, startDestination = Map) {
-                        mapScreen(map, navController::navigateTo)
+                        mapScreen()
                         stopsScreen(graph.transport, navController::navigateTo)
                         favoritesScreen(
                             graph.transport,

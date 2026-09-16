@@ -37,6 +37,15 @@ class MapViewModel(
 
     private val selectedRouteIds =
         savedState.getStateFlow("routeIds", savedState.get<String>("routeId")?.let(::listOf).orEmpty())
+    private val _camera =
+        MutableStateFlow(
+            MapCamera(
+                longitude = savedState.get<Double>("cameraLongitude") ?: MapCamera().longitude,
+                latitude = savedState.get<Double>("cameraLatitude") ?: MapCamera().latitude,
+                zoom = savedState.get<Double>("cameraZoom") ?: MapCamera().zoom,
+            ),
+        )
+    val camera = _camera.asStateFlow()
     private val searchOpen = MutableStateFlow(savedState.get<Boolean>("searchOpen") ?: false)
     private val searchQuery = MutableStateFlow(savedState.get<String>("searchQuery") ?: "")
     private val searchRequest = combine(searchOpen, searchQuery) { isOpen, query -> isOpen to query }
@@ -114,6 +123,7 @@ class MapViewModel(
             is MapAction.SelectRoute -> toggleRoute(action.id)
             MapAction.ClearSelectedRoutes -> savedState["routeIds"] = emptyList<String>()
             MapAction.ClearSelectedStop -> sendEffect(MapEffect.ClearStopSelection)
+            is MapAction.SaveCamera -> saveCamera(action.camera)
             MapAction.OpenSearch -> setSearchOpen(true)
             MapAction.CloseSearch -> closeSearch()
             is MapAction.SearchQueryChanged -> setSearchQuery(action.query)
@@ -139,6 +149,13 @@ class MapViewModel(
     private fun toggleRoute(id: String) {
         val selected = selectedRouteIds.value
         savedState["routeIds"] = if (id in selected) selected - id else selected + id
+    }
+
+    private fun saveCamera(camera: MapCamera) {
+        _camera.value = camera
+        savedState["cameraLongitude"] = camera.longitude
+        savedState["cameraLatitude"] = camera.latitude
+        savedState["cameraZoom"] = camera.zoom
     }
 
     private fun closeSearch() {

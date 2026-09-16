@@ -12,6 +12,7 @@ import com.example.routy.core.localization.*
 import com.example.routy.core.mvi.CollectEffects
 import com.example.routy.core.navigation.Destination
 import com.example.routy.feature.stop_details.presentation.state.*
+import com.example.routy.feature.stop_details.domain.nearestScheduledDeparture
 
 @Composable
 fun StopDetailsScreen(
@@ -48,10 +49,10 @@ fun StopDetailsScreen(
                 details.stop.services.filter { it.routeId == route.id }.forEach { service ->
                     item {
                         Surface(shape = MaterialTheme.shapes.medium, color = MaterialTheme.colorScheme.surfaceContainer) {
+                            val nextDeparture = nearestScheduledDeparture(service.times)
                             Text(
-                                service.times.joinToString("   ").ifEmpty {
-                                    strings[TextKey.NoSchedule]
-                                },
+                                nextDeparture?.let { "${strings[TextKey.NextDeparture]}: $it" }
+                                    ?: strings[TextKey.NoSchedule],
                                 Modifier.fillMaxWidth().padding(16.dp),
                                 style = MaterialTheme.typography.bodyLarge,
                             )
