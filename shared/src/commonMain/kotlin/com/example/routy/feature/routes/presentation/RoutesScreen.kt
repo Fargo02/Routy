@@ -1,8 +1,10 @@
 package com.example.routy.feature.routes.presentation
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -25,7 +27,11 @@ fun RoutesScreen(
             is RoutesEffect.Navigate -> navigate(it.destination)
         }
     }
-    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    LazyColumn(
+        Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background),
+        contentPadding = PaddingValues(20.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
         item { SearchField(state.query, strings[TextKey.Search]) { model.actionHandler(RoutesAction.Search(it)) } }
         item { StatusPanel(state.network) { model.actionHandler(RoutesAction.Retry) } }
         if (state.items.isEmpty() && state.stops.isEmpty() && state.network.network != null) item { EmptyPanel() }

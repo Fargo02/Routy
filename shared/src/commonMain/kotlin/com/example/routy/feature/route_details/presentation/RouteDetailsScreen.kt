@@ -1,5 +1,6 @@
 package com.example.routy.feature.route_details.presentation
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -31,7 +32,11 @@ fun RouteDetailsScreen(
             is RouteDetailsEffect.Error -> message(strings.error(it.error))
         }
     }
-    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    LazyColumn(
+        Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background),
+        contentPadding = PaddingValues(20.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
         item { StatusPanel(state.network) { model.actionHandler(RouteDetailsAction.Retry) } }
         val details = state.details
         if (details != null) {

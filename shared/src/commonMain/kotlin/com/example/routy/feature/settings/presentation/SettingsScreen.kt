@@ -1,5 +1,6 @@
 package com.example.routy.feature.settings.presentation
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -17,7 +18,14 @@ import com.example.routy.feature.settings.presentation.state.SettingsAction
 fun SettingsScreen(model: SettingsViewModel) {
     val state by model.uiState.collectAsStateWithLifecycle()
     val strings = LocalStrings.current
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+    Column(
+        Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+            .verticalScroll(rememberScrollState())
+            .padding(24.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
         Text(strings[TextKey.Language], style = MaterialTheme.typography.titleLarge)
         Language.entries.forEach { language ->
             FilterChip(state.language == language, { model.actionHandler(SettingsAction.SetLanguage(language)) }, label = {
