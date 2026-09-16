@@ -6,9 +6,12 @@ import kotlinx.coroutines.flow.StateFlow
 
 enum class Appearance { System, Light, Dark }
 
+enum class ColorTheme { Ocean, Violet, Mint, Mono }
+
 data class Preferences(
     val language: Language = Language.English,
     val appearance: Appearance = Appearance.System,
+    val colorTheme: ColorTheme = ColorTheme.Ocean,
     val routeIds: Set<String> = emptySet(),
     val stopIds: Set<String> = emptySet(),
 )
@@ -21,6 +24,8 @@ interface PreferencesRepository {
     suspend fun setLanguage(language: Language): Outcome<Unit>
 
     suspend fun setAppearance(appearance: Appearance): Outcome<Unit>
+
+    suspend fun setColorTheme(colorTheme: ColorTheme): Outcome<Unit>
 
     suspend fun toggleRoute(id: String): Outcome<Unit>
 

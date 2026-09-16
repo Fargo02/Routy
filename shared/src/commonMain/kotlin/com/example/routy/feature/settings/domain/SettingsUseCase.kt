@@ -13,4 +13,6 @@ class SettingsUseCase(
     suspend fun language(value: Language) = repository.setLanguage(value)
 
     suspend fun appearance(value: Appearance) = repository.setAppearance(value)
+
+    suspend fun colorTheme(value: ColorTheme) = repository.setColorTheme(value)
 }

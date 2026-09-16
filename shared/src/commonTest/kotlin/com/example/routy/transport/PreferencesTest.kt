@@ -3,6 +3,7 @@ package com.example.routy.transport
 import com.example.routy.core.localization.*
 import com.example.routy.core.preferences.data.FilePreferencesRepository
 import com.example.routy.core.preferences.domain.Appearance
+import com.example.routy.core.preferences.domain.ColorTheme
 import com.example.routy.core.transport.data.PersistentFiles
 import com.example.routy.core.transport.domain.*
 import kotlinx.coroutines.test.runTest
@@ -32,6 +33,7 @@ class PreferencesTest {
             repository.toggleStop("s")
             repository.setLanguage(Language.Georgian)
             repository.setAppearance(Appearance.Dark)
+            repository.setColorTheme(ColorTheme.Violet)
             val restored = FilePreferencesRepository(files)
             restored.load()
             assertEquals(repository.state.value, restored.state.value)

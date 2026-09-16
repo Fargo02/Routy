@@ -12,6 +12,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.routy.core.designsystem.ScreenScaffold
 import com.example.routy.core.localization.*
 import com.example.routy.core.preferences.domain.Appearance
+import com.example.routy.core.preferences.domain.ColorTheme
 import com.example.routy.core.transport.domain.Language
 import com.example.routy.feature.settings.presentation.state.SettingsAction
 
@@ -48,6 +49,26 @@ fun SettingsScreen(model: SettingsViewModel) {
                         ],
                     )
                 })
+            }
+            HorizontalDivider()
+            Text(strings[TextKey.ColorTheme], style = MaterialTheme.typography.titleLarge)
+            ColorTheme.entries.forEach { colorTheme ->
+                FilterChip(
+                    selected = state.colorTheme == colorTheme,
+                    onClick = { model.actionHandler(SettingsAction.SetColorTheme(colorTheme)) },
+                    label = {
+                        Text(
+                            strings[
+                                when (colorTheme) {
+                                    ColorTheme.Ocean -> TextKey.Ocean
+                                    ColorTheme.Violet -> TextKey.Violet
+                                    ColorTheme.Mint -> TextKey.Mint
+                                    ColorTheme.Mono -> TextKey.Mono
+                                },
+                            ],
+                        )
+                    },
+                )
             }
             HorizontalDivider()
             Text(strings[TextKey.Appearance], style = MaterialTheme.typography.titleLarge)

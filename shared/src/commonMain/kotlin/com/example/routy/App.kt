@@ -96,7 +96,7 @@ fun App(graph: AppGraph) {
     PlatformBackHandler(navController.previousBackStackEntry != null) { navController.popBackStack() }
 
     CompositionLocalProvider(LocalStrings provides strings) {
-        RoutyTheme(preferences.appearance) {
+        RoutyTheme(preferences.appearance, preferences.colorTheme) {
             CollectEffects(settings.effects) {
                 when (it) {
                     is SettingsEffect.Error -> snackbar.showSnackbar(strings.error(it.error))
@@ -187,8 +187,8 @@ private fun FloatingBottomNavigation(
         contentAlignment = Alignment.Center,
     ) {
         Surface(
-            color = Color(0xFF0A0B0D),
-            contentColor = Color(0xFF93959E),
+            color = MaterialTheme.colorScheme.inverseSurface,
+            contentColor = MaterialTheme.colorScheme.inverseOnSurface,
             shape = RoundedCornerShape(40.dp),
             shadowElevation = 12.dp,
         ) {
@@ -208,7 +208,7 @@ private fun FloatingBottomNavigation(
                         color =
                             if (isSelected) MaterialTheme.colorScheme.surfaceVariant else Color.Transparent,
                         contentColor =
-                            if (isSelected) MaterialTheme.colorScheme.onSurfaceVariant else Color(0xFF93959E),
+                            if (isSelected) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.inverseOnSurface,
                         shape = CircleShape,
                     ) {
                         Box(contentAlignment = Alignment.Center) { RoutyIcon(item.icon) }

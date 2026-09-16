@@ -46,6 +46,7 @@ fun MapScreen(
     val state by model.uiState.collectAsStateWithLifecycle()
     val vehicles by model.vehicles.collectAsStateWithLifecycle()
     val strings = LocalStrings.current
+    val palette = LocalRoutyPalette.current
     val scope = rememberCoroutineScope()
     var locationEnabled by rememberSaveable { mutableStateOf(false) }
     var focusLocation by remember { mutableStateOf(false) }
@@ -82,14 +83,14 @@ fun MapScreen(
             val vehicleSource = rememberGeoJsonSource(GeoJsonData.JsonString(vehicleJson))
             val selectionSource = rememberGeoJsonSource(GeoJsonData.JsonString(selectedStopJson))
             val vehicleSelectionSource = rememberGeoJsonSource(GeoJsonData.JsonString(selectedVehicleJson))
-            LineLayer("route-outline", routeSource, color = const(Color.White), width = const(8.dp))
-            LineLayer("route", routeSource, color = const(Lagoon), width = const(5.dp))
+            LineLayer("route-outline", routeSource, color = const(palette.routeOutline), width = const(8.dp))
+            LineLayer("route", routeSource, color = const(palette.route), width = const(5.dp))
             CircleLayer(
                 "stops",
                 stopSource,
                 color = const(Color.White),
                 radius = const(3.dp),
-                strokeColor = const(Lagoon),
+                strokeColor = const(palette.route),
                 strokeWidth = const(1.5.dp),
                 hitPadding = 18.dp,
                 onClick = { features ->
@@ -103,15 +104,15 @@ fun MapScreen(
             CircleLayer(
                 "selected-stop",
                 selectionSource,
-                color = const(Color(0xFFFFC857)),
+                color = const(palette.selected),
                 radius = const(9.dp),
-                strokeColor = const(Ink),
+                strokeColor = const(MaterialTheme.colorScheme.onSurface),
                 strokeWidth = const(3.dp),
             )
             CircleLayer(
                 "vehicles",
                 vehicleSource,
-                color = const(Ink),
+                color = const(MaterialTheme.colorScheme.onSurface),
                 radius = const(9.dp),
                 strokeColor = const(Color.White),
                 strokeWidth = const(3.dp),
@@ -130,9 +131,9 @@ fun MapScreen(
             CircleLayer(
                 "selected-vehicle",
                 vehicleSelectionSource,
-                color = const(Color(0xFFFFC857)),
+                color = const(palette.selected),
                 radius = const(10.dp),
-                strokeColor = const(Ink),
+                strokeColor = const(MaterialTheme.colorScheme.onSurface),
                 strokeWidth = const(3.dp),
             )
             if (locationEnabled) LocationPuck(idPrefix = "user", locationState = location)

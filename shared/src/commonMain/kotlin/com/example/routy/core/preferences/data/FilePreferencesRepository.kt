@@ -14,15 +14,17 @@ import kotlinx.serialization.json.Json
 private data class PreferencesRecord(
     val language: String = "English",
     val appearance: String = "System",
+    val colorTheme: String = "Ocean",
     val routeIds: Set<String> = emptySet(),
     val stopIds: Set<String> = emptySet(),
 ) {
     fun domain() =
         Preferences(
-            Language.entries.firstOrNull { it.name == language } ?: Language.English,
-            Appearance.entries.firstOrNull { it.name == appearance } ?: Appearance.System,
-            routeIds,
-            stopIds,
+            language = Language.entries.firstOrNull { it.name == language } ?: Language.English,
+            appearance = Appearance.entries.firstOrNull { it.name == appearance } ?: Appearance.System,
+            colorTheme = ColorTheme.entries.firstOrNull { it.name == colorTheme } ?: ColorTheme.Ocean,
+            routeIds = routeIds,
+            stopIds = stopIds,
         )
 }
 
@@ -61,7 +63,15 @@ class FilePreferencesRepository(
             val next = transform(state.value)
             files.write(
                 "preferences-v1.json",
-                json.encodeToString(PreferencesRecord(next.language.name, next.appearance.name, next.routeIds, next.stopIds)),
+                json.encodeToString(
+                    PreferencesRecord(
+                        language = next.language.name,
+                        appearance = next.appearance.name,
+                        colorTheme = next.colorTheme.name,
+                        routeIds = next.routeIds,
+                        stopIds = next.stopIds,
+                    ),
+                ),
             )
             mutableState.value = next
         }
@@ -69,6 +79,8 @@ class FilePreferencesRepository(
     override suspend fun setLanguage(language: Language) = update { it.copy(language = language) }
 
     override suspend fun setAppearance(appearance: Appearance) = update { it.copy(appearance = appearance) }
+
+    override suspend fun setColorTheme(colorTheme: ColorTheme) = update { it.copy(colorTheme = colorTheme) }
 
     override suspend fun toggleRoute(id: String) =
         update {

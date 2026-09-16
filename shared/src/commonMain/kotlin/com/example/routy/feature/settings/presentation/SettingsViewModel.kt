@@ -28,6 +28,7 @@ class SettingsViewModel(
                 when (action) {
                     is SettingsAction.SetLanguage -> settings.language(action.language)
                     is SettingsAction.SetAppearance -> settings.appearance(action.appearance)
+                    is SettingsAction.SetColorTheme -> settings.colorTheme(action.colorTheme)
                 },
             )
         }
