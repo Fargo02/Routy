@@ -73,6 +73,7 @@ fun FavoritesScreen(
             }
         ModalBottomSheet(
             onDismissRequest = { selectedRouteId = null },
+            containerColor = MaterialTheme.colorScheme.surface,
             contentWindowInsets = { WindowInsets.safeDrawing.only(WindowInsetsSides.Top) },
         ) {
             LazyColumn(
@@ -124,6 +125,7 @@ fun FavoritesScreen(
         ModalBottomSheet(
             onDismissRequest = { selectedStopId = null },
             sheetState = stopSheetState,
+            containerColor = MaterialTheme.colorScheme.surface,
             contentWindowInsets = { WindowInsets.safeDrawing.only(WindowInsetsSides.Top) },
         ) {
             LazyColumn(

@@ -6,7 +6,7 @@ import kotlinx.coroutines.flow.StateFlow
 
 enum class Appearance { System, Light, Dark }
 
-enum class ColorTheme { Ocean, Violet, Mint, Mono }
+enum class ColorTheme { Ocean, Mint, Mono }
 
 data class Preferences(
     val language: Language = Language.English,

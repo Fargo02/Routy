@@ -25,6 +25,7 @@ import androidx.compose.material3.AssistChip
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -417,13 +418,17 @@ fun MapScreen(
                     routes,
                     key = { it.id },
                 ) { route ->
+                    val selected = route.id in state.selectedRouteIds
                     FilterChip(
-                        selected = route.id in state.selectedRouteIds,
+                        selected = selected,
                         onClick = { model.actionHandler(MapAction.SelectRoute(route.id)) },
                         label = {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 if (route.id in state.favoriteRouteIds) {
-                                    CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.tertiary) {
+                                    CompositionLocalProvider(
+                                        LocalContentColor provides
+                                            if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.tertiary,
+                                    ) {
                                         RoutyIcon(Glyph.Star)
                                     }
                                     Spacer(Modifier.width(4.dp))
@@ -431,7 +436,13 @@ fun MapScreen(
                                 Text(route.name.resolve(strings.language, route.id))
                             }
                         },
-                        colors = FilterChipDefaults.filterChipColors(containerColor = MaterialTheme.colorScheme.surface),
+                        colors =
+                            FilterChipDefaults.filterChipColors(
+                                containerColor = MaterialTheme.colorScheme.surface,
+                                selectedContainerColor = MaterialTheme.colorScheme.primary,
+                                selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
+                                selectedLeadingIconColor = MaterialTheme.colorScheme.onPrimary,
+                            ),
                     )
                 }
             }
@@ -469,10 +480,11 @@ fun MapScreen(
     if (routeInfoVisible) {
         ModalBottomSheet(
             onDismissRequest = { routeInfoVisible = false },
+            containerColor = MaterialTheme.colorScheme.surface,
             contentWindowInsets = { WindowInsets.safeDrawing.only(WindowInsetsSides.Top) },
         ) {
             Column(
-                Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 8.dp),
+                Modifier.fillMaxWidth().padding(vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 state.network.network
@@ -481,10 +493,23 @@ fun MapScreen(
                     ?.let { route ->
                         Text(
                             route.name.resolve(strings.language, route.id),
+                            Modifier.padding(horizontal = 24.dp),
                             style = MaterialTheme.typography.headlineSmall,
                         )
+                        FilledTonalButton(
+                            onClick = { model.actionHandler(MapAction.ToggleSelectedRouteFavorite) },
+                            modifier = Modifier.padding(horizontal = 24.dp),
+                        ) {
+                            RoutyIcon(Glyph.Star)
+                            Spacer(Modifier.width(8.dp))
+                            Text(strings[if (route.id in state.favoriteRouteIds) TextKey.Saved else TextKey.Save])
+                        }
                     }
-                Text(strings[TextKey.Live], style = MaterialTheme.typography.titleMedium)
+                Text(
+                    strings[TextKey.Live],
+                    Modifier.padding(horizontal = 24.dp),
+                    style = MaterialTheme.typography.titleMedium,
+                )
                 Text(
                     when {
                         vehicles.isLoading -> strings[TextKey.Loading]
@@ -492,10 +517,15 @@ fun MapScreen(
                         vehicles.vehicles.isEmpty() -> strings[TextKey.NoBuses]
                         else -> "${vehicles.vehicles.size} ${strings[TextKey.Vehicle]}"
                     },
+                    Modifier.padding(horizontal = 24.dp),
                     style = MaterialTheme.typography.bodyMedium,
                 )
                 if (vehicles.vehicles.isNotEmpty()) {
-                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    LazyRow(
+                        Modifier.fillMaxWidth(),
+                        contentPadding = PaddingValues(horizontal = 24.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
                         items(vehicles.vehicles, key = { it.id }) { vehicle ->
                             AssistChip(
                                 onClick = {
@@ -512,6 +542,7 @@ fun MapScreen(
                         routeInfoVisible = false
                         model.actionHandler(MapAction.OpenRouteDetails)
                     },
+                    modifier = Modifier.padding(horizontal = 24.dp),
                 ) { Text(strings[TextKey.Details]) }
             }
         }
@@ -521,7 +552,7 @@ fun MapScreen(
         ModalBottomSheet(
             onDismissRequest = { model.actionHandler(MapAction.CloseSearch) },
             sheetState = searchSheetState,
-            containerColor = palette.searchSheet,
+            containerColor = MaterialTheme.colorScheme.surface,
             scrimColor = Color.Black.copy(alpha = 0.32f),
             contentWindowInsets = { WindowInsets.safeDrawing.only(WindowInsetsSides.Top) },
         ) {

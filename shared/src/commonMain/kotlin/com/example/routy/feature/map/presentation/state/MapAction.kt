@@ -13,6 +13,8 @@ sealed interface MapAction {
         val camera: MapCamera,
     ) : MapAction
 
+    data object ToggleSelectedRouteFavorite : MapAction
+
     data object OpenSearch : MapAction
 
     data object CloseSearch : MapAction

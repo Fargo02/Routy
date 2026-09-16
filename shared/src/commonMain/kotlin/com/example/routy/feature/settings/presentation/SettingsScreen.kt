@@ -59,7 +59,6 @@ fun SettingsScreen(model: SettingsViewModel) {
                             strings[
                                 when (colorTheme) {
                                     ColorTheme.Ocean -> TextKey.Ocean
-                                    ColorTheme.Violet -> TextKey.Violet
                                     ColorTheme.Mint -> TextKey.Mint
                                     ColorTheme.Mono -> TextKey.Mono
                                 },

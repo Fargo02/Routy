@@ -90,7 +90,7 @@ private val routeColors =
         Color(0xFFEF4444),
         Color(0xFF16A34A),
         Color(0xFFF59E0B),
-        Color(0xFF7C3AED),
+        Color(0xFFF97316),
         Color(0xFF06B6D4),
         Color(0xFFEC4899),
         Color(0xFF64748B),
@@ -111,17 +111,6 @@ private fun colorScheme(
                 )
             } else {
                 lightScheme(primary = Color(0xFF2563EB), accent = Color(0xFF06B6D4), background = Color(0xFFF6F9FF), surface = Color.White)
-            }
-        ColorTheme.Violet ->
-            if (dark) {
-                darkScheme(
-                    primary = Color(0xFFA78BFA),
-                    accent = Color(0xFF22D3EE),
-                    background = Color(0xFF17102B),
-                    surface = Color(0xFF251B40),
-                )
-            } else {
-                lightScheme(primary = Color(0xFF6D4AFF), accent = Color(0xFF8B5CF6), background = Color(0xFFFAF8FF), surface = Color.White)
             }
         ColorTheme.Mint ->
             if (dark) {
@@ -159,7 +148,13 @@ private fun lightScheme(
         primaryContainer = primary.copy(alpha = 0.14f),
         onPrimaryContainer = primary,
         secondary = accent,
+        onSecondary = Color.White,
+        secondaryContainer = accent.copy(alpha = 0.16f),
+        onSecondaryContainer = accent,
         tertiary = Color(0xFFFFB800),
+        onTertiary = Color(0xFF172033),
+        tertiaryContainer = Color(0xFFFFB800).copy(alpha = 0.18f),
+        onTertiaryContainer = Color(0xFF9A6700),
         background = background,
         surface = surface,
         surfaceContainer = Color(0xFFF0F3F7),
@@ -181,7 +176,13 @@ private fun darkScheme(
         primaryContainer = primary.copy(alpha = 0.22f),
         onPrimaryContainer = primary,
         secondary = accent,
+        onSecondary = Color(0xFF07121B),
+        secondaryContainer = accent.copy(alpha = 0.22f),
+        onSecondaryContainer = accent,
         tertiary = Color(0xFFFFB800),
+        onTertiary = Color(0xFF07121B),
+        tertiaryContainer = Color(0xFFFFB800).copy(alpha = 0.22f),
+        onTertiaryContainer = Color(0xFFFFB800),
         background = background,
         surface = surface,
         surfaceContainer = Color(0xFF243044),

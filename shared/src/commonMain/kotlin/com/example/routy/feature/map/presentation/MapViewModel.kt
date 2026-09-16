@@ -26,7 +26,7 @@ class MapViewModel(
     private val transport: ObserveTransportUseCase,
     vehicles: ObserveRouteVehiclesUseCase,
     details: GetRouteDetailsUseCase,
-    favorites: FavoritesUseCase,
+    private val favorites: FavoritesUseCase,
     private val searchRoutes: SearchRoutesUseCase = SearchRoutesUseCase(),
     private val searchStops: SearchStopsUseCase = SearchStopsUseCase(),
     private val savedState: SavedStateHandle = SavedStateHandle(),
@@ -124,6 +124,10 @@ class MapViewModel(
             MapAction.ClearSelectedRoutes -> savedState["routeIds"] = emptyList<String>()
             MapAction.ClearSelectedStop -> sendEffect(MapEffect.ClearStopSelection)
             is MapAction.SaveCamera -> saveCamera(action.camera)
+            MapAction.ToggleSelectedRouteFavorite ->
+                selectedRouteIds.value.lastOrNull()?.let { routeId ->
+                    viewModelScope.launch { favorites.route(routeId) }
+                }
             MapAction.OpenSearch -> setSearchOpen(true)
             MapAction.CloseSearch -> closeSearch()
             is MapAction.SearchQueryChanged -> setSearchQuery(action.query)

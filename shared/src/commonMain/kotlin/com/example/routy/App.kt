@@ -221,9 +221,9 @@ private fun FloatingBottomNavigation(
                                 .size(56.dp)
                                 .semantics { contentDescription = item.title.name },
                         color =
-                            if (isSelected) MaterialTheme.colorScheme.surfaceVariant else Color.Transparent,
+                            if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
                         contentColor =
-                            if (isSelected) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.inverseOnSurface,
+                            if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.inverseOnSurface,
                         shape = CircleShape,
                     ) {
                         Box(contentAlignment = Alignment.Center) { RoutyIcon(item.icon) }

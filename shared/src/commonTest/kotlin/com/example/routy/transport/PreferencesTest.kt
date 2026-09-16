@@ -33,7 +33,7 @@ class PreferencesTest {
             repository.toggleStop("s")
             repository.setLanguage(Language.Georgian)
             repository.setAppearance(Appearance.Dark)
-            repository.setColorTheme(ColorTheme.Violet)
+            repository.setColorTheme(ColorTheme.Mint)
             val restored = FilePreferencesRepository(files)
             restored.load()
             assertEquals(repository.state.value, restored.state.value)
