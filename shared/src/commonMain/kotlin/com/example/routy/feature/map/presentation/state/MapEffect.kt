@@ -11,5 +11,9 @@ sealed interface MapEffect {
         val id: String,
     ) : MapEffect
 
+    data class ShowStopOnMap(
+        val id: String,
+    ) : MapEffect
+
     data object RequestLocation : MapEffect
 }

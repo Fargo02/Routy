@@ -9,7 +9,6 @@ import androidx.navigation.compose.composable
 import com.example.routy.core.designsystem.Glyph
 import com.example.routy.core.localization.TextKey
 import com.example.routy.core.navigation.BottomNavigationItem
-import com.example.routy.core.navigation.Destination
 import com.example.routy.core.navigation.navigateIfResumed
 import com.example.routy.core.transport.domain.ObserveTransportUseCase
 import com.example.routy.feature.favorites.domain.FavoritesUseCase
@@ -32,7 +31,7 @@ fun NavController.navigateToFavoritesScreen() =
 fun NavGraphBuilder.favoritesScreen(
     transport: ObserveTransportUseCase,
     favorites: FavoritesUseCase,
-    navigate: (Destination) -> Unit,
+    showStopOnMap: (String) -> Unit,
 ) {
     composable<Favorites>(
         enterTransition = { EnterTransition.None },
@@ -42,7 +41,7 @@ fun NavGraphBuilder.favoritesScreen(
     ) {
         FavoritesScreen(
             viewModel { FavoritesViewModel(transport, favorites) },
-            navigate,
+            showStopOnMap,
         )
     }
 }

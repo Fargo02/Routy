@@ -190,6 +190,8 @@ fun MapScreen(
                 vehicleDetailsVisible = true
             }
 
+            is MapEffect.ShowStopOnMap -> selectedStop = it.id
+
             MapEffect.RequestLocation -> {
                 locationEnabled = true
                 focusLocation = true
@@ -358,7 +360,10 @@ fun MapScreen(
         }
     }
     if (routeInfoVisible) {
-        ModalBottomSheet(onDismissRequest = { routeInfoVisible = false }) {
+        ModalBottomSheet(
+            onDismissRequest = { routeInfoVisible = false },
+            contentWindowInsets = { WindowInsets.safeDrawing.only(WindowInsetsSides.Top) },
+        ) {
             Column(
                 Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),

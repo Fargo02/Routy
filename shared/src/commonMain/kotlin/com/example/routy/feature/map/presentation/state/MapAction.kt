@@ -27,6 +27,10 @@ sealed interface MapAction {
         val id: String,
     ) : MapAction
 
+    data class ShowStopOnMap(
+        val id: String,
+    ) : MapAction
+
     data class SelectVehicle(
         val id: String,
     ) : MapAction

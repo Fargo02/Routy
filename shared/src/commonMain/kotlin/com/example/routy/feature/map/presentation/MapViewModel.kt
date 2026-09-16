@@ -107,6 +107,7 @@ class MapViewModel(
                 sendEffect(MapEffect.Navigate(StopDetails(action.id)))
             }
             is MapAction.SelectStop -> sendEffect(MapEffect.Navigate(StopDetails(action.id)))
+            is MapAction.ShowStopOnMap -> sendEffect(MapEffect.ShowStopOnMap(action.id))
             is MapAction.SelectVehicle -> sendEffect(MapEffect.ShowVehicle(action.id))
             MapAction.OpenStops -> sendEffect(MapEffect.Navigate(Stops))
             MapAction.OpenRouteDetails -> selectedRouteIds.value.lastOrNull()?.let { sendEffect(MapEffect.Navigate(RouteDetails(it))) }

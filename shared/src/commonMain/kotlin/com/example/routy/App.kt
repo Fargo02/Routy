@@ -127,7 +127,14 @@ fun App(graph: AppGraph) {
                     NavHost(navController = navController, startDestination = Map) {
                         mapScreen(map, navController::navigateTo)
                         stopsScreen(graph.transport, navController::navigateTo)
-                        favoritesScreen(graph.transport, graph.favorites, navController::navigateTo)
+                        favoritesScreen(
+                            graph.transport,
+                            graph.favorites,
+                            showStopOnMap = { id ->
+                                map.actionHandler(MapAction.ShowStopOnMap(id))
+                                navController.navigateToMapScreen()
+                            },
+                        )
                         settingsScreen(settings)
                         routeDetailsScreen(
                             transport = graph.transport,

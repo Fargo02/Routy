@@ -2,6 +2,10 @@ package com.example.routy.feature.stop_details.navigation
 
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.SheetValue
@@ -44,6 +48,7 @@ fun NavGraphBuilder.stopDetailsScreen(
         val route = entry.toRoute<StopDetails>()
         ModalBottomSheet(
             onDismissRequest = onDismiss,
+            contentWindowInsets = { WindowInsets.safeDrawing.only(WindowInsetsSides.Top) },
             sheetState =
                 rememberBottomSheetState(
                     initialValue = SheetValue.Hidden,

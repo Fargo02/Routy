@@ -12,22 +12,24 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.routy.core.designsystem.*
 import com.example.routy.core.localization.*
-import com.example.routy.core.mvi.CollectEffects
-import com.example.routy.core.navigation.Destination
 import com.example.routy.feature.favorites.presentation.state.*
+import com.example.routy.feature.route_details.domain.GetRouteDetailsUseCase
+import com.example.routy.feature.stop_details.domain.GetStopDetailsUseCase
+import kotlinx.coroutines.launch
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FavoritesScreen(
     model: FavoritesViewModel,
-    navigate: (Destination) -> Unit,
+    showStopOnMap: (String) -> Unit,
 ) {
     val state by model.uiState.collectAsStateWithLifecycle()
     val strings = LocalStrings.current
-    CollectEffects(model.effects) {
-        when (it) {
-            is FavoritesEffect.Navigate -> navigate(it.destination)
-        }
-    }
+    var selectedRouteId by rememberSaveable { mutableStateOf<String?>(null) }
+    var selectedStopId by rememberSaveable { mutableStateOf<String?>(null) }
+    var stopRemovalConfirmationId by rememberSaveable { mutableStateOf<String?>(null) }
+    val stopSheetState = rememberModalBottomSheetState()
+    val scope = rememberCoroutineScope()
     ScreenScaffold { screenPadding ->
         LazyColumn(
             Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background),
@@ -49,7 +51,7 @@ fun FavoritesScreen(
                 FavoriteSwipeToDismiss(
                     onDismiss = { model.actionHandler(FavoritesAction.RemoveRoute(route.id)) },
                 ) {
-                    RouteCard(route, { model.actionHandler(FavoritesAction.SelectRoute(route.id)) })
+                    RouteCard(route, { selectedRouteId = route.id })
                 }
             }
             items(
@@ -59,10 +61,151 @@ fun FavoritesScreen(
                 FavoriteSwipeToDismiss(
                     onDismiss = { model.actionHandler(FavoritesAction.RemoveStop(stop.id)) },
                 ) {
-                    StopCard(stop, { model.actionHandler(FavoritesAction.SelectStop(stop.id)) })
+                    StopCard(stop, { selectedStopId = stop.id })
                 }
             }
         }
+    }
+    selectedRouteId?.let { routeId ->
+        val details =
+            remember(state.network.network, routeId) {
+                state.network.network?.let { GetRouteDetailsUseCase()(it, routeId) }
+            }
+        ModalBottomSheet(
+            onDismissRequest = { selectedRouteId = null },
+            contentWindowInsets = { WindowInsets.safeDrawing.only(WindowInsetsSides.Top) },
+        ) {
+            LazyColumn(
+                Modifier.fillMaxWidth(),
+                contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = 32.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                if (details != null) {
+                    item {
+                        Text(
+                            details.route.name.resolve(strings.language, details.route.id),
+                            style = MaterialTheme.typography.headlineSmall,
+                        )
+                    }
+                    item { Text(strings[TextKey.ScheduleNote], style = MaterialTheme.typography.bodySmall) }
+                    details.groups.forEach { (group, stops) ->
+                        item {
+                            Text(
+                                if (group == null) strings[TextKey.Unspecified] else "${strings[TextKey.Group]} $group",
+                                style = MaterialTheme.typography.titleMedium,
+                            )
+                        }
+                        items(stops, key = { "$group:${it.stop.id}" }) { item ->
+                            StopCard(
+                                item.stop,
+                                onClick = {
+                                    selectedRouteId = null
+                                    selectedStopId = item.stop.id
+                                },
+                                subtitle =
+                                    item.service.times
+                                        .take(4)
+                                        .joinToString(" • ")
+                                        .ifEmpty { strings[TextKey.NoSchedule] },
+                            )
+                        }
+                    }
+                } else {
+                    item { EmptyPanel() }
+                }
+            }
+        }
+    }
+    selectedStopId?.let { stopId ->
+        val details =
+            remember(state.network.network, stopId) {
+                state.network.network?.let { GetStopDetailsUseCase()(it, stopId) }
+            }
+        ModalBottomSheet(
+            onDismissRequest = { selectedStopId = null },
+            sheetState = stopSheetState,
+            contentWindowInsets = { WindowInsets.safeDrawing.only(WindowInsetsSides.Top) },
+        ) {
+            LazyColumn(
+                Modifier.fillMaxWidth(),
+                contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = 32.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                if (details != null) {
+                    item {
+                        Text(
+                            details.stop.name.resolve(strings.language, details.stop.id),
+                            style = MaterialTheme.typography.headlineSmall,
+                        )
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            Button(
+                                onClick = {
+                                    selectedStopId = null
+                                    showStopOnMap(stopId)
+                                },
+                            ) { Text(strings[TextKey.ShowMap]) }
+                            FilledTonalButton(
+                                onClick = {
+                                    selectedStopId = null
+                                    stopRemovalConfirmationId = stopId
+                                },
+                            ) { Text(strings[TextKey.Remove]) }
+                        }
+                    }
+                    item { Text(strings[TextKey.ScheduleNote], style = MaterialTheme.typography.bodySmall) }
+                    details.routes.forEach { route ->
+                        item {
+                            RouteCard(
+                                route,
+                                onClick = {
+                                    scope.launch {
+                                        stopSheetState.hide()
+                                        selectedStopId = null
+                                        selectedRouteId = route.id
+                                    }
+                                },
+                            )
+                        }
+                        details.stop.services.filter { it.routeId == route.id }.forEach { service ->
+                            item {
+                                Surface(
+                                    shape = MaterialTheme.shapes.medium,
+                                    color = MaterialTheme.colorScheme.surfaceContainer,
+                                ) {
+                                    Text(
+                                        service.times.joinToString("   ").ifEmpty { strings[TextKey.NoSchedule] },
+                                        Modifier.fillMaxWidth().padding(16.dp),
+                                        style = MaterialTheme.typography.bodyLarge,
+                                    )
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    item { EmptyPanel() }
+                }
+            }
+        }
+    }
+    stopRemovalConfirmationId?.let { stopId ->
+        AlertDialog(
+            onDismissRequest = { stopRemovalConfirmationId = null },
+            title = { Text(strings[TextKey.RemoveFavoriteTitle]) },
+            text = { Text(strings[TextKey.RemoveFavoriteBody]) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        stopRemovalConfirmationId = null
+                        model.actionHandler(FavoritesAction.RemoveStop(stopId))
+                    },
+                ) { Text(strings[TextKey.Remove]) }
+            },
+            dismissButton = {
+                TextButton(onClick = { stopRemovalConfirmationId = null }) {
+                    Text(strings[TextKey.Close])
+                }
+            },
+        )
     }
 }
 
