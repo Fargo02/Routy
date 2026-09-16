@@ -1,5 +1,8 @@
 package com.example.routy.feature.map.presentation
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -9,7 +12,10 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.semantics.*
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -18,8 +24,6 @@ import com.example.routy.core.localization.*
 import com.example.routy.core.mvi.CollectEffects
 import com.example.routy.core.navigation.Destination
 import com.example.routy.feature.map.presentation.state.*
-import com.example.routy.feature.routes.domain.SearchRoutesUseCase
-import com.example.routy.feature.stops.domain.SearchStopsUseCase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -56,33 +60,10 @@ fun MapScreen(
             ?.routes
             .orEmpty()
             .let { routes -> routes.filter { it.id in state.favoriteRouteIds } + routes.filterNot { it.id in state.favoriteRouteIds } }
-    val routeSearch = remember { SearchRoutesUseCase() }
-    val stopSearch = remember { SearchStopsUseCase() }
     val scope = rememberCoroutineScope()
-    var searchVisible by rememberSaveable { mutableStateOf(false) }
-    var searchQuery by rememberSaveable { mutableStateOf("") }
-    val searchResults =
-        remember(state.network.network, searchQuery) {
-            routeSearch(
-                state.network.network
-                    ?.routes
-                    .orEmpty(),
-                searchQuery,
-            )
-        }
-    val stopSearchResults =
-        remember(state.network.network, searchQuery) {
-            if (searchQuery.isBlank()) {
-                emptyList()
-            } else {
-                stopSearch(
-                    state.network.network
-                        ?.stops
-                        .orEmpty(),
-                    searchQuery,
-                )
-            }
-        }
+    val searchFocusRequester = remember { FocusRequester() }
+    val keyboard = LocalSoftwareKeyboardController.current
+    val searchSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
     var locationEnabled by rememberSaveable { mutableStateOf(false) }
     var focusLocation by remember { mutableStateOf(false) }
     var vehicleDetailsVisible by rememberSaveable { mutableStateOf(false) }
@@ -198,6 +179,15 @@ fun MapScreen(
         }
     }
     LaunchedEffect(mapState) { mapState.events.collect { if (it is MapEvent.StyleLoadFailed) mapError = true } }
+    LaunchedEffect(state.search.isOpen) {
+        if (state.search.isOpen) {
+            searchFocusRequester.requestFocus()
+            keyboard?.show()
+            searchSheetState.expand()
+        } else {
+            keyboard?.hide()
+        }
+    }
     LaunchedEffect(state.selectedRouteIds) {
         selectedVehicle = null
         vehicleDetailsVisible = false
@@ -230,18 +220,24 @@ fun MapScreen(
                     .padding(start = 16.dp, top = screenPadding.calculateTopPadding() + 16.dp, end = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                Surface(
-                    onClick = { searchVisible = true },
-                    shape = MaterialTheme.shapes.large,
-                    shadowElevation = 8.dp,
+                AnimatedVisibility(
+                    visible = !state.search.isOpen,
+                    enter = fadeIn(),
+                    exit = fadeOut(),
                 ) {
-                    Row(
-                        Modifier.fillMaxWidth().padding(18.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    Surface(
+                        onClick = { model.actionHandler(MapAction.OpenSearch) },
+                        shape = MaterialTheme.shapes.large,
+                        shadowElevation = 8.dp,
                     ) {
-                        RoutyIcon(Glyph.Search)
-                        Text(strings[TextKey.Search], Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
+                        Row(
+                            Modifier.fillMaxWidth().padding(18.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            RoutyIcon(Glyph.Search)
+                            Text(strings[TextKey.Search], Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
+                        }
                     }
                 }
                 if (state.network.network == null ||
@@ -354,28 +350,79 @@ fun MapScreen(
             }
         }
     }
-    if (searchVisible) {
-        ModalBottomSheet(onDismissRequest = { searchVisible = false }) {
+    if (state.search.isOpen) {
+        ModalBottomSheet(
+            onDismissRequest = { model.actionHandler(MapAction.CloseSearch) },
+            sheetState = searchSheetState,
+            containerColor = palette.searchSheet,
+            scrimColor = Color.Black.copy(alpha = 0.32f),
+        ) {
             LazyColumn(
-                Modifier.fillMaxWidth(),
-                contentPadding = PaddingValues(horizontal = 24.dp, vertical = 8.dp),
+                Modifier.fillMaxWidth().imePadding(),
+                contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                item { SearchField(searchQuery, strings[TextKey.Search]) { searchQuery = it } }
-                items(searchResults, key = { "route:${it.id}" }) { route ->
-                    RouteCard(route) {
-                        searchVisible = false
-                        model.actionHandler(MapAction.SelectRoute(route.id))
+                item {
+                    SearchField(
+                        value = state.search.query,
+                        placeholder = strings[TextKey.Search],
+                        onChange = { model.actionHandler(MapAction.SearchQueryChanged(it)) },
+                        modifier = Modifier.focusRequester(searchFocusRequester),
+                        onClear = { model.actionHandler(MapAction.ClearSearch) },
+                    )
+                }
+                if (state.search.query.isBlank()) {
+                    item { Text(strings[TextKey.QuickSelect], style = MaterialTheme.typography.titleMedium) }
+                    item {
+                        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            items(state.search.quickRoutes, key = { it.id }) { route ->
+                                FilterChip(
+                                    selected = route.id in state.selectedRouteIds,
+                                    onClick = { model.actionHandler(MapAction.SelectSearchRoute(route.id)) },
+                                    label = {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            if (route.id in state.favoriteRouteIds) {
+                                                CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.tertiary) {
+                                                    RoutyIcon(Glyph.Star, strings[TextKey.Favorites])
+                                                }
+                                                Spacer(Modifier.width(4.dp))
+                                            }
+                                            Text(route.name.resolve(strings.language, route.id))
+                                        }
+                                    },
+                                )
+                            }
+                        }
                     }
                 }
-                items(stopSearchResults, key = { "stop:${it.id}" }) { stop ->
+                if (state.search.routes.isNotEmpty()) {
+                    item { Text(strings[TextKey.Routes], style = MaterialTheme.typography.titleMedium) }
+                    items(state.search.routes, key = { "route:${it.id}" }) { route ->
+                        RouteCard(
+                            route = route,
+                            stopCount = state.search.routeStopCounts[route.id],
+                            onClick = { model.actionHandler(MapAction.SelectSearchRoute(route.id)) },
+                        )
+                    }
+                }
+                if (state.search.stops.isNotEmpty()) {
+                    item { Text(strings[TextKey.Stops], style = MaterialTheme.typography.titleMedium) }
+                }
+                items(state.search.stops, key = { "stop:${it.id}" }) { stop ->
                     StopCard(
                         stop = stop,
+                        subtitle =
+                            stop.services
+                                .map { it.routeId }
+                                .distinct()
+                                .joinToString(" · "),
                         onClick = {
-                            searchVisible = false
-                            model.actionHandler(MapAction.SelectStop(stop.id))
+                            model.actionHandler(MapAction.SelectSearchStop(stop.id))
                         },
                     )
+                }
+                if (state.search.query.isNotBlank() && state.search.routes.isEmpty() && state.search.stops.isEmpty()) {
+                    item { SearchEmptyState() }
                 }
             }
         }

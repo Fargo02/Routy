@@ -5,6 +5,24 @@ sealed interface MapAction {
         val id: String,
     ) : MapAction
 
+    data object OpenSearch : MapAction
+
+    data object CloseSearch : MapAction
+
+    data class SearchQueryChanged(
+        val query: String,
+    ) : MapAction
+
+    data object ClearSearch : MapAction
+
+    data class SelectSearchRoute(
+        val id: String,
+    ) : MapAction
+
+    data class SelectSearchStop(
+        val id: String,
+    ) : MapAction
+
     data class SelectStop(
         val id: String,
     ) : MapAction

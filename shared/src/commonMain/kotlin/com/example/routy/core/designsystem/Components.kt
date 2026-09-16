@@ -19,7 +19,7 @@ import com.example.routy.core.localization.*
 import com.example.routy.core.transport.domain.*
 
 // Small, shared vector vocabulary; no platform icon fonts or bitmap dependencies.
-enum class Glyph { Map, Routes, Star, Search, Settings, Back, Stop, Location, Close }
+enum class Glyph { Map, Routes, Star, Search, Settings, Back, Stop, Location, Close, Chevron }
 
 @Composable
 fun RoutyIcon(
@@ -50,6 +50,10 @@ fun RoutyIcon(
             Glyph.Close -> {
                 line(5f, 5f, 19f, 19f)
                 line(5f, 19f, 19f, 5f)
+            }
+            Glyph.Chevron -> {
+                line(9f, 5f, 16f, 12f)
+                line(16f, 12f, 9f, 19f)
             }
             Glyph.Location -> {
                 drawCircle(color, 7 * u, style = Stroke(2 * u))
@@ -155,17 +159,31 @@ fun RoutyIcon(
 fun SearchField(
     value: String,
     placeholder: String,
+    modifier: Modifier = Modifier,
+    onClear: (() -> Unit)? = null,
     onChange: (String) -> Unit,
 ) {
+    val strings = LocalStrings.current
     OutlinedTextField(
         value,
         onChange,
-        modifier = Modifier.fillMaxWidth().semantics { contentDescription = placeholder },
+        modifier = modifier.fillMaxWidth().semantics { contentDescription = placeholder },
         singleLine = true,
         shape = RoundedCornerShape(24.dp),
         placeholder = { Text(placeholder) },
         leadingIcon = { RoutyIcon(Glyph.Search) },
-        colors = OutlinedTextFieldDefaults.colors(unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant),
+        trailingIcon =
+            if (value.isNotEmpty() && onClear != null) {
+                { IconButton(onClear) { RoutyIcon(Glyph.Close, strings[TextKey.Close]) } }
+            } else {
+                null
+            },
+        colors =
+            OutlinedTextFieldDefaults.colors(
+                focusedContainerColor = MaterialTheme.colorScheme.surface,
+                unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+            ),
     )
 }
 
@@ -173,6 +191,7 @@ fun SearchField(
 fun RouteCard(
     route: Route,
     onClick: () -> Unit,
+    stopCount: Int? = null,
 ) {
     val strings = LocalStrings.current
     Card(
@@ -189,14 +208,14 @@ fun RouteCard(
                 )
             }
             Column(Modifier.weight(1f)) {
-                Text(strings[TextKey.Routes], style = MaterialTheme.typography.titleMedium)
+                Text(route.name.resolve(strings.language, route.id), style = MaterialTheme.typography.titleMedium)
                 Text(
-                    strings[TextKey.Details],
+                    stopCount?.let(strings::stopsCount) ?: strings[TextKey.Details],
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     style = MaterialTheme.typography.bodyMedium,
                 )
             }
-            RoutyIcon(Glyph.Routes)
+            RoutyIcon(Glyph.Chevron, strings[TextKey.Details])
         }
     }
 }
@@ -219,7 +238,25 @@ fun StopCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
+            RoutyIcon(Glyph.Chevron, strings[TextKey.Details])
         }
+    }
+}
+
+@Composable
+fun SearchEmptyState() {
+    val strings = LocalStrings.current
+    Column(
+        Modifier.fillMaxWidth().padding(vertical = 32.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text(strings[TextKey.SearchEmptyTitle], style = MaterialTheme.typography.titleMedium)
+        Text(
+            strings[TextKey.SearchEmptyBody],
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = MaterialTheme.typography.bodyMedium,
+        )
     }
 }
 

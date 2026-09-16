@@ -85,7 +85,13 @@ fun App(graph: AppGraph) {
     val scope = rememberCoroutineScope()
     val map: MapViewModel =
         viewModel {
-            MapViewModel(graph.transport, graph.vehicles, GetRouteDetailsUseCase(), graph.favorites, createSavedStateHandle())
+            MapViewModel(
+                graph.transport,
+                graph.vehicles,
+                GetRouteDetailsUseCase(),
+                graph.favorites,
+                savedState = createSavedStateHandle(),
+            )
         }
 
     LaunchedEffect(owner, graph) {

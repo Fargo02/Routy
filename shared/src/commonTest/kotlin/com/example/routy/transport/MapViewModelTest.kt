@@ -71,7 +71,7 @@ class MapViewModelTest {
                         ObserveRouteVehiclesUseCase(vehicles),
                         GetRouteDetailsUseCase(),
                         favorites,
-                        handle,
+                        savedState = handle,
                     )
                 store.put("map", model)
                 backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { model.uiState.collect() }
@@ -82,9 +82,26 @@ class MapViewModelTest {
                 runCurrent()
                 assertEquals(1, active)
                 assertSame(static, model.uiState.value)
-                model.actionHandler(MapAction.SelectRoute("another"))
+                model.actionHandler(MapAction.OpenSearch)
+                assertTrue(
+                    model.uiState
+                        .first { it.search.isOpen }
+                        .search
+                        .quickRoutes
+                        .isNotEmpty(),
+                )
+                model.actionHandler(MapAction.SearchQueryChanged("another"))
+                assertEquals(
+                    "another",
+                    model.uiState
+                        .first { it.search.query == "another" }
+                        .search
+                        .query,
+                )
+                model.actionHandler(MapAction.SelectSearchRoute("another"))
                 runCurrent()
                 assertEquals(listOf("r", "another"), handle.get<List<String>>("routeIds"))
+                assertFalse(model.uiState.value.search.isOpen)
                 assertEquals(2, active)
                 assertEquals(3, subscriptions)
                 visible.cancelAndJoin()

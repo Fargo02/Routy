@@ -65,6 +65,9 @@ enum class TextKey {
     FitRoute,
     Vehicle,
     Details,
+    QuickSelect,
+    SearchEmptyTitle,
+    SearchEmptyBody,
 }
 
 class Strings(
@@ -88,7 +91,25 @@ class Strings(
                 AppError.Unknown -> TextKey.Unknown
             },
         )
+
+    fun stopsCount(count: Int): String =
+        when (language) {
+            Language.English -> "$count ${if (count == 1) "stop" else "stops"}"
+            Language.Georgian -> "$count გაჩერება"
+            Language.Russian -> "$count ${russianStops(count)}"
+        }
 }
+
+private fun russianStops(count: Int): String =
+    when (val remainder = count % 100) {
+        in 11..14 -> "остановок"
+        else ->
+            when (remainder % 10) {
+                1 -> "остановка"
+                in 2..4 -> "остановки"
+                else -> "остановок"
+            }
+    }
 
 val LocalStrings = staticCompositionLocalOf { Strings(Language.English) }
 private val english =
@@ -154,6 +175,9 @@ private val english =
         TextKey.FitRoute to "Fit route",
         TextKey.Vehicle to "Bus",
         TextKey.Details to "Details",
+        TextKey.QuickSelect to "Quick pick",
+        TextKey.SearchEmptyTitle to "Nothing found",
+        TextKey.SearchEmptyBody to "Try a stop name or route number.",
     )
 
 private val georgian =
@@ -219,6 +243,9 @@ private val georgian =
         TextKey.FitRoute to "მარშრუტის ჩვენება",
         TextKey.Vehicle to "ავტობუსი",
         TextKey.Details to "დეტალები",
+        TextKey.QuickSelect to "სწრაფი არჩევა",
+        TextKey.SearchEmptyTitle to "ვერაფერი მოიძებნა",
+        TextKey.SearchEmptyBody to "სცადეთ გაჩერების სახელი ან მარშრუტის ნომერი.",
     )
 
 private val russian =
@@ -284,4 +311,7 @@ private val russian =
         TextKey.FitRoute to "Показать маршрут",
         TextKey.Vehicle to "Автобус",
         TextKey.Details to "Подробнее",
+        TextKey.QuickSelect to "Быстрый выбор",
+        TextKey.SearchEmptyTitle to "Ничего не найдено",
+        TextKey.SearchEmptyBody to "Попробуйте изменить название остановки или номер маршрута.",
     )

@@ -26,6 +26,7 @@ data class RoutyPalette(
     val routeOutline: Color,
     val selected: Color,
     val routeColors: List<Color>,
+    val searchSheet: Color,
 )
 
 val LocalRoutyPalette =
@@ -35,6 +36,7 @@ val LocalRoutyPalette =
             routeOutline = Color.White,
             selected = Color(0xFFFFB800),
             routeColors = routeColors,
+            searchSheet = Color(0xFFF8FAFC),
         )
     }
 
@@ -46,7 +48,14 @@ fun RoutyTheme(
 ) {
     val dark = appearance == Appearance.Dark || (appearance == Appearance.System && isSystemInDarkTheme())
     val colors = colorScheme(colorTheme, dark)
-    val palette = RoutyPalette(colors.primary, colors.surface, colors.tertiary, routeColors)
+    val palette =
+        RoutyPalette(
+            route = colors.primary,
+            routeOutline = colors.surface,
+            selected = colors.tertiary,
+            routeColors = routeColors,
+            searchSheet = if (dark) colors.surface else Color(0xFFF8FAFC),
+        )
     CompositionLocalProvider(LocalRoutyPalette provides palette) {
         MaterialTheme(
             colorScheme = colors,
