@@ -39,12 +39,10 @@ fun SettingsScreen(model: SettingsViewModel) {
                 FilterChip(state.language == language, { model.actionHandler(SettingsAction.SetLanguage(language)) }, label = {
                     Text(
                         strings[
-                            if (language ==
-                                Language.English
-                            ) {
-                                TextKey.English
-                            } else {
-                                TextKey.Georgian
+                            when (language) {
+                                Language.English -> TextKey.English
+                                Language.Georgian -> TextKey.Georgian
+                                Language.Russian -> TextKey.Russian
                             },
                         ],
                     )

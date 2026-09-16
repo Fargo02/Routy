@@ -10,7 +10,7 @@ data class GeoPoint(
     }
 }
 
-enum class Language { English, Georgian }
+enum class Language { English, Georgian, Russian }
 
 data class LocalizedName(
     val english: String?,

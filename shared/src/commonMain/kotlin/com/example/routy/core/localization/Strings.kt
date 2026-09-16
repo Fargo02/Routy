@@ -59,6 +59,7 @@ enum class TextKey {
     Dark,
     English,
     Georgian,
+    Russian,
     About,
     MapUnavailable,
     FitRoute,
@@ -69,7 +70,12 @@ enum class TextKey {
 class Strings(
     val language: Language,
 ) {
-    operator fun get(key: TextKey): String = (if (language == Language.Georgian) georgian else english).getValue(key)
+    operator fun get(key: TextKey): String =
+        when (language) {
+            Language.English -> english
+            Language.Georgian -> georgian
+            Language.Russian -> russian
+        }.getValue(key)
 
     fun error(error: AppError): String =
         get(
@@ -142,6 +148,7 @@ private val english =
         TextKey.Dark to "Dark",
         TextKey.English to "English",
         TextKey.Georgian to "ქართული",
+        TextKey.Russian to "Русский",
         TextKey.About to "Made for everyday journeys in Batumi",
         TextKey.MapUnavailable to "Map tiles unavailable. Routes and stops remain accessible from the lists.",
         TextKey.FitRoute to "Fit route",
@@ -206,9 +213,75 @@ private val georgian =
         TextKey.Dark to "მუქი",
         TextKey.English to "English",
         TextKey.Georgian to "ქართული",
+        TextKey.Russian to "რუსული",
         TextKey.About to "ბათუმში ყოველდღიური მგზავრობისთვის",
         TextKey.MapUnavailable to "რუკა მიუწვდომელია. მარშრუტები და გაჩერებები ხელმისაწვდომია სიებში.",
         TextKey.FitRoute to "მარშრუტის ჩვენება",
         TextKey.Vehicle to "ავტობუსი",
         TextKey.Details to "დეტალები",
+    )
+
+private val russian =
+    mapOf(
+        TextKey.AppName to "Routy",
+        TextKey.City to "БАТУМИ • ОБЩЕСТВЕННЫЙ ТРАНСПОРТ",
+        TextKey.Map to "Карта",
+        TextKey.Routes to "Маршруты",
+        TextKey.Stops to "Остановки",
+        TextKey.Favorites to "Сохранённые",
+        TextKey.Settings to "Настройки",
+        TextKey.Search to "Найти маршрут или остановку",
+        TextKey.SearchRoutes to "Номер или название маршрута",
+        TextKey.SearchStops to "Название или номер остановки",
+        TextKey.Explore to "Город на связи",
+        TextKey.ExploreBody to "Найдите следующую поездку по Батуми",
+        TextKey.AllRoutes to "Все маршруты",
+        TextKey.Nearby to "Посмотреть остановки",
+        TextKey.Retry to "Повторить",
+        TextKey.Loading to "Загрузка данных транспорта…",
+        TextKey.Empty to "Пока ничего нет",
+        TextKey.NoResults to "Ничего не найдено. Попробуйте другое название или номер.",
+        TextKey.NoFavorites to "Сохраняйте маршруты и остановки, чтобы быстро находить их здесь.",
+        TextKey.Offline to "Сохранённые данные • обновления недоступны",
+        TextKey.Refreshing to "Обновление данных транспорта…",
+        TextKey.NoInternet to "Нет подключения. Проверьте интернет и повторите попытку.",
+        TextKey.Timeout to "Подключение заняло слишком много времени. Попробуйте ещё раз.",
+        TextKey.Server to "Сервис транспорта временно недоступен. Попробуйте позже.",
+        TextKey.Invalid to "Не удалось прочитать данные транспорта. Попробуйте обновить.",
+        TextKey.Storage to "Не удалось сохранить изменения на устройстве.",
+        TextKey.Unknown to "Что-то пошло не так. Попробуйте ещё раз.",
+        TextKey.Schedule to "Расписание отправлений",
+        TextKey.ScheduleNote to "Время Батуми • расписание, а не прогноз прибытия",
+        TextKey.NoSchedule to "Расписание недоступно",
+        TextKey.Group to "Группа остановок",
+        TextKey.Unspecified to "Не указано",
+        TextKey.Save to "Сохранить",
+        TextKey.Saved to "Сохранено",
+        TextKey.ShowMap to "Показать на карте",
+        TextKey.Back to "Назад",
+        TextKey.Close to "Закрыть",
+        TextKey.Live to "Автобусы онлайн",
+        TextKey.Stale to "Последние известные позиции • обновления недоступны",
+        TextKey.NoBuses to "На этом маршруте нет данных об автобусах",
+        TextKey.MyLocation to "Моё местоположение",
+        TextKey.LocationHelp to "Местоположение необязательно и используется только для отображения на карте.",
+        TextKey.LocationUnavailable to "Местоположение недоступно. Проверьте разрешения устройства.",
+        TextKey.Language to "Язык",
+        TextKey.Appearance to "Оформление",
+        TextKey.ColorTheme to "Цветовая тема",
+        TextKey.Ocean to "Океан",
+        TextKey.Violet to "Фиолетовая",
+        TextKey.Mint to "Мятная",
+        TextKey.Mono to "Моно",
+        TextKey.System to "Как на устройстве",
+        TextKey.Light to "Светлая",
+        TextKey.Dark to "Тёмная",
+        TextKey.English to "English",
+        TextKey.Georgian to "ქართული",
+        TextKey.Russian to "Русский",
+        TextKey.About to "Для ежедневных поездок по Батуми",
+        TextKey.MapUnavailable to "Карта недоступна. Маршруты и остановки по-прежнему доступны в списках.",
+        TextKey.FitRoute to "Показать маршрут",
+        TextKey.Vehicle to "Автобус",
+        TextKey.Details to "Подробнее",
     )
