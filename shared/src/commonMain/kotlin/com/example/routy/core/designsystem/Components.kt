@@ -160,7 +160,7 @@ fun SearchField(
     OutlinedTextField(
         value,
         onChange,
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().semantics { contentDescription = placeholder },
         singleLine = true,
         shape = RoundedCornerShape(24.dp),
         placeholder = { Text(placeholder) },

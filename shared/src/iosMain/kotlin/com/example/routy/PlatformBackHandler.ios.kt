@@ -17,8 +17,8 @@ actual fun PlatformBackHandler(
 ) {
     val controller = LocalUIViewController.current
     val latestBack by rememberUpdatedState(onBack)
-    DisposableEffect(controller, enabled) {
-        val target = BackGestureTarget { latestBack() }
+    val target = remember(controller) { BackGestureTarget { latestBack() } }
+    DisposableEffect(controller, enabled, target) {
         val gesture = UIScreenEdgePanGestureRecognizer(target, NSSelectorFromString("handlePan:"))
         gesture.edges = UIRectEdgeLeft
         gesture.enabled = enabled

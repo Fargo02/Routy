@@ -48,6 +48,7 @@ fun MapScreen(
     val scope = rememberCoroutineScope()
     var locationEnabled by rememberSaveable { mutableStateOf(false) }
     var focusLocation by remember { mutableStateOf(false) }
+    var vehicleDetailsVisible by rememberSaveable { mutableStateOf(false) }
     var selectedVehicle by rememberSaveable { mutableStateOf<String?>(null) }
     var selectedStop by rememberSaveable { mutableStateOf<String?>(null) }
 
@@ -152,7 +153,10 @@ fun MapScreen(
     CollectEffects(model.effects) {
         when (it) {
             is MapEffect.Navigate -> navigate(it.destination)
-            is MapEffect.ShowVehicle -> selectedVehicle = it.id
+            is MapEffect.ShowVehicle -> {
+                selectedVehicle = it.id
+                vehicleDetailsVisible = true
+            }
             MapEffect.FitRoute -> fitSelectedRoute()
             MapEffect.RequestLocation -> {
                 locationEnabled = true
@@ -170,6 +174,7 @@ fun MapScreen(
     LaunchedEffect(mapState) { mapState.events.collect { if (it is MapEvent.StyleLoadFailed) mapError = true } }
     LaunchedEffect(state.routeId, state.geometry?.routeId) {
         selectedVehicle = null
+        vehicleDetailsVisible = false
         if (state.routeId == null) lastFittedRoute = null
         if (state.geometry != null && state.routeId != lastFittedRoute) {
             fitSelectedRoute()
@@ -291,26 +296,28 @@ fun MapScreen(
             dismissButton = { TextButton({ locationPrompt = false }) { Text(strings[TextKey.Close]) } },
         )
     }
-    selectedVehicle?.let { id ->
-        val vehicle = vehicles.vehicles.firstOrNull { it.id == id }
-        AlertDialog(
-            onDismissRequest = { selectedVehicle = null },
-            title = { Text("${strings[TextKey.Vehicle]} $id") },
-            text = { Text(strings[if (vehicles.isStale || vehicle == null) TextKey.Stale else TextKey.Live]) },
-            confirmButton = {
-                TextButton({
-                    vehicle?.let {
-                        scope.launch {
-                            mapState.animateCameraPosition(
-                                CameraPosition(target = Position(it.position.longitude, it.position.latitude), zoom = 16.0),
-                            )
+    if (vehicleDetailsVisible) {
+        selectedVehicle?.let { id ->
+            val vehicle = vehicles.vehicles.firstOrNull { it.id == id }
+            AlertDialog(
+                onDismissRequest = { vehicleDetailsVisible = false },
+                title = { Text("${strings[TextKey.Vehicle]} $id") },
+                text = { Text(strings[if (vehicles.isStale || vehicle == null) TextKey.Stale else TextKey.Live]) },
+                confirmButton = {
+                    TextButton({
+                        vehicle?.let {
+                            scope.launch {
+                                mapState.animateCameraPosition(
+                                    CameraPosition(target = Position(it.position.longitude, it.position.latitude), zoom = 16.0),
+                                )
+                            }
                         }
-                    }
-                    selectedVehicle =
-                        null
-                }) { Text(strings[TextKey.ShowMap]) }
-            },
-            dismissButton = { TextButton({ selectedVehicle = null }) { Text(strings[TextKey.Close]) } },
-        )
+                        selectedVehicle =
+                            null
+                    }) { Text(strings[TextKey.ShowMap]) }
+                },
+                dismissButton = { TextButton({ vehicleDetailsVisible = false }) { Text(strings[TextKey.Close]) } },
+            )
+        }
     }
 }
