@@ -287,16 +287,18 @@ fun StatusPanel(
 @Composable
 fun LoadingSkeleton() {
     val strings = LocalStrings.current
-    Column(
-        Modifier.fillMaxWidth().semantics {
-            contentDescription = strings[TextKey.Loading]
-        },
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+    Surface(
+        modifier =
+            Modifier.fillMaxWidth().semantics {
+                contentDescription = strings[TextKey.Loading]
+            },
+        color = MaterialTheme.colorScheme.surfaceContainer,
+        shape = RoundedCornerShape(20.dp),
     ) {
-        LinearProgressIndicator(Modifier.fillMaxWidth())
-        repeat(
-            3,
-        ) { Box(Modifier.fillMaxWidth().height(76.dp).background(MaterialTheme.colorScheme.surfaceContainer, RoundedCornerShape(20.dp))) }
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text(strings[TextKey.Loading], style = MaterialTheme.typography.bodyMedium)
+            LinearProgressIndicator(Modifier.fillMaxWidth())
+        }
     }
 }
 
