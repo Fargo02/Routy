@@ -296,9 +296,6 @@ fun MapScreen(
                     }
                 }
                 SmallFloatingActionButton({
-                    model.actionHandler(MapAction.OpenSettings)
-                }, containerColor = MaterialTheme.colorScheme.surface) { RoutyIcon(Glyph.Settings, strings[TextKey.Settings]) }
-                SmallFloatingActionButton({
                     model.actionHandler(MapAction.OpenStops)
                 }, containerColor = MaterialTheme.colorScheme.surface) { RoutyIcon(Glyph.Stop, strings[TextKey.Nearby]) }
                 SmallFloatingActionButton({

@@ -114,11 +114,6 @@ fun App(graph: AppGraph) {
                                     }
                                 }
                             },
-                            actions = {
-                                IconButton({ navController.navigateTo(Settings) }) {
-                                    RoutyIcon(Glyph.Settings, strings[TextKey.Settings])
-                                }
-                            },
                         )
                     }
                 },
@@ -157,7 +152,7 @@ fun App(graph: AppGraph) {
                     }
                     FloatingBottomNavigation(
                         modifier = Modifier.align(Alignment.BottomCenter),
-                        items = listOf(Map, Routes, Favorites),
+                        items = listOf(Map, Routes, Favorites, Settings),
                         selected = visibleDestination,
                         onNavigate = navController::navigateTo,
                     )
@@ -172,6 +167,7 @@ private fun NavDestination?.matches(item: BottomNavigationItem): Boolean =
         Map -> hasRouteType<Map>()
         Routes -> hasRouteType<Routes>()
         Favorites -> hasRouteType<Favorites>()
+        Settings -> hasRouteType<Settings>()
         else -> false
     }
 

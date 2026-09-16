@@ -17,8 +17,6 @@ sealed interface MapAction {
 
     data object OpenStops : MapAction
 
-    data object OpenSettings : MapAction
-
     data object OpenRouteDetails : MapAction
 
     data object FitRoute : MapAction
