@@ -48,6 +48,11 @@ fun MapScreen(
     val vehicles by model.vehicles.collectAsStateWithLifecycle()
     val strings = LocalStrings.current
     val palette = LocalRoutyPalette.current
+    val routes =
+        state.network.network
+            ?.routes
+            .orEmpty()
+            .let { routes -> routes.filter { it.id in state.favoriteRouteIds } + routes.filterNot { it.id in state.favoriteRouteIds } }
     val scope = rememberCoroutineScope()
     var locationEnabled by rememberSaveable { mutableStateOf(false) }
     var focusLocation by remember { mutableStateOf(false) }
@@ -231,15 +236,23 @@ fun MapScreen(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 items(
-                    state.network.network
-                        ?.routes
-                        .orEmpty(),
+                    routes,
                     key = { it.id },
                 ) { route ->
                     FilterChip(
                         selected = route.id in state.selectedRouteIds,
                         onClick = { model.actionHandler(MapAction.SelectRoute(route.id)) },
-                        label = { Text(route.name.resolve(strings.language, route.id)) },
+                        label = {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                if (route.id in state.favoriteRouteIds) {
+                                    CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.tertiary) {
+                                        RoutyIcon(Glyph.Star)
+                                    }
+                                    Spacer(Modifier.width(4.dp))
+                                }
+                                Text(route.name.resolve(strings.language, route.id))
+                            }
+                        },
                         colors = FilterChipDefaults.filterChipColors(containerColor = MaterialTheme.colorScheme.surface),
                     )
                 }

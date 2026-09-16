@@ -4,8 +4,10 @@ package com.example.routy.transport
 
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModelStore
+import com.example.routy.core.preferences.domain.*
 import com.example.routy.core.transport.data.TransportParser
 import com.example.routy.core.transport.domain.*
+import com.example.routy.feature.favorites.domain.FavoritesUseCase
 import com.example.routy.feature.map.presentation.*
 import com.example.routy.feature.map.presentation.state.MapAction
 import com.example.routy.feature.route_details.domain.GetRouteDetailsUseCase
@@ -45,11 +47,30 @@ class MapViewModelTest {
                             }
                     }
                 val handle = SavedStateHandle(mapOf("routeId" to "r"))
+                val favorites =
+                    FavoritesUseCase(
+                        object : PreferencesRepository {
+                            override val state = MutableStateFlow(Preferences())
+
+                            override suspend fun load() = Outcome.Success(Unit)
+
+                            override suspend fun setLanguage(language: Language) = Outcome.Success(Unit)
+
+                            override suspend fun setAppearance(appearance: Appearance) = Outcome.Success(Unit)
+
+                            override suspend fun setColorTheme(colorTheme: ColorTheme) = Outcome.Success(Unit)
+
+                            override suspend fun toggleRoute(id: String) = Outcome.Success(Unit)
+
+                            override suspend fun toggleStop(id: String) = Outcome.Success(Unit)
+                        },
+                    )
                 val model =
                     MapViewModel(
                         ObserveTransportUseCase(transport),
                         ObserveRouteVehiclesUseCase(vehicles),
                         GetRouteDetailsUseCase(),
+                        favorites,
                         handle,
                     )
                 store.put("map", model)

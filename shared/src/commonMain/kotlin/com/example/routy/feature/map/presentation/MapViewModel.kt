@@ -6,6 +6,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.routy.core.transport.domain.*
+import com.example.routy.feature.favorites.domain.FavoritesUseCase
 import com.example.routy.feature.map.presentation.state.*
 import com.example.routy.feature.route_details.domain.GetRouteDetailsUseCase
 import com.example.routy.feature.route_details.navigation.RouteDetails
@@ -21,6 +22,7 @@ class MapViewModel(
     private val transport: ObserveTransportUseCase,
     vehicles: ObserveRouteVehiclesUseCase,
     details: GetRouteDetailsUseCase,
+    favorites: FavoritesUseCase,
     private val savedState: SavedStateHandle = SavedStateHandle(),
 ) : ViewModel() {
     private val _effects = Channel<MapEffect>(Channel.BUFFERED)
@@ -29,7 +31,7 @@ class MapViewModel(
     private val selectedRouteIds =
         savedState.getStateFlow("routeIds", savedState.get<String>("routeId")?.let(::listOf).orEmpty())
     val uiState =
-        combine(transport.state, selectedRouteIds) { network, routeIds ->
+        combine(transport.state, selectedRouteIds, favorites.state) { network, routeIds, saved ->
             val routes = network.network?.let { data -> routeIds.mapNotNull { details(data, it) } }.orEmpty()
             val stops =
                 if (routeIds.isEmpty()) {
@@ -41,7 +43,7 @@ class MapViewModel(
                         .distinctBy { it.id }
                 }
             val geometries = routes.mapNotNull { it.geometry }
-            MapState(network, routeIds, stops, geometries, stopsGeoJson(stops))
+            MapState(network, routeIds, saved.routeIds, stops, geometries, stopsGeoJson(stops))
         }.flowOn(Dispatchers.Default).stateIn(viewModelScope, SharingStarted.WhileSubscribed(0), MapState())
     val vehicles =
         selectedRouteIds

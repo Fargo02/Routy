@@ -8,6 +8,7 @@ import com.example.routy.feature.map.presentation.EMPTY_GEOJSON
 data class MapState(
     val network: NetworkState = NetworkState(),
     val selectedRouteIds: List<String> = emptyList(),
+    val favoriteRouteIds: Set<String> = emptySet(),
     val stops: List<BusStop> = emptyList(),
     val geometries: List<RouteGeometry> = emptyList(),
     val stopGeoJson: String = EMPTY_GEOJSON,
