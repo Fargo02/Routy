@@ -77,6 +77,7 @@ import kotlinx.serialization.json.jsonPrimitive
 import org.jetbrains.compose.resources.painterResource
 import org.maplibre.compose.camera.CameraPosition
 import org.maplibre.compose.expressions.dsl.const
+import org.maplibre.compose.expressions.dsl.eq
 import org.maplibre.compose.expressions.dsl.feature
 import org.maplibre.compose.expressions.dsl.image
 import org.maplibre.compose.interaction.ClickResult
@@ -219,6 +220,25 @@ fun MapScreen(
                 strokeColor = const(MaterialTheme.colorScheme.onSurface),
                 strokeWidth = const(3.dp),
             )
+            if (state.favoriteStopIds.isNotEmpty()) {
+                CircleLayer(
+                    "favorite-stops",
+                    stopSource,
+                    filter = feature["favorite"] eq const(true),
+                    color = const(palette.selected),
+                    radius = const(7.dp),
+                    strokeColor = const(MaterialTheme.colorScheme.onSurface),
+                    strokeWidth = const(2.dp),
+                    hitPadding = 18.dp,
+                    onClick = { features ->
+                        features.firstOrNull()?.properties?.get("id")?.jsonPrimitive?.content?.let { id ->
+                            selectedStop = id
+                            model.actionHandler(MapAction.SelectStop(id))
+                        }
+                        ClickResult.Consume
+                    },
+                )
+            }
             SymbolLayer(
                 "vehicles",
                 vehicleSource,
@@ -257,6 +277,8 @@ fun MapScreen(
             }
 
             is MapEffect.ShowStopOnMap -> selectedStop = it.id
+
+            MapEffect.ClearStopSelection -> selectedStop = null
 
             MapEffect.RequestLocation -> {
                 locationEnabled = true

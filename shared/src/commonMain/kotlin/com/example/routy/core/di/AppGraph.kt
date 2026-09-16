@@ -14,13 +14,13 @@ class AppGraph(
     private val client: HttpClient,
     files: PersistentFiles,
     config: TransportConfig = TransportConfig(),
-    logger: AppLogger = SilentLogger,
+    val logger: AppLogger = SilentLogger,
 ) {
     private val http = configuredHttpClient(client)
     private val parser = TransportParser()
     private val remote = ThetaMapsRemoteDataSource(http, config)
     private val clock = EpochClock { Clock.System.now().toEpochMilliseconds() }
-    private val preferences = FilePreferencesRepository(files)
+    private val preferences = FilePreferencesRepository(files, logger)
     val transport =
         ObserveTransportUseCase(
             OfflineTransportRepository(remote, FileTransportLocalDataSource(files), parser, clock, config, logger = logger),

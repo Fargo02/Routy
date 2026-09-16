@@ -8,10 +8,14 @@ const val EMPTY_GEOJSON = "{\"type\":\"FeatureCollection\",\"features\":[]}"
 private fun point(
     id: String,
     position: GeoPoint,
+    favorite: Boolean = false,
 ) = buildJsonObject {
     put("type", "Feature")
     put("id", id)
-    putJsonObject("properties") { put("id", id) }
+    putJsonObject("properties") {
+        put("id", id)
+        put("favorite", favorite)
+    }
     putJsonObject("geometry") {
         put("type", "Point")
         putJsonArray("coordinates") {
@@ -27,7 +31,10 @@ private fun collection(features: List<JsonObject>) =
         put("features", JsonArray(features))
     }.toString()
 
-fun stopsGeoJson(stops: List<BusStop>): String = collection(stops.map { point(it.id, it.position) })
+fun stopsGeoJson(
+    stops: List<BusStop>,
+    favoriteStopIds: Set<String> = emptySet(),
+): String = collection(stops.map { point(it.id, it.position, it.id in favoriteStopIds) })
 
 fun vehiclesGeoJson(vehicles: List<Vehicle>): String =
     collection(

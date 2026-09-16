@@ -11,4 +11,8 @@ class PlatformLogger : AppLogger {
     ) {
         NSLog("Routy ${level.name} ${event.name}:${error?.name.orEmpty()}")
     }
+
+    override fun diagnostic(event: LogEvent, details: String) {
+        NSLog("Routy ${event.name}:$details")
+    }
 }

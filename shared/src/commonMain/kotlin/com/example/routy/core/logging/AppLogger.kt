@@ -4,7 +4,10 @@ import com.example.routy.core.transport.domain.AppError
 
 enum class LogLevel { Debug, Info, Warning, Error }
 
-enum class LogEvent { CacheLoaded, CacheReadFailed, CacheWriteFailed, DatabaseRefreshFailed, VehicleRefreshFailed }
+enum class LogEvent {
+    CacheLoaded, CacheReadFailed, CacheWriteFailed, DatabaseRefreshFailed, VehicleRefreshFailed,
+    FavoriteStopsChanged, MapFavoriteStopsUpdated,
+}
 
 /** Structured records deliberately cannot contain payloads, identifiers, or coordinates. */
 fun interface AppLogger {
@@ -13,6 +16,9 @@ fun interface AppLogger {
         event: LogEvent,
         error: AppError?,
     )
+
+    /** Diagnostic metadata must not contain names, identifiers, or coordinates. */
+    fun diagnostic(event: LogEvent, details: String) = log(LogLevel.Debug, event, null)
 }
 
 object SilentLogger : AppLogger {

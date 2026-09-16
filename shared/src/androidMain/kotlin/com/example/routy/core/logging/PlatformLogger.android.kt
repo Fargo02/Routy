@@ -18,4 +18,8 @@ class PlatformLogger : AppLogger {
             }
         Log.println(priority, "Routy", "${event.name}:${error?.name.orEmpty()}")
     }
+
+    override fun diagnostic(event: LogEvent, details: String) {
+        Log.d("Routy", "${event.name}:$details")
+    }
 }

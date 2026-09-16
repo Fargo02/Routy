@@ -1,6 +1,9 @@
 package com.example.routy.core.preferences.data
 
 import com.example.routy.core.preferences.domain.*
+import com.example.routy.core.logging.AppLogger
+import com.example.routy.core.logging.LogEvent
+import com.example.routy.core.logging.SilentLogger
 import com.example.routy.core.transport.data.PersistentFiles
 import com.example.routy.core.transport.domain.*
 import kotlinx.coroutines.CancellationException
@@ -30,6 +33,7 @@ private data class PreferencesRecord(
 
 class FilePreferencesRepository(
     private val files: PersistentFiles,
+    private val logger: AppLogger = SilentLogger,
 ) : PreferencesRepository {
     private val mutableState = MutableStateFlow(Preferences())
     override val state = mutableState.asStateFlow()
@@ -96,5 +100,9 @@ class FilePreferencesRepository(
             )
         }
 
-    override suspend fun toggleStop(id: String) = update { it.copy(stopIds = if (id in it.stopIds) it.stopIds - id else it.stopIds + id) }
+    override suspend fun toggleStop(id: String): Outcome<Unit> {
+        val result = update { it.copy(stopIds = if (id in it.stopIds) it.stopIds - id else it.stopIds + id) }
+        if (result is Outcome.Success) logger.diagnostic(LogEvent.FavoriteStopsChanged, "savedCount=${state.value.stopIds.size}")
+        return result
+    }
 }

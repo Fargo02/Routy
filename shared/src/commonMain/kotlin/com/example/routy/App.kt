@@ -91,6 +91,7 @@ fun App(graph: AppGraph) {
                 GetRouteDetailsUseCase(),
                 graph.favorites,
                 savedState = createSavedStateHandle(),
+                logger = graph.logger,
             )
         }
 
@@ -156,7 +157,10 @@ fun App(graph: AppGraph) {
                                     navController.navigateTo(destination)
                                 }
                             },
-                            onDismiss = { navController.popBackStack() },
+                            onDismiss = {
+                                map.actionHandler(MapAction.ClearSelectedStop)
+                                navController.popBackStack()
+                            },
                             message = { snackbar.showSnackbar(it) },
                         )
                     }

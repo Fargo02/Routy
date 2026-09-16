@@ -7,6 +7,8 @@ sealed interface MapAction {
 
     data object ClearSelectedRoutes : MapAction
 
+    data object ClearSelectedStop : MapAction
+
     data object OpenSearch : MapAction
 
     data object CloseSearch : MapAction

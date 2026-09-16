@@ -5,6 +5,9 @@ package com.example.routy.feature.map.presentation
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.routy.core.logging.AppLogger
+import com.example.routy.core.logging.LogEvent
+import com.example.routy.core.logging.SilentLogger
 import com.example.routy.core.transport.domain.*
 import com.example.routy.feature.favorites.domain.FavoritesUseCase
 import com.example.routy.feature.map.presentation.state.*
@@ -27,6 +30,7 @@ class MapViewModel(
     private val searchRoutes: SearchRoutesUseCase = SearchRoutesUseCase(),
     private val searchStops: SearchStopsUseCase = SearchStopsUseCase(),
     private val savedState: SavedStateHandle = SavedStateHandle(),
+    private val logger: AppLogger = SilentLogger,
 ) : ViewModel() {
     private val _effects = Channel<MapEffect>(Channel.BUFFERED)
     val effects = _effects.receiveAsFlow()
@@ -67,7 +71,21 @@ class MapViewModel(
                             .groupingBy { it }
                             .eachCount(),
                 )
-            MapState(network, routeIds, saved.routeIds, stops, geometries, stopsGeoJson(stops), searchState)
+            MapState(
+                network = network,
+                selectedRouteIds = routeIds,
+                favoriteRouteIds = saved.routeIds,
+                favoriteStopIds = saved.stopIds,
+                stops = stops,
+                geometries = geometries,
+                stopGeoJson = stopsGeoJson(stops, saved.stopIds),
+                search = searchState,
+            )
+        }.onEach { state ->
+            logger.diagnostic(
+                LogEvent.MapFavoriteStopsUpdated,
+                "savedCount=${state.favoriteStopIds.size}, visibleCount=${state.stops.count { it.id in state.favoriteStopIds }}",
+            )
         }.flowOn(Dispatchers.Default).stateIn(viewModelScope, SharingStarted.WhileSubscribed(0), MapState())
     val vehicles =
         selectedRouteIds
@@ -95,6 +113,7 @@ class MapViewModel(
         when (action) {
             is MapAction.SelectRoute -> toggleRoute(action.id)
             MapAction.ClearSelectedRoutes -> savedState["routeIds"] = emptyList<String>()
+            MapAction.ClearSelectedStop -> sendEffect(MapEffect.ClearStopSelection)
             MapAction.OpenSearch -> setSearchOpen(true)
             MapAction.CloseSearch -> closeSearch()
             is MapAction.SearchQueryChanged -> setSearchQuery(action.query)

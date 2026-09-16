@@ -1,7 +1,5 @@
 package com.example.routy.feature.stop_details.navigation
 
-import androidx.compose.animation.EnterTransition
-import androidx.compose.animation.ExitTransition
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.only
@@ -13,7 +11,7 @@ import androidx.compose.material3.rememberBottomSheetState
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
-import androidx.navigation.compose.composable
+import androidx.navigation.compose.dialog
 import androidx.navigation.toRoute
 import com.example.routy.core.navigation.Destination
 import com.example.routy.core.navigation.navigateIfResumed
@@ -39,12 +37,7 @@ fun NavGraphBuilder.stopDetailsScreen(
     onDismiss: () -> Unit,
     message: suspend (String) -> Unit,
 ) {
-    composable<StopDetails>(
-        enterTransition = { EnterTransition.None },
-        exitTransition = { ExitTransition.None },
-        popEnterTransition = { EnterTransition.None },
-        popExitTransition = { ExitTransition.None },
-    ) { entry ->
+    dialog<StopDetails> { entry ->
         val route = entry.toRoute<StopDetails>()
         ModalBottomSheet(
             onDismissRequest = onDismiss,
