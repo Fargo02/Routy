@@ -5,6 +5,8 @@ sealed interface MapAction {
         val id: String,
     ) : MapAction
 
+    data object ClearSelectedRoutes : MapAction
+
     data object OpenSearch : MapAction
 
     data object CloseSearch : MapAction

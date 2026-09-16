@@ -53,6 +53,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.routy.PlatformBackHandler
 import com.example.routy.core.designsystem.Glyph
 import com.example.routy.core.designsystem.LocalRoutyPalette
 import com.example.routy.core.designsystem.RouteCard
@@ -131,6 +132,10 @@ fun MapScreen(
     var routeInfoVisible by rememberSaveable { mutableStateOf(false) }
     var selectedVehicle by rememberSaveable { mutableStateOf<String?>(null) }
     var selectedStop by rememberSaveable { mutableStateOf<String?>(null) }
+
+    PlatformBackHandler(enabled = state.selectedRouteIds.isNotEmpty()) {
+        model.actionHandler(MapAction.ClearSelectedRoutes)
+    }
 
     var mapError by remember { mutableStateOf(false) }
     val busDirectionPainter = painterResource(Res.drawable.bus)

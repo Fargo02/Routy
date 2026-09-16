@@ -94,6 +94,7 @@ class MapViewModel(
     fun actionHandler(action: MapAction) {
         when (action) {
             is MapAction.SelectRoute -> toggleRoute(action.id)
+            MapAction.ClearSelectedRoutes -> savedState["routeIds"] = emptyList<String>()
             MapAction.OpenSearch -> setSearchOpen(true)
             MapAction.CloseSearch -> closeSearch()
             is MapAction.SearchQueryChanged -> setSearchQuery(action.query)
