@@ -146,12 +146,14 @@ fun FavoritesScreen(
                                     showStopOnMap(stopId)
                                 },
                             ) { Text(strings[TextKey.ShowMap]) }
-                            FilledTonalButton(
-                                onClick = {
-                                    selectedStopId = null
-                                    stopRemovalConfirmationId = stopId
-                                },
-                            ) { Text(strings[TextKey.Remove]) }
+                            if (state.stops.any { it.id == stopId }) {
+                                FilledTonalButton(
+                                    onClick = {
+                                        selectedStopId = null
+                                        stopRemovalConfirmationId = stopId
+                                    },
+                                ) { Text(strings[TextKey.Remove]) }
+                            }
                         }
                     }
                     item { Text(strings[TextKey.ScheduleNote], style = MaterialTheme.typography.bodySmall) }
