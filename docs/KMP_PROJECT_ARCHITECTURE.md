@@ -1701,3 +1701,67 @@ MapUiState
 ```
 
 without knowing which map SDK renders them.
+
+# 40. Implemented foundation decisions — 2026-09-16
+
+- Existing `:shared` and `:androidApp` modules are retained. Shared feature packages
+  are the initial boundaries; they can become Gradle modules when isolation warrants
+  the extra build complexity. `scripts/check_architecture.py` checks imports now.
+- Compose Multiplatform is used for Android/iOS. MapLibre Compose 0.16.0 supplies
+  Android OpenGL and iOS native rendering. Domain contains no SDK-specific types.
+- Manual constructor injection lives in `AppGraph`. Platform roots provide Ktor
+  engines, `PersistentFiles`, and structured log sinks. The root owns and closes
+  both the original and configured HTTP clients.
+- Atomic files are the initial persistence implementation, behind interfaces.
+  Android uses `AtomicFile`; iOS uses atomic Foundation writes in Application
+  Support. The observed database is about 1.2 MB. A versioned snapshot stores its
+  timestamp and complete payload; normalization/parsing runs on Default once per
+  load/refresh, with normalized models retained in memory. This preserves unknown
+  fields and allows SQLite/Room migration without changing domain contracts.
+- Cached content is emitted before the network completes. Invalid responses do not
+  replace the cache. Cache-write failure retains current fresh in-memory content and
+  exposes a storage error. Corrupt cache reads are logged and recovered via network.
+- One foreground application collector owns database refresh. Map and route-details
+  collect vehicles only while visible; `WhileSubscribed(0)` cancels polling as soon
+  as the view stops collecting. Live positions are never persisted and expire after
+  30 seconds of failures. Returning to the foreground starts a fresh observation.
+- Map stop/route sources are separate from the vehicle source. Vehicle updates do
+  not rebuild route geometry or change the camera. Camera fitting responds to route
+  selection or an explicit action. Map camera state is saved across destinations.
+- Feature StateFlow values are read-only; one-shot effects use a buffered Channel
+  exposed as Flow and a single lifecycle-aware UI collector. Search is local and
+  executes on Default. Navigation carries typed destinations and string IDs only.
+- Shared read-only feature query APIs (`SearchStopsUseCase`, `GetRouteDetailsUseCase`)
+  may be composed by other features. No feature accesses another feature's data or
+  presentation implementation. These queries are extraction candidates if modules
+  are split; no duplicate repository is introduced.
+- Typed English/Georgian string catalogs live in `core/localization`. Both catalogs
+  are completeness-tested. No UI component contains user-facing literal copy.
+  Transport names use requested language → English → Georgian → original → ID.
+  iOS permission descriptions use localized InfoPlist.strings.
+- Timetables are parsed into `ScheduleTime`. No service-day or ETA inference is
+  made because the API does not document those rules. Display explicitly identifies
+  Batumi time. Raw Status values are presented as neutral stop-group identifiers.
+- Optional foreground location uses MapLibre's platform provider and permission
+  adapter. No location is requested at launch or persisted. Denial, rationale and
+  system-settings paths are presented from a user action. iOS has a native edge-pan
+  back handler; Android uses the lifecycle-bound system back handler.
+- Logs accept only enumerated event/error categories, never arbitrary payloads,
+  coordinates, plate numbers or opaque IDs.
+
+## Map provider review
+
+OpenFreeMap's [mobile integration guide](https://openfreemap.org/quick_start/)
+explicitly supports these styles with MapLibre Native. The provider's
+[terms](https://openfreemap.org/tos/) were reviewed on 2026-09-16 (revision shown:
+2026-09-09). The public service is as-is and may change/discontinue; attribution
+is preserved through MapLibre's default overlay. No bulk downloading/offline-region
+feature is enabled. Re-review provider terms and capacity before distribution;
+self-hosting or replacing styles is a configuration change.
+
+## Release verification boundary
+
+Successful compilation/simulator smoke checks do not certify physical-device
+TalkBack/VoiceOver, every Dynamic Type size, memory-pressure behavior, store
+compliance, production API service guarantees or translation quality. See
+`IMPLEMENTATION_STATUS.md` for actual checks and remaining release verification.
