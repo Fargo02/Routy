@@ -13,7 +13,7 @@ import kotlinx.coroutines.launch
 
 class FavoritesViewModel(
     private val transport: ObserveTransportUseCase,
-    favorites: FavoritesUseCase,
+    private val favorites: FavoritesUseCase,
 ) : ViewModel() {
     private val _effects = Channel<FavoritesEffect>(Channel.BUFFERED)
     val effects = _effects.receiveAsFlow()
@@ -37,6 +37,8 @@ class FavoritesViewModel(
         when (action) {
             is FavoritesAction.SelectRoute -> sendEffect(FavoritesEffect.Navigate(RouteDetails(action.id)))
             is FavoritesAction.SelectStop -> sendEffect(FavoritesEffect.Navigate(StopDetails(action.id)))
+            is FavoritesAction.RemoveRoute -> viewModelScope.launch { favorites.route(action.id) }
+            is FavoritesAction.RemoveStop -> viewModelScope.launch { favorites.stop(action.id) }
             FavoritesAction.Retry -> viewModelScope.launch { transport.refresh() }
         }
     }

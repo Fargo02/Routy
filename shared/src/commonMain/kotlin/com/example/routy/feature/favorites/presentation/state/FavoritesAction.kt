@@ -9,5 +9,13 @@ sealed interface FavoritesAction {
         val id: String,
     ) : FavoritesAction
 
+    data class RemoveRoute(
+        val id: String,
+    ) : FavoritesAction
+
+    data class RemoveStop(
+        val id: String,
+    ) : FavoritesAction
+
     data object Retry : FavoritesAction
 }
