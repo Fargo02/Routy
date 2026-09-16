@@ -2,6 +2,7 @@
 
 package com.example.routy.feature.map.presentation
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import com.example.routy.core.mvi.MviViewModel
 import com.example.routy.core.navigation.Destination
@@ -33,6 +34,16 @@ sealed interface MapIntent {
         val id: String,
     ) : MapIntent
 
+    data object OpenSearch : MapIntent
+
+    data object OpenStops : MapIntent
+
+    data object OpenSettings : MapIntent
+
+    data object OpenRouteDetails : MapIntent
+
+    data object FitRoute : MapIntent
+
     data object MyLocation : MapIntent
 
     data object Retry : MapIntent
@@ -47,6 +58,8 @@ sealed interface MapEffect {
         val id: String,
     ) : MapEffect
 
+    data object FitRoute : MapEffect
+
     data object RequestLocation : MapEffect
 }
 
@@ -54,8 +67,9 @@ class MapViewModel(
     private val transport: ObserveTransportUseCase,
     vehicles: ObserveRouteVehiclesUseCase,
     details: GetRouteDetailsUseCase,
+    private val savedState: SavedStateHandle = SavedStateHandle(),
 ) : MviViewModel<MapIntent, MapEffect>() {
-    private val selectedRoute = MutableStateFlow<String?>(null)
+    private val selectedRoute = savedState.getStateFlow<String?>("routeId", null)
     val state =
         combine(transport.state, selectedRoute) { network, routeId ->
             val route = network.network?.let { data -> routeId?.let { details(data, it) } }
@@ -86,9 +100,14 @@ class MapViewModel(
 
     override fun accept(intent: MapIntent) {
         when (intent) {
-            is MapIntent.SelectRoute -> selectedRoute.value = intent.id
+            is MapIntent.SelectRoute -> savedState["routeId"] = intent.id
             is MapIntent.SelectStop -> effect(MapEffect.Navigate(Destination.StopDetails(intent.id)))
             is MapIntent.SelectVehicle -> effect(MapEffect.ShowVehicle(intent.id))
+            MapIntent.OpenSearch -> effect(MapEffect.Navigate(Destination.Routes))
+            MapIntent.OpenStops -> effect(MapEffect.Navigate(Destination.Stops))
+            MapIntent.OpenSettings -> effect(MapEffect.Navigate(Destination.Settings))
+            MapIntent.OpenRouteDetails -> selectedRoute.value?.let { effect(MapEffect.Navigate(Destination.RouteDetails(it))) }
+            MapIntent.FitRoute -> effect(MapEffect.FitRoute)
             MapIntent.MyLocation -> effect(MapEffect.RequestLocation)
             MapIntent.Retry -> viewModelScope.launch { transport.refresh() }
         }

@@ -4,10 +4,12 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.createSavedStateHandle
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.routy.core.designsystem.*
@@ -52,9 +54,8 @@ fun App(graph: AppGraph) {
         owner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) { graph.transport.foreground().collect { } }
     }
     PlatformBackHandler(stack.size > 1) { back() }
-    val map: MapViewModel = viewModel { MapViewModel(graph.transport, graph.vehicles, GetRouteDetailsUseCase()) }
-    var routeId by rememberSaveable { mutableStateOf<String?>(null) }
-    LaunchedEffect(routeId) { if (routeId != null) map.accept(MapIntent.SelectRoute(routeId)) }
+    val map: MapViewModel = viewModel { MapViewModel(graph.transport, graph.vehicles, GetRouteDetailsUseCase(), createSavedStateHandle()) }
+    val screenStates = rememberSaveableStateHolder()
     CompositionLocalProvider(LocalStrings provides strings) {
         RoutyTheme(preferences.appearance) {
             CollectEffects(settings.effects) {
@@ -112,40 +113,60 @@ fun App(graph: AppGraph) {
                 snackbarHost = { SnackbarHost(snackbar) },
             ) { padding ->
                 Box(Modifier.fillMaxSize().padding(padding)) {
-                    when (underlying) {
-                        Destination.Map -> MapScreen(map, ::navigate)
-                        Destination.Routes ->
-                            RoutesScreen(
-                                viewModel { RoutesViewModel(graph.transport, SearchRoutesUseCase()) },
-                                ::navigate,
-                            )
-                        Destination.Stops -> StopsScreen(viewModel { StopsViewModel(graph.transport, SearchStopsUseCase()) }, ::navigate)
-                        Destination.Favorites ->
-                            FavoritesScreen(
-                                viewModel { FavoritesViewModel(graph.transport, graph.favorites) },
-                                ::navigate,
-                            )
-                        Destination.Settings -> SettingsScreen(settings)
-                        is Destination.RouteDetails ->
-                            RouteDetailsScreen(
-                                viewModel(key = "route:${underlying.routeId}") {
-                                    RouteDetailsViewModel(underlying.routeId, graph.transport, GetRouteDetailsUseCase(), graph.favorites)
-                                },
-                                ::navigate,
-                                { id ->
-                                    routeId = id
-                                    map.accept(MapIntent.SelectRoute(id))
-                                    stackJson =
-                                        Json.encodeToString<List<Destination>>(listOf(Destination.Map))
-                                },
-                                { snackbar.showSnackbar(it) },
-                            )
-                        is Destination.StopDetails -> Unit
+                    screenStates.SaveableStateProvider(Json.encodeToString(underlying)) {
+                        when (underlying) {
+                            Destination.Map -> MapScreen(map, ::navigate)
+                            Destination.Routes ->
+                                RoutesScreen(
+                                    viewModel { RoutesViewModel(graph.transport, SearchRoutesUseCase()) },
+                                    ::navigate,
+                                )
+                            Destination.Stops ->
+                                StopsScreen(
+                                    viewModel { StopsViewModel(graph.transport, SearchStopsUseCase()) },
+                                    ::navigate,
+                                )
+                            Destination.Favorites ->
+                                FavoritesScreen(
+                                    viewModel { FavoritesViewModel(graph.transport, graph.favorites) },
+                                    ::navigate,
+                                )
+                            Destination.Settings -> SettingsScreen(settings)
+                            is Destination.RouteDetails ->
+                                RouteDetailsScreen(
+                                    viewModel(key = "route:${underlying.routeId}") {
+                                        RouteDetailsViewModel(
+                                            underlying.routeId,
+                                            graph.transport,
+                                            GetRouteDetailsUseCase(),
+                                            graph.favorites,
+                                            graph.vehicles,
+                                        )
+                                    },
+                                    ::navigate,
+                                    { id ->
+                                        map.accept(MapIntent.SelectRoute(id))
+                                        stackJson =
+                                            Json.encodeToString<List<Destination>>(listOf(Destination.Map))
+                                    },
+                                    { snackbar.showSnackbar(it) },
+                                )
+                            is Destination.StopDetails -> Unit
+                        }
                     }
                 }
             }
             if (current is Destination.StopDetails) {
-                ModalBottomSheet(onDismissRequest = { back() }, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
+                ModalBottomSheet(
+                    onDismissRequest = {
+                        back()
+                    },
+                    sheetState =
+                        rememberBottomSheetState(
+                            initialValue = SheetValue.Hidden,
+                            enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded),
+                        ),
+                ) {
                     StopDetailsScreen(
                         viewModel(key = "stop:${current.stopId}") {
                             StopDetailsViewModel(current.stopId, graph.transport, GetStopDetailsUseCase(), graph.favorites)

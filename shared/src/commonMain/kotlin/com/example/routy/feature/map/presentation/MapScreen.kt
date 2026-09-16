@@ -52,6 +52,7 @@ fun MapScreen(
     var selectedStop by rememberSaveable { mutableStateOf<String?>(null) }
 
     var mapError by remember { mutableStateOf(false) }
+    var lastFittedRoute by rememberSaveable { mutableStateOf<String?>(null) }
     val location = rememberLocationState(enabled = locationEnabled)
     val systemSettings = rememberSystemSettingsLauncher()
     var locationPrompt by remember { mutableStateOf(false) }
@@ -134,10 +135,25 @@ fun MapScreen(
             )
             if (locationEnabled) LocationPuck(idPrefix = "user", locationState = location)
         }
+
+    suspend fun fitSelectedRoute() {
+        state.geometry?.points?.takeIf { it.isNotEmpty() }?.let { points ->
+            mapState.animateCameraToBounds(
+                org.maplibre.spatialk.geojson.BoundingBox(
+                    west = points.minOf { it.longitude },
+                    south = points.minOf { it.latitude },
+                    east = points.maxOf { it.longitude },
+                    north = points.maxOf { it.latitude },
+                ),
+                padding = PaddingValues(70.dp),
+            )
+        }
+    }
     CollectEffects(model.effects) {
         when (it) {
             is MapEffect.Navigate -> navigate(it.destination)
             is MapEffect.ShowVehicle -> selectedVehicle = it.id
+            MapEffect.FitRoute -> fitSelectedRoute()
             MapEffect.RequestLocation -> {
                 locationEnabled = true
                 focusLocation = true
@@ -152,18 +168,17 @@ fun MapScreen(
         }
     }
     LaunchedEffect(mapState) { mapState.events.collect { if (it is MapEvent.StyleLoadFailed) mapError = true } }
-    LaunchedEffect(state.routeId) {
+    LaunchedEffect(state.routeId, state.geometry?.routeId) {
         selectedVehicle = null
-        state.geometry?.points?.takeIf { it.isNotEmpty() }?.let { points ->
-            mapState.animateCameraToBounds(
-                org.maplibre.spatialk.geojson.BoundingBox(
-                    west = points.minOf { it.longitude },
-                    south = points.minOf { it.latitude },
-                    east = points.maxOf { it.longitude },
-                    north = points.maxOf { it.latitude },
-                ),
-                padding = PaddingValues(70.dp),
-            )
+        if (state.routeId == null) lastFittedRoute = null
+        if (state.geometry != null && state.routeId != lastFittedRoute) {
+            fitSelectedRoute()
+            lastFittedRoute = state.routeId
+        }
+    }
+    LaunchedEffect(selectedStop) {
+        state.stops.firstOrNull { it.id == selectedStop }?.let {
+            mapState.animateCameraPosition(mapState.cameraPosition.copy(target = Position(it.position.longitude, it.position.latitude)))
         }
     }
     LaunchedEffect(focusLocation, location.lastLocation) {
@@ -177,7 +192,7 @@ fun MapScreen(
     Box(Modifier.fillMaxSize()) {
         MaplibreMap(Modifier.fillMaxSize().semantics { contentDescription = strings[TextKey.Map] }, state = mapState)
         Column(Modifier.align(Alignment.TopCenter).fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Surface(onClick = { navigate(Destination.Routes) }, shape = MaterialTheme.shapes.large, shadowElevation = 8.dp) {
+            Surface(onClick = { model.accept(MapIntent.OpenSearch) }, shape = MaterialTheme.shapes.large, shadowElevation = 8.dp) {
                 Row(
                     Modifier.fillMaxWidth().padding(18.dp),
                     verticalAlignment = Alignment.CenterVertically,
@@ -231,7 +246,7 @@ fun MapScreen(
                                 )
                             }
                         }
-                        TextButton({ state.routeId?.let { navigate(Destination.RouteDetails(it)) } }) { Text(strings[TextKey.Details]) }
+                        TextButton({ model.accept(MapIntent.OpenRouteDetails) }) { Text(strings[TextKey.Details]) }
                     }
                 }
             }
@@ -240,11 +255,18 @@ fun MapScreen(
             Modifier.align(Alignment.BottomEnd).padding(end = 16.dp, bottom = 72.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
+            if (state.geometry !=
+                null
+            ) {
+                SmallFloatingActionButton({ model.accept(MapIntent.FitRoute) }, containerColor = MaterialTheme.colorScheme.surface) {
+                    RoutyIcon(Glyph.Routes, strings[TextKey.FitRoute])
+                }
+            }
             SmallFloatingActionButton({
-                navigate(Destination.Settings)
+                model.accept(MapIntent.OpenSettings)
             }, containerColor = MaterialTheme.colorScheme.surface) { RoutyIcon(Glyph.Settings, strings[TextKey.Settings]) }
             SmallFloatingActionButton({
-                navigate(Destination.Stops)
+                model.accept(MapIntent.OpenStops)
             }, containerColor = MaterialTheme.colorScheme.surface) { RoutyIcon(Glyph.Stop, strings[TextKey.Nearby]) }
             SmallFloatingActionButton({
                 model.accept(MapIntent.MyLocation)

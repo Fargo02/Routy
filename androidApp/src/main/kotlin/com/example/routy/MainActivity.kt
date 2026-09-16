@@ -7,6 +7,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.example.routy.core.di.AppGraph
+import com.example.routy.core.logging.PlatformLogger
 import com.example.routy.core.storage.AndroidPersistentFiles
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.okhttp.OkHttp
@@ -21,7 +22,7 @@ class MainActivity : ComponentActivity() {
                 object : ViewModelProvider.Factory {
                     @Suppress("UNCHECKED_CAST")
                     override fun <T : ViewModel> create(modelClass: Class<T>): T =
-                        GraphModel(AppGraph(HttpClient(OkHttp), AndroidPersistentFiles(applicationContext))) as T
+                        GraphModel(AppGraph(HttpClient(OkHttp), AndroidPersistentFiles(applicationContext), logger = PlatformLogger())) as T
                 },
             )[GraphModel::class.java]
         setContent { App(model.graph) }

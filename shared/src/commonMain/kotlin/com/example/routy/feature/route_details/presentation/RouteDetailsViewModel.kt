@@ -46,11 +46,19 @@ class RouteDetailsViewModel(
     private val transport: ObserveTransportUseCase,
     details: GetRouteDetailsUseCase,
     private val favorites: FavoritesUseCase,
+    observeVehicles: ObserveRouteVehiclesUseCase,
 ) : MviViewModel<RouteDetailsIntent, RouteDetailsEffect>() {
     val state =
         combine(transport.state, favorites.state) { network, saved ->
             RouteDetailsState(network.network?.let { details(it, routeId) }, routeId in saved.routeIds, network)
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(0), RouteDetailsState())
+
+    val vehicles =
+        observeVehicles(routeId).stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(stopTimeoutMillis = 0, replayExpirationMillis = 0),
+            VehicleState(),
+        )
 
     override fun accept(intent: RouteDetailsIntent) {
         when (intent) {

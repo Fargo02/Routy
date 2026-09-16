@@ -21,6 +21,7 @@ fun RouteDetailsScreen(
     message: suspend (String) -> Unit,
 ) {
     val state by model.state.collectAsStateWithLifecycle()
+    val vehicles by model.vehicles.collectAsStateWithLifecycle()
     val strings = LocalStrings.current
     CollectEffects(model.effects) {
         when (it) {
@@ -43,6 +44,18 @@ fun RouteDetailsScreen(
                         Text(strings[if (state.favorite) TextKey.Saved else TextKey.Save])
                     }
                 }
+            }
+            item {
+                Text(strings[TextKey.Live], style = MaterialTheme.typography.titleMedium)
+                Text(
+                    when {
+                        vehicles.isLoading -> strings[TextKey.Loading]
+                        vehicles.isStale -> strings[TextKey.Stale]
+                        vehicles.vehicles.isEmpty() -> strings[TextKey.NoBuses]
+                        else -> vehicles.vehicles.joinToString(" • ") { it.id }
+                    },
+                    style = MaterialTheme.typography.bodyMedium,
+                )
             }
             item { Text(strings[TextKey.ScheduleNote], style = MaterialTheme.typography.bodySmall) }
             details.groups.forEach { (group, stops) ->
