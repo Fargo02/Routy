@@ -11,15 +11,16 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.routy.core.localization.*
 import com.example.routy.core.preferences.domain.Appearance
 import com.example.routy.core.transport.domain.Language
+import com.example.routy.feature.settings.presentation.state.SettingsAction
 
 @Composable
 fun SettingsScreen(model: SettingsViewModel) {
-    val state by model.state.collectAsStateWithLifecycle()
+    val state by model.uiState.collectAsStateWithLifecycle()
     val strings = LocalStrings.current
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Text(strings[TextKey.Language], style = MaterialTheme.typography.titleLarge)
         Language.entries.forEach { language ->
-            FilterChip(state.language == language, { model.accept(SettingsIntent.SetLanguage(language)) }, label = {
+            FilterChip(state.language == language, { model.actionHandler(SettingsAction.SetLanguage(language)) }, label = {
                 Text(
                     strings[
                         if (language ==
@@ -44,7 +45,7 @@ fun SettingsScreen(model: SettingsViewModel) {
                 }
             FilterChip(
                 state.appearance == appearance,
-                { model.accept(SettingsIntent.SetAppearance(appearance)) },
+                { model.actionHandler(SettingsAction.SetAppearance(appearance)) },
                 label = { Text(strings[key]) },
             )
         }

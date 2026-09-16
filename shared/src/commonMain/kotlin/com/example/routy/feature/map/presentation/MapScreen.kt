@@ -16,6 +16,7 @@ import com.example.routy.core.designsystem.*
 import com.example.routy.core.localization.*
 import com.example.routy.core.mvi.CollectEffects
 import com.example.routy.core.navigation.Destination
+import com.example.routy.feature.map.presentation.state.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -42,7 +43,7 @@ fun MapScreen(
     navigate: (Destination) -> Unit,
     style: MapStyleConfig = MapStyleConfig(),
 ) {
-    val state by model.state.collectAsStateWithLifecycle()
+    val state by model.uiState.collectAsStateWithLifecycle()
     val vehicles by model.vehicles.collectAsStateWithLifecycle()
     val strings = LocalStrings.current
     val scope = rememberCoroutineScope()
@@ -94,7 +95,7 @@ fun MapScreen(
                 onClick = { features ->
                     features.firstOrNull()?.properties?.get("id")?.jsonPrimitive?.content?.let { id ->
                         selectedStop = id
-                        model.accept(MapIntent.SelectStop(id))
+                        model.actionHandler(MapAction.SelectStop(id))
                     }
                     ClickResult.Consume
                 },
@@ -122,7 +123,7 @@ fun MapScreen(
                         ?.get("id")
                         ?.jsonPrimitive
                         ?.content
-                        ?.let { model.accept(MapIntent.SelectVehicle(it)) }
+                        ?.let { model.actionHandler(MapAction.SelectVehicle(it)) }
                     ClickResult.Consume
                 },
             )
@@ -197,7 +198,7 @@ fun MapScreen(
     Box(Modifier.fillMaxSize()) {
         MaplibreMap(Modifier.fillMaxSize().semantics { contentDescription = strings[TextKey.Map] }, state = mapState)
         Column(Modifier.align(Alignment.TopCenter).fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Surface(onClick = { model.accept(MapIntent.OpenSearch) }, shape = MaterialTheme.shapes.large, shadowElevation = 8.dp) {
+            Surface(onClick = { model.actionHandler(MapAction.OpenSearch) }, shape = MaterialTheme.shapes.large, shadowElevation = 8.dp) {
                 Row(
                     Modifier.fillMaxWidth().padding(18.dp),
                     verticalAlignment = Alignment.CenterVertically,
@@ -211,7 +212,7 @@ fun MapScreen(
                 item {
                     FilterChip(
                         state.routeId == null,
-                        { model.accept(MapIntent.SelectRoute(null)) },
+                        { model.actionHandler(MapAction.SelectRoute(null)) },
                         label = { Text(strings[TextKey.AllRoutes]) },
                     )
                 }
@@ -222,13 +223,17 @@ fun MapScreen(
                     key = { it.id },
                 ) { route ->
                     FilterChip(state.routeId == route.id, {
-                        model.accept(MapIntent.SelectRoute(route.id))
+                        model.actionHandler(MapAction.SelectRoute(route.id))
                     }, label = {
                         Text(route.name.resolve(strings.language, route.id))
                     }, colors = FilterChipDefaults.filterChipColors(containerColor = MaterialTheme.colorScheme.surface))
                 }
             }
-            if (state.network.network == null || state.network.error != null) StatusPanel(state.network) { model.accept(MapIntent.Retry) }
+            if (state.network.network == null ||
+                state.network.error != null
+            ) {
+                StatusPanel(state.network) { model.actionHandler(MapAction.Retry) }
+            }
             if (mapError) Surface(shape = MaterialTheme.shapes.medium) { Text(strings[TextKey.MapUnavailable], Modifier.padding(16.dp)) }
             if (state.routeId != null) {
                 Surface(shape = MaterialTheme.shapes.medium, shadowElevation = 3.dp) {
@@ -246,12 +251,12 @@ fun MapScreen(
                         LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             items(vehicles.vehicles, key = { it.id }) { vehicle ->
                                 AssistChip(
-                                    { model.accept(MapIntent.SelectVehicle(vehicle.id)) },
+                                    { model.actionHandler(MapAction.SelectVehicle(vehicle.id)) },
                                     label = { Text("${strings[TextKey.Vehicle]} ${vehicle.id}") },
                                 )
                             }
                         }
-                        TextButton({ model.accept(MapIntent.OpenRouteDetails) }) { Text(strings[TextKey.Details]) }
+                        TextButton({ model.actionHandler(MapAction.OpenRouteDetails) }) { Text(strings[TextKey.Details]) }
                     }
                 }
             }
@@ -263,18 +268,18 @@ fun MapScreen(
             if (state.geometry !=
                 null
             ) {
-                SmallFloatingActionButton({ model.accept(MapIntent.FitRoute) }, containerColor = MaterialTheme.colorScheme.surface) {
+                SmallFloatingActionButton({ model.actionHandler(MapAction.FitRoute) }, containerColor = MaterialTheme.colorScheme.surface) {
                     RoutyIcon(Glyph.Routes, strings[TextKey.FitRoute])
                 }
             }
             SmallFloatingActionButton({
-                model.accept(MapIntent.OpenSettings)
+                model.actionHandler(MapAction.OpenSettings)
             }, containerColor = MaterialTheme.colorScheme.surface) { RoutyIcon(Glyph.Settings, strings[TextKey.Settings]) }
             SmallFloatingActionButton({
-                model.accept(MapIntent.OpenStops)
+                model.actionHandler(MapAction.OpenStops)
             }, containerColor = MaterialTheme.colorScheme.surface) { RoutyIcon(Glyph.Stop, strings[TextKey.Nearby]) }
             SmallFloatingActionButton({
-                model.accept(MapIntent.MyLocation)
+                model.actionHandler(MapAction.MyLocation)
             }, containerColor = MaterialTheme.colorScheme.surface) { RoutyIcon(Glyph.Location, strings[TextKey.MyLocation]) }
         }
     }

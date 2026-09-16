@@ -7,6 +7,7 @@ import androidx.lifecycle.ViewModelStore
 import com.example.routy.core.transport.data.TransportParser
 import com.example.routy.core.transport.domain.*
 import com.example.routy.feature.map.presentation.*
+import com.example.routy.feature.map.presentation.state.MapAction
 import com.example.routy.feature.route_details.domain.GetRouteDetailsUseCase
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
@@ -52,15 +53,15 @@ class MapViewModelTest {
                         handle,
                     )
                 store.put("map", model)
-                backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { model.state.collect() }
-                val static = model.state.first { it.routeId == "r" }
+                backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { model.uiState.collect() }
+                val static = model.uiState.first { it.routeId == "r" }
                 assertEquals("r", static.geometry?.routeId)
                 assertEquals(0, active)
                 val visible = launch { model.vehicles.collect() }
                 runCurrent()
                 assertEquals(1, active)
-                assertSame(static, model.state.value)
-                model.accept(MapIntent.SelectRoute("another"))
+                assertSame(static, model.uiState.value)
+                model.actionHandler(MapAction.SelectRoute("another"))
                 runCurrent()
                 assertEquals("another", handle.get<String>("routeId"))
                 assertEquals(1, active)

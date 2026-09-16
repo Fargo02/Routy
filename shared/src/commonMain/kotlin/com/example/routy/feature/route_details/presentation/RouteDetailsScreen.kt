@@ -12,6 +12,7 @@ import com.example.routy.core.designsystem.*
 import com.example.routy.core.localization.*
 import com.example.routy.core.mvi.CollectEffects
 import com.example.routy.core.navigation.Destination
+import com.example.routy.feature.route_details.presentation.state.*
 
 @Composable
 fun RouteDetailsScreen(
@@ -20,7 +21,7 @@ fun RouteDetailsScreen(
     showMap: (String) -> Unit,
     message: suspend (String) -> Unit,
 ) {
-    val state by model.state.collectAsStateWithLifecycle()
+    val state by model.uiState.collectAsStateWithLifecycle()
     val vehicles by model.vehicles.collectAsStateWithLifecycle()
     val strings = LocalStrings.current
     CollectEffects(model.effects) {
@@ -31,14 +32,14 @@ fun RouteDetailsScreen(
         }
     }
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        item { StatusPanel(state.network) { model.accept(RouteDetailsIntent.Retry) } }
+        item { StatusPanel(state.network) { model.actionHandler(RouteDetailsAction.Retry) } }
         val details = state.details
         if (details != null) {
             item {
                 Text(details.route.name.resolve(strings.language, details.route.id), style = MaterialTheme.typography.headlineLarge)
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Button({ model.accept(RouteDetailsIntent.ShowMap) }) { Text(strings[TextKey.ShowMap]) }
-                    FilledTonalButton({ model.accept(RouteDetailsIntent.ToggleFavorite) }) {
+                    Button({ model.actionHandler(RouteDetailsAction.ShowMap) }) { Text(strings[TextKey.ShowMap]) }
+                    FilledTonalButton({ model.actionHandler(RouteDetailsAction.ToggleFavorite) }) {
                         RoutyIcon(Glyph.Star)
                         Spacer(Modifier.width(8.dp))
                         Text(strings[if (state.favorite) TextKey.Saved else TextKey.Save])
@@ -74,7 +75,7 @@ fun RouteDetailsScreen(
                 items(stops, key = { "$group:${it.stop.id}" }) { item ->
                     StopCard(
                         item.stop,
-                        { model.accept(RouteDetailsIntent.SelectStop(item.stop.id)) },
+                        { model.actionHandler(RouteDetailsAction.SelectStop(item.stop.id)) },
                         item.service.times
                             .take(4)
                             .joinToString(" • ")

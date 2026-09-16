@@ -11,6 +11,7 @@ import com.example.routy.core.designsystem.*
 import com.example.routy.core.localization.*
 import com.example.routy.core.mvi.CollectEffects
 import com.example.routy.core.navigation.Destination
+import com.example.routy.feature.stop_details.presentation.state.*
 
 @Composable
 fun StopDetailsScreen(
@@ -18,7 +19,7 @@ fun StopDetailsScreen(
     navigate: (Destination) -> Unit,
     message: suspend (String) -> Unit,
 ) {
-    val state by model.state.collectAsStateWithLifecycle()
+    val state by model.uiState.collectAsStateWithLifecycle()
     val strings = LocalStrings.current
     CollectEffects(model.effects) {
         when (it) {
@@ -27,12 +28,12 @@ fun StopDetailsScreen(
         }
     }
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        item { StatusPanel(state.network) { model.accept(StopDetailsIntent.Retry) } }
+        item { StatusPanel(state.network) { model.actionHandler(StopDetailsAction.Retry) } }
         val details = state.details
         if (details != null) {
             item {
                 Text(details.stop.name.resolve(strings.language, details.stop.id), style = MaterialTheme.typography.headlineSmall)
-                FilledTonalButton({ model.accept(StopDetailsIntent.ToggleFavorite) }) {
+                FilledTonalButton({ model.actionHandler(StopDetailsAction.ToggleFavorite) }) {
                     RoutyIcon(Glyph.Star)
                     Spacer(Modifier.width(8.dp))
                     Text(strings[if (state.favorite) TextKey.Saved else TextKey.Save])
@@ -43,7 +44,7 @@ fun StopDetailsScreen(
                 Text(strings[TextKey.ScheduleNote], style = MaterialTheme.typography.bodySmall)
             }
             details.routes.forEach { route ->
-                item { RouteCard(route, { model.accept(StopDetailsIntent.SelectRoute(route.id)) }) }
+                item { RouteCard(route, { model.actionHandler(StopDetailsAction.SelectRoute(route.id)) }) }
                 details.stop.services.filter { it.routeId == route.id }.forEach { service ->
                     item {
                         Surface(shape = MaterialTheme.shapes.medium, color = MaterialTheme.colorScheme.surfaceContainer) {

@@ -11,13 +11,14 @@ import com.example.routy.core.designsystem.*
 import com.example.routy.core.localization.*
 import com.example.routy.core.mvi.CollectEffects
 import com.example.routy.core.navigation.Destination
+import com.example.routy.feature.stops.presentation.state.*
 
 @Composable
 fun StopsScreen(
     model: StopsViewModel,
     navigate: (Destination) -> Unit,
 ) {
-    val state by model.state.collectAsStateWithLifecycle()
+    val state by model.uiState.collectAsStateWithLifecycle()
     val strings = LocalStrings.current
     CollectEffects(model.effects) {
         when (it) {
@@ -25,9 +26,9 @@ fun StopsScreen(
         }
     }
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        item { SearchField(state.query, strings[TextKey.SearchStops]) { model.accept(StopsIntent.Search(it)) } }
-        item { StatusPanel(state.network) { model.accept(StopsIntent.Retry) } }
+        item { SearchField(state.query, strings[TextKey.SearchStops]) { model.actionHandler(StopsAction.Search(it)) } }
+        item { StatusPanel(state.network) { model.actionHandler(StopsAction.Retry) } }
         if (state.items.isEmpty() && state.network.network != null) item { EmptyPanel() }
-        items(state.items, key = { it.id }) { item -> StopCard(item, { model.accept(StopsIntent.Select(item.id)) }) }
+        items(state.items, key = { it.id }) { item -> StopCard(item, { model.actionHandler(StopsAction.Select(item.id)) }) }
     }
 }

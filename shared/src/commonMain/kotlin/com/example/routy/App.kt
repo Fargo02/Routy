@@ -19,11 +19,13 @@ import com.example.routy.core.mvi.CollectEffects
 import com.example.routy.core.navigation.Destination
 import com.example.routy.feature.favorites.presentation.*
 import com.example.routy.feature.map.presentation.*
+import com.example.routy.feature.map.presentation.state.MapAction
 import com.example.routy.feature.route_details.domain.GetRouteDetailsUseCase
 import com.example.routy.feature.route_details.presentation.*
 import com.example.routy.feature.routes.domain.SearchRoutesUseCase
 import com.example.routy.feature.routes.presentation.*
 import com.example.routy.feature.settings.presentation.*
+import com.example.routy.feature.settings.presentation.state.SettingsEffect
 import com.example.routy.feature.stop_details.domain.GetStopDetailsUseCase
 import com.example.routy.feature.stop_details.presentation.*
 import com.example.routy.feature.stops.domain.SearchStopsUseCase
@@ -34,7 +36,7 @@ import kotlinx.serialization.json.Json
 @Composable
 fun App(graph: AppGraph) {
     val settings: SettingsViewModel = viewModel { SettingsViewModel(graph.settings) }
-    val preferences by settings.state.collectAsStateWithLifecycle()
+    val preferences by settings.uiState.collectAsStateWithLifecycle()
     val strings = remember(preferences.language) { Strings(preferences.language) }
     val snackbar = remember { SnackbarHostState() }
     var stackJson by rememberSaveable { mutableStateOf(Json.encodeToString<List<Destination>>(listOf(Destination.Map))) }
@@ -145,7 +147,7 @@ fun App(graph: AppGraph) {
                                     },
                                     ::navigate,
                                     { id ->
-                                        map.accept(MapIntent.SelectRoute(id))
+                                        map.actionHandler(MapAction.SelectRoute(id))
                                         stackJson =
                                             Json.encodeToString<List<Destination>>(listOf(Destination.Map))
                                     },
