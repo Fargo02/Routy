@@ -32,7 +32,7 @@ actual fun notifyBusApproaching(title: String, body: String) {
     manager.notify(
         body.hashCode(),
         android.app.Notification.Builder(context, BusChannelId)
-            .setSmallIcon(android.R.drawable.ic_dialog_info)
+            .setSmallIcon(com.example.routy.shared.R.drawable.ic_notification_routy)
             .setContentTitle(title)
             .setContentText(body)
             .setPriority(android.app.Notification.PRIORITY_HIGH)
