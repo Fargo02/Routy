@@ -89,6 +89,7 @@ import com.example.routy.feature.map.presentation.state.MapCamera
 import com.example.routy.feature.map.presentation.state.MapEffect
 import com.example.routy.core.transport.domain.BusStop
 import com.example.routy.feature.route_details.domain.GetRouteDetailsUseCase
+import com.example.routy.feature.stop_details.domain.scheduledFrequencyMinutes
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -680,6 +681,14 @@ fun MapScreen(
             remember(state.network.network, activeRouteId) {
                 activeRouteId?.let { id -> state.network.network?.let { GetRouteDetailsUseCase()(it, id) } }
             }
+        val routeFrequency =
+            routeSchedule
+                ?.groups
+                ?.values
+                ?.asSequence()
+                ?.flatten()
+                ?.mapNotNull { scheduledFrequencyMinutes(it.service.times) }
+                ?.firstOrNull()
         ModalBottomSheet(
             onDismissRequest = {
                 routeInfoVisible = false
@@ -807,6 +816,14 @@ fun MapScreen(
                                 }
                             }
                         }
+                }
+                routeFrequency?.let { frequency ->
+                    Text(
+                        strings.runsEvery(frequency),
+                        Modifier.padding(horizontal = 24.dp),
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
                 }
                 Text(
                     strings[TextKey.Live],
