@@ -8,7 +8,7 @@
 
     <style name="Theme.Routy.Starting" parent="Theme.SplashScreen">
         <item name="windowSplashScreenBackground">@color/routy_splash_background</item>
-        <item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/routy_splash_icon</item>
         <item name="postSplashScreenTheme">@style/Theme.Routy</item>
     </style>
 </resources>
