@@ -7,6 +7,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.routy.core.designsystem.ScreenScaffold
@@ -20,11 +21,17 @@ import com.example.routy.feature.settings.presentation.state.SettingsAction
 fun SettingsScreen(model: SettingsViewModel) {
     val state by model.uiState.collectAsStateWithLifecycle()
     val strings = LocalStrings.current
-    ScreenScaffold { screenPadding ->
+    ScreenScaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text(strings[TextKey.Settings], style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)) },
+            )
+        },
+    ) { screenPadding ->
         Column(
             Modifier
                 .fillMaxSize()
-                .background(MaterialTheme.colorScheme.background)
+                .background(MaterialTheme.colorScheme.surface)
                 .verticalScroll(rememberScrollState())
                 .padding(
                     start = 24.dp,

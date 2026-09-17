@@ -142,6 +142,7 @@ fun MapScreen(
     val searchBottomPadding =
         WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + 16.dp
     val searchSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val routeInfoSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
     var searchFieldQuery by rememberSaveable { mutableStateOf("") }
     var locationEnabled by rememberSaveable { mutableStateOf(false) }
     var focusLocation by remember { mutableStateOf(false) }
@@ -508,6 +509,7 @@ fun MapScreen(
         val activeVehicles = vehicles.vehicles.filter { it.routeId == activeRouteId }
         ModalBottomSheet(
             onDismissRequest = { routeInfoVisible = false },
+            sheetState = routeInfoSheetState,
             containerColor = MaterialTheme.colorScheme.surface,
             contentWindowInsets = { WindowInsets.safeDrawing.only(WindowInsetsSides.Top) },
         ) {
@@ -550,22 +552,28 @@ fun MapScreen(
                         ?.let { route ->
                             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                                 Row(
-                                    Modifier.fillMaxWidth().padding(horizontal = 12.dp),
+                                    Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = if (routeIds.size > 1) 12.dp else 24.dp),
                                     verticalAlignment = Alignment.CenterVertically,
                                 ) {
-                                    IconButton(
-                                        onClick = { routeInfoRouteId = routeIds.getOrNull(displayedIndex - 1) },
-                                        enabled = displayedIndex > 0,
-                                    ) { RoutyIcon(Glyph.Chevron, modifier = Modifier.graphicsLayer(rotationZ = 180f)) }
+                                    if (routeIds.size > 1) {
+                                        IconButton(
+                                            onClick = { routeInfoRouteId = routeIds.getOrNull(displayedIndex - 1) },
+                                            enabled = displayedIndex > 0,
+                                        ) { RoutyIcon(Glyph.Chevron, modifier = Modifier.graphicsLayer(rotationZ = 180f)) }
+                                    }
                                     Text(
                                         route.name.resolve(strings.language, route.id),
                                         Modifier.weight(1f),
                                         style = MaterialTheme.typography.headlineSmall,
                                     )
-                                    IconButton(
-                                        onClick = { routeInfoRouteId = routeIds.getOrNull(displayedIndex + 1) },
-                                        enabled = displayedIndex in 0 until routeIds.lastIndex,
-                                    ) { RoutyIcon(Glyph.Chevron) }
+                                    if (routeIds.size > 1) {
+                                        IconButton(
+                                            onClick = { routeInfoRouteId = routeIds.getOrNull(displayedIndex + 1) },
+                                            enabled = displayedIndex in 0 until routeIds.lastIndex,
+                                        ) { RoutyIcon(Glyph.Chevron) }
+                                    }
                                 }
                                 FilledTonalButton(
                                     onClick = { model.actionHandler(MapAction.ToggleRouteFavorite(route.id)) },

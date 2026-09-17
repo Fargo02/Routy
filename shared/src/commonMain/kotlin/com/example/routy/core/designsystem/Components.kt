@@ -337,12 +337,16 @@ fun EmptyPanel(key: TextKey = TextKey.NoResults) {
 @Composable
 fun ScreenScaffold(
     hasTopBarOverlay: Boolean = true,
+    topBar: @Composable (() -> Unit)? = null,
     content: @Composable (PaddingValues) -> Unit,
 ) {
-    Scaffold(containerColor = MaterialTheme.colorScheme.background) { systemPadding ->
+    Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
+        topBar = { topBar?.invoke() },
+    ) { systemPadding ->
         content(
             PaddingValues(
-                top = systemPadding.calculateTopPadding() + if (hasTopBarOverlay) 64.dp else 0.dp,
+                top = systemPadding.calculateTopPadding() + if (hasTopBarOverlay && topBar == null) 64.dp else 0.dp,
                 bottom = systemPadding.calculateBottomPadding() + 112.dp,
             ),
         )

@@ -4,9 +4,10 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.routy.core.designsystem.*
@@ -27,7 +28,13 @@ fun StopsScreen(
             is StopsEffect.Navigate -> navigate(it.destination)
         }
     }
-    ScreenScaffold { screenPadding ->
+    ScreenScaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text(strings[TextKey.Stops], style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)) },
+            )
+        },
+    ) { screenPadding ->
         LazyColumn(
             Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background),
             contentPadding =

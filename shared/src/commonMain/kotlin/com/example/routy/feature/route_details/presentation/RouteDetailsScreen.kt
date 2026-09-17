@@ -7,6 +7,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.routy.core.designsystem.*
@@ -32,7 +33,13 @@ fun RouteDetailsScreen(
             is RouteDetailsEffect.Error -> message(strings.error(it.error))
         }
     }
-    ScreenScaffold { screenPadding ->
+    ScreenScaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text(strings[TextKey.Routes], style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)) },
+            )
+        },
+    ) { screenPadding ->
         LazyColumn(
             Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background),
             contentPadding =

@@ -8,6 +8,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.routy.core.designsystem.*
@@ -20,6 +21,9 @@ import com.example.routy.feature.stop_details.domain.scheduledFrequencyMinutes
 import com.example.routy.feature.stop_details.domain.minutesUntilNextScheduledDeparture
 import kotlinx.coroutines.launch
 
+private const val RouteSheetPrefix = "route:"
+private const val StopSheetPrefix = "stop:"
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FavoritesScreen(
@@ -28,25 +32,31 @@ fun FavoritesScreen(
 ) {
     val state by model.uiState.collectAsStateWithLifecycle()
     val strings = LocalStrings.current
-    var selectedRouteId by rememberSaveable { mutableStateOf<String?>(null) }
-    var selectedStopId by rememberSaveable { mutableStateOf<String?>(null) }
+    var sheetContent by rememberSaveable { mutableStateOf<String?>(null) }
+    val selectedRouteId = sheetContent?.removePrefix(RouteSheetPrefix)?.takeIf { sheetContent?.startsWith(RouteSheetPrefix) == true }
+    val selectedStopId = sheetContent?.removePrefix(StopSheetPrefix)?.takeIf { sheetContent?.startsWith(StopSheetPrefix) == true }
     var stopRemovalConfirmationId by rememberSaveable { mutableStateOf<String?>(null) }
-    val stopSheetState = rememberModalBottomSheetState()
-    val scope = rememberCoroutineScope()
-    ScreenScaffold { screenPadding ->
+    val detailsSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    ScreenScaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text(strings[TextKey.Favorites], style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)) },
+            )
+        },
+    ) { screenPadding ->
         LazyColumn(
-            Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background),
+            Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface),
             contentPadding =
                 PaddingValues(
                     start = 20.dp,
-                    top = screenPadding.calculateTopPadding() + 20.dp,
+                    top = screenPadding.calculateTopPadding(),
                     end = 20.dp,
                     bottom = screenPadding.calculateBottomPadding() + 20.dp,
                 ),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             item {
-                Box(Modifier.fillMaxWidth().heightIn(min = 20.dp)) {
+                Box(Modifier.fillMaxWidth().heightIn(min = 12.dp)) {
                     StatusPanel(state.network) { model.actionHandler(FavoritesAction.Retry) }
                 }
             }
@@ -69,7 +79,9 @@ fun FavoritesScreen(
                             ?.firstOrNull()
                     RouteCard(
                         route = route,
-                        onClick = { selectedRouteId = route.id },
+                        onClick = {
+                            sheetContent = "$RouteSheetPrefix${route.id}"
+                        },
                         subtitle = frequency?.let(strings::runsEvery),
                     )
                 }
@@ -81,23 +93,32 @@ fun FavoritesScreen(
                 FavoriteSwipeToDismiss(
                     onDismiss = { model.actionHandler(FavoritesAction.RemoveStop(stop.id)) },
                 ) {
-                    StopCard(stop, { selectedStopId = stop.id })
+                    StopCard(
+                        stop,
+                        onClick = {
+                            sheetContent = "$StopSheetPrefix${stop.id}"
+                        },
+                    )
                 }
             }
         }
     }
-    selectedRouteId?.let { routeId ->
+    if (sheetContent != null) {
+        ModalBottomSheet(
+            onDismissRequest = {
+                sheetContent = null
+            },
+            containerColor = MaterialTheme.colorScheme.surface,
+            sheetState = detailsSheetState,
+            contentWindowInsets = { WindowInsets.safeDrawing.only(WindowInsetsSides.Top) },
+        ) {
+            selectedRouteId?.let { routeId ->
         val details =
             remember(state.network.network, routeId) {
                 state.network.network?.let { GetRouteDetailsUseCase()(it, routeId) }
             }
-        ModalBottomSheet(
-            onDismissRequest = { selectedRouteId = null },
-            containerColor = MaterialTheme.colorScheme.surface,
-            contentWindowInsets = { WindowInsets.safeDrawing.only(WindowInsetsSides.Top) },
-        ) {
             LazyColumn(
-                Modifier.fillMaxWidth(),
+                Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = 32.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
@@ -120,8 +141,7 @@ fun FavoritesScreen(
                             StopCard(
                                 item.stop,
                                 onClick = {
-                                    selectedRouteId = null
-                                    selectedStopId = item.stop.id
+                                    sheetContent = "$StopSheetPrefix${item.stop.id}"
                                 },
                                 subtitle =
                                     item.service.times
@@ -135,21 +155,14 @@ fun FavoritesScreen(
                     item { EmptyPanel() }
                 }
             }
-        }
-    }
-    selectedStopId?.let { stopId ->
+            }
+            selectedStopId?.let { stopId ->
         val details =
             remember(state.network.network, stopId) {
                 state.network.network?.let { GetStopDetailsUseCase()(it, stopId) }
             }
-        ModalBottomSheet(
-            onDismissRequest = { selectedStopId = null },
-            sheetState = stopSheetState,
-            containerColor = MaterialTheme.colorScheme.surface,
-            contentWindowInsets = { WindowInsets.safeDrawing.only(WindowInsetsSides.Top) },
-        ) {
             LazyColumn(
-                Modifier.fillMaxWidth(),
+                Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = 32.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
@@ -162,14 +175,14 @@ fun FavoritesScreen(
                         FlowRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                             Button(
                                 onClick = {
-                                    selectedStopId = null
+                                    sheetContent = null
                                     showStopOnMap(stopId)
                                 },
                             ) { Text(strings[TextKey.ShowMap]) }
                             if (state.stops.any { it.id == stopId }) {
                                 FilledTonalButton(
                                     onClick = {
-                                        selectedStopId = null
+                                        sheetContent = null
                                         stopRemovalConfirmationId = stopId
                                     },
                                 ) { Text(strings[TextKey.Remove]) }
@@ -197,11 +210,7 @@ fun FavoritesScreen(
                             RouteCard(
                                 route,
                                 onClick = {
-                                    scope.launch {
-                                        stopSheetState.hide()
-                                        selectedStopId = null
-                                        selectedRouteId = route.id
-                                    }
+                                    sheetContent = "$RouteSheetPrefix${route.id}"
                                 },
                                 subtitle = strings[TextKey.Departure],
                                 trailingLabel = nextDeparture?.toString(),
@@ -213,6 +222,7 @@ fun FavoritesScreen(
                 }
             }
         }
+    }
     }
     stopRemovalConfirmationId?.let { stopId ->
         AlertDialog(

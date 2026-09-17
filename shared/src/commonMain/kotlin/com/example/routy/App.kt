@@ -23,6 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -108,23 +109,7 @@ fun App(graph: AppGraph) {
                     is SettingsEffect.Error -> snackbar.showSnackbar(strings.error(it.error))
                 }
             }
-            Scaffold(
-                topBar = {
-                    if (!visibleDestination.hasRouteType<Map>()) {
-                        TopAppBar(
-                            title = { Text(strings[visibleDestination.title()]) },
-                            navigationIcon = {
-                                if (navController.previousBackStackEntry != null) {
-                                    IconButton({ navController.popBackStack() }) {
-                                        RoutyIcon(Glyph.Back, strings[TextKey.Back])
-                                    }
-                                }
-                            },
-                        )
-                    }
-                },
-                snackbarHost = { SnackbarHost(snackbar) },
-            ) {
+            Scaffold(snackbarHost = { SnackbarHost(snackbar) }) {
                 Box(Modifier.fillMaxSize()) {
                     MapScreen(
                         model = map,
