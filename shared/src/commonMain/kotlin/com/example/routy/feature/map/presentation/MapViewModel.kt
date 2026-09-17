@@ -49,11 +49,26 @@ class MapViewModel(
     private val searchOpen = MutableStateFlow(savedState.get<Boolean>("searchOpen") ?: false)
     private val searchQuery = MutableStateFlow(savedState.get<String>("searchQuery") ?: "")
     private val searchRequest = combine(searchOpen, searchQuery) { isOpen, query -> isOpen to query }
+    private val activeRouteIds =
+        combine(selectedRouteIds, favorites.state, transport.state) { routeIds, saved, network ->
+            val recoveryRouteIds =
+                if (saved.trackedRouteId == null && saved.trackedStopId != null) {
+                    network.network
+                        ?.stops
+                        ?.firstOrNull { it.id == saved.trackedStopId }
+                        ?.services
+                        ?.map { it.routeId }
+                        .orEmpty()
+                } else {
+                    emptyList()
+                }
+            (routeIds + listOfNotNull(saved.trackedRouteId) + recoveryRouteIds).distinct()
+        }
     val uiState =
-        combine(transport.state, selectedRouteIds, favorites.state, searchRequest) { network, routeIds, saved, search ->
-            val routes = network.network?.let { data -> routeIds.mapNotNull { details(data, it) } }.orEmpty()
+        combine(transport.state, activeRouteIds, selectedRouteIds, favorites.state, searchRequest) { network, activeRouteIds, selectedRouteIds, saved, search ->
+            val routes = network.network?.let { data -> activeRouteIds.mapNotNull { details(data, it) } }.orEmpty()
             val stops =
-                if (routeIds.isEmpty()) {
+                if (activeRouteIds.isEmpty()) {
                     network.network?.stops.orEmpty()
                 } else {
                     routes
@@ -61,11 +76,14 @@ class MapViewModel(
                         .map { it.stop }
                         .distinctBy { it.id }
                 }
-            val geometries = routes.mapNotNull { it.geometry }
+            val geometries =
+                network.network
+                    ?.let { data -> selectedRouteIds.mapNotNull { routeId -> details(data, routeId)?.geometry } }
+                    .orEmpty()
             val allRoutes = network.network?.routes.orEmpty()
-            val selectedRoutes = allRoutes.filter { it.id in routeIds }
-            val favoriteRoutes = allRoutes.filter { it.id in saved.routeIds && it.id !in routeIds }
-            val remainingRoutes = allRoutes.filterNot { it.id in routeIds || it.id in saved.routeIds }
+            val selectedRoutes = allRoutes.filter { it.id in selectedRouteIds }
+            val favoriteRoutes = allRoutes.filter { it.id in saved.routeIds && it.id !in selectedRouteIds }
+            val remainingRoutes = allRoutes.filterNot { it.id in selectedRouteIds || it.id in saved.routeIds }
             val orderedRoutes = selectedRoutes + favoriteRoutes + remainingRoutes
             val query = search.second
             val searchState =
@@ -85,11 +103,15 @@ class MapViewModel(
                 )
             MapState(
                 network = network,
-                selectedRouteIds = routeIds,
+                selectedRouteIds = selectedRouteIds,
                 favoriteRouteIds = saved.routeIds,
                 favoriteStopIds = saved.stopIds,
+                trackedVehicleId = saved.trackedVehicleId,
+                trackedStopId = saved.trackedStopId,
+                trackedRouteId = saved.trackedRouteId,
                 stops = stops,
                 geometries = geometries,
+                trackingGeometry = saved.trackedRouteId?.let { routeId -> network.network?.geometries?.get(routeId) },
                 stopGeoJson = stopsGeoJson(stops, saved.stopIds),
                 search = searchState,
             )
@@ -100,7 +122,7 @@ class MapViewModel(
             )
         }.flowOn(Dispatchers.Default).stateIn(viewModelScope, SharingStarted.WhileSubscribed(0), MapState())
     val vehicles =
-        selectedRouteIds
+        activeRouteIds
             .flatMapLatest { routeIds ->
                 if (routeIds.isEmpty()) {
                     flowOf(VehicleState(isLoading = false))
@@ -128,6 +150,7 @@ class MapViewModel(
             MapAction.ClearSelectedStop -> sendEffect(MapEffect.ClearStopSelection)
             is MapAction.SaveCamera -> saveCamera(action.camera)
             is MapAction.ToggleRouteFavorite -> viewModelScope.launch { favorites.route(action.id) }
+            is MapAction.SetTracking -> viewModelScope.launch { favorites.tracking(action.vehicleId, action.stopId, action.routeId) }
             MapAction.OpenSearch -> setSearchOpen(true)
             MapAction.CloseSearch -> closeSearch()
             is MapAction.SearchQueryChanged -> setSearchQuery(action.query)

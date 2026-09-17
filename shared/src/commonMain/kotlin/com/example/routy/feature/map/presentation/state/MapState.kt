@@ -17,8 +17,12 @@ data class MapState(
     val selectedRouteIds: List<String> = emptyList(),
     val favoriteRouteIds: Set<String> = emptySet(),
     val favoriteStopIds: Set<String> = emptySet(),
+    val trackedVehicleId: String? = null,
+    val trackedStopId: String? = null,
+    val trackedRouteId: String? = null,
     val stops: List<BusStop> = emptyList(),
     val geometries: List<RouteGeometry> = emptyList(),
+    val trackingGeometry: RouteGeometry? = null,
     val stopGeoJson: String = EMPTY_GEOJSON,
     val search: MapSearchState = MapSearchState(),
 ) {

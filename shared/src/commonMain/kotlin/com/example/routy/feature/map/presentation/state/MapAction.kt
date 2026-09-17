@@ -17,6 +17,12 @@ sealed interface MapAction {
         val id: String,
     ) : MapAction
 
+    data class SetTracking(
+        val vehicleId: String?,
+        val stopId: String?,
+        val routeId: String?,
+    ) : MapAction
+
     data object OpenSearch : MapAction
 
     data object CloseSearch : MapAction

@@ -76,3 +76,27 @@ fun routeGeoJson(geometries: List<RouteGeometry>): String =
                 }
             },
     )
+
+/** The part of a route between a live bus position and the selected stop. */
+fun trackingRouteGeoJson(
+    vehicle: Vehicle,
+    stop: BusStop,
+    geometry: RouteGeometry?,
+): String {
+    val routePoints = geometry?.points.orEmpty()
+    val segment =
+        if (routePoints.size < 2) {
+            emptyList()
+        } else {
+            val busIndex = routePoints.indices.minBy { index -> squaredDistance(routePoints[index], vehicle.position) }
+            val stopIndex = routePoints.indices.minBy { index -> squaredDistance(routePoints[index], stop.position) }
+            routePoints.subList(minOf(busIndex, stopIndex), maxOf(busIndex, stopIndex) + 1).let {
+                if (busIndex <= stopIndex) it else it.reversed()
+            }
+        }
+    return routeGeoJson(listOf(RouteGeometry("tracking", listOf(vehicle.position) + segment + stop.position)))
+}
+
+private fun squaredDistance(first: GeoPoint, second: GeoPoint): Double =
+    (first.latitude - second.latitude) * (first.latitude - second.latitude) +
+        (first.longitude - second.longitude) * (first.longitude - second.longitude)

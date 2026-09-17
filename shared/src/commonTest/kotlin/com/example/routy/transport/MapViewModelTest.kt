@@ -63,6 +63,8 @@ class MapViewModelTest {
                             override suspend fun toggleRoute(id: String) = Outcome.Success(Unit)
 
                             override suspend fun toggleStop(id: String) = Outcome.Success(Unit)
+
+                            override suspend fun setTracking(vehicleId: String?, stopId: String?, routeId: String?) = Outcome.Success(Unit)
                         },
                     )
                 val model =

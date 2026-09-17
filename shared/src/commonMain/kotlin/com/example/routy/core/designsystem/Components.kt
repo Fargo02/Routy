@@ -248,6 +248,7 @@ fun StopCard(
     stop: BusStop,
     onClick: () -> Unit,
     subtitle: String? = null,
+    isFavorite: Boolean = false,
 ) {
     val strings = LocalStrings.current
     Card(onClick, Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
@@ -260,6 +261,11 @@ fun StopCard(
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+            }
+            if (isFavorite) {
+                CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.tertiary) {
+                    RoutyIcon(Glyph.StarFilled, strings[TextKey.Saved])
+                }
             }
             RoutyIcon(Glyph.Chevron, strings[TextKey.Details])
         }
