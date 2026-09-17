@@ -157,6 +157,7 @@ fun MapScreen(
     var searchFieldQuery by rememberSaveable { mutableStateOf("") }
     var locationEnabled by rememberSaveable { mutableStateOf(false) }
     var focusLocation by remember { mutableStateOf(false) }
+    var initialStopFocused by rememberSaveable { mutableStateOf(false) }
     var vehicleDetailsVisible by rememberSaveable { mutableStateOf(false) }
     var routeInfoVisible by rememberSaveable { mutableStateOf(false) }
     var routeInfoRouteId by rememberSaveable { mutableStateOf<String?>(null) }
@@ -306,10 +307,10 @@ fun MapScreen(
             CircleLayer(
                 "selected-stop",
                 selectionSource,
-                color = const(palette.selected),
-                radius = const(9.dp),
-                strokeColor = const(MaterialTheme.colorScheme.onSurface),
-                strokeWidth = const(3.dp),
+                color = const(Color.White),
+                radius = const(8.dp),
+                strokeColor = const(palette.route),
+                strokeWidth = const(2.5.dp),
             )
             if (state.favoriteStopIds.isNotEmpty()) {
                 SymbolLayer(
@@ -462,6 +463,24 @@ fun MapScreen(
                 ),
             )
         }
+    }
+    LaunchedEffect(state.network.network, state.trackedStopId, state.favoriteStopIds, initialStopFocused) {
+        if (initialStopFocused) return@LaunchedEffect
+        val initialStop =
+            state.network.network
+                ?.stops
+                ?.firstOrNull { it.id == state.trackedStopId }
+                ?: state.network.network
+                    ?.stops
+                    ?.firstOrNull { it.id in state.favoriteStopIds }
+                ?: return@LaunchedEffect
+        mapState.animateCameraPosition(
+            mapState.cameraPosition.copy(
+                target = Position(initialStop.position.longitude, initialStop.position.latitude),
+                zoom = 14.0,
+            ),
+        )
+        initialStopFocused = true
     }
     LaunchedEffect(focusLocation, location.lastLocation) {
         if (focusLocation) {
@@ -700,7 +719,11 @@ fun MapScreen(
                         items(stops, key = { "$group:${it.stop.id}" }) { routeStop ->
                             StopCard(
                                 stop = routeStop.stop,
-                                onClick = { routeScheduleVisible = false },
+                                onClick = {
+                                    routeScheduleVisible = false
+                                    routeInfoVisible = false
+                                    model.actionHandler(MapAction.ShowStopOnMap(routeStop.stop.id))
+                                },
                                 subtitle =
                                     routeStop.service.times
                                         .take(4)
