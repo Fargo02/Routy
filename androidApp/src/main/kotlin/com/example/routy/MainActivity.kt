@@ -1,4 +1,4 @@
-package com.example.routy
+package ge.routy.transport
 
 import android.os.Bundle
 import android.content.res.Configuration
@@ -11,6 +11,7 @@ import androidx.core.view.WindowCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import com.example.routy.App
 import com.example.routy.core.di.AppGraph
 import com.example.routy.core.logging.PlatformLogger
 import com.example.routy.core.preferences.domain.Appearance

@@ -22,14 +22,14 @@ dependencies {
 }
 
 android {
-    namespace = "com.example.routy"
+    namespace = "ge.routy.transport"
     compileSdk =
         libs.versions.android.compileSdk
             .get()
             .toInt()
 
     defaultConfig {
-        applicationId = "com.example.routy"
+        applicationId = "ge.routy.transport"
         minSdk =
             libs.versions.android.minSdk
                 .get()
