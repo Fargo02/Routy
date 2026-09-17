@@ -63,7 +63,10 @@ class MapViewModel(
                 }
             val geometries = routes.mapNotNull { it.geometry }
             val allRoutes = network.network?.routes.orEmpty()
-            val orderedRoutes = allRoutes.filter { it.id in saved.routeIds } + allRoutes.filterNot { it.id in saved.routeIds }
+            val selectedRoutes = allRoutes.filter { it.id in routeIds }
+            val favoriteRoutes = allRoutes.filter { it.id in saved.routeIds && it.id !in routeIds }
+            val remainingRoutes = allRoutes.filterNot { it.id in routeIds || it.id in saved.routeIds }
+            val orderedRoutes = selectedRoutes + favoriteRoutes + remainingRoutes
             val query = search.second
             val searchState =
                 MapSearchState(

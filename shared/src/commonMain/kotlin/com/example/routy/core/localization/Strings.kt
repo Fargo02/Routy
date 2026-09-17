@@ -34,6 +34,7 @@ enum class TextKey {
     Schedule,
     ScheduleNote,
     NextDeparture,
+    Departure,
     NoSchedule,
     Group,
     Unspecified,
@@ -101,6 +102,13 @@ class Strings(
             Language.Georgian -> "$count გაჩერება"
             Language.Russian -> "$count ${russianStops(count)}"
         }
+
+    fun runsEvery(minutes: Int): String =
+        when (language) {
+            Language.English -> "Every $minutes min"
+            Language.Georgian -> "ყოველ $minutes წუთში"
+            Language.Russian -> "Каждые $minutes мин."
+        }
 }
 
 private fun russianStops(count: Int): String =
@@ -147,6 +155,7 @@ private val english =
         TextKey.Schedule to "Scheduled departures",
         TextKey.ScheduleNote to "Batumi time • timetable, not live arrival predictions",
         TextKey.NextDeparture to "Next departure",
+        TextKey.Departure to "Departure",
         TextKey.NoSchedule to "No timetable available",
         TextKey.Group to "Stop group",
         TextKey.Unspecified to "Unspecified group",
@@ -218,6 +227,7 @@ private val georgian =
         TextKey.Schedule to "დაგეგმილი გამგზავრება",
         TextKey.ScheduleNote to "ბათუმის დრო • განრიგი, არა რეალურ დროში პროგნოზი",
         TextKey.NextDeparture to "შემდეგი გასვლა",
+        TextKey.Departure to "გასვლა",
         TextKey.NoSchedule to "განრიგი მიუწვდომელია",
         TextKey.Group to "გაჩერებების ჯგუფი",
         TextKey.Unspecified to "დაუზუსტებელი ჯგუფი",
@@ -289,6 +299,7 @@ private val russian =
         TextKey.Schedule to "Расписание отправлений",
         TextKey.ScheduleNote to "Время Батуми • расписание, а не прогноз прибытия",
         TextKey.NextDeparture to "Ближайшее отправление",
+        TextKey.Departure to "Отправление",
         TextKey.NoSchedule to "Расписание недоступно",
         TextKey.Group to "Группа остановок",
         TextKey.Unspecified to "Не указано",

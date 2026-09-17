@@ -423,7 +423,7 @@ fun MapScreen(
                                         LocalContentColor provides
                                             if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.tertiary,
                                     ) {
-                                        RoutyIcon(Glyph.Star)
+                                        RoutyIcon(Glyph.StarFilled)
                                     }
                                     Spacer(Modifier.width(4.dp))
                                 }
@@ -571,7 +571,9 @@ fun MapScreen(
                                     onClick = { model.actionHandler(MapAction.ToggleRouteFavorite(route.id)) },
                                     modifier = Modifier.padding(horizontal = 24.dp),
                                 ) {
-                                    RoutyIcon(Glyph.Star)
+                                    RoutyIcon(
+                                        if (route.id in state.favoriteRouteIds) Glyph.StarFilled else Glyph.Star,
+                                    )
                                     Spacer(Modifier.width(8.dp))
                                     Text(strings[if (route.id in state.favoriteRouteIds) TextKey.Saved else TextKey.Save])
                                 }
@@ -679,7 +681,7 @@ fun MapScreen(
                                             if (route.id in state.favoriteRouteIds) {
                                                 CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.tertiary) {
                                                     RoutyIcon(
-                                                        Glyph.Star,
+                                                        Glyph.StarFilled,
                                                         strings[TextKey.Favorites],
                                                     )
                                                 }

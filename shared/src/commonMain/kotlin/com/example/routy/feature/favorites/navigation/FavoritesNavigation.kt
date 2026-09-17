@@ -5,6 +5,7 @@ import androidx.compose.animation.ExitTransition
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
+import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.composable
 import com.example.routy.core.designsystem.Glyph
 import com.example.routy.core.localization.TextKey
@@ -24,8 +25,11 @@ data object Favorites : BottomNavigationItem {
 
 fun NavController.navigateToFavoritesScreen() =
     navigateIfResumed(Favorites) {
-        popUpTo(graph.id)
+        popUpTo(graph.findStartDestination().id) {
+            saveState = true
+        }
         launchSingleTop = true
+        restoreState = true
     }
 
 fun NavGraphBuilder.favoritesScreen(

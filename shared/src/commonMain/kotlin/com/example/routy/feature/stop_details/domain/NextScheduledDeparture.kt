@@ -14,5 +14,13 @@ fun nearestScheduledDeparture(
         (time.hour * 60 + time.minute - currentMinutes + MinutesPerDay) % MinutesPerDay
     }
 
+fun minutesUntilNextScheduledDeparture(
+    times: List<ScheduleTime>,
+    currentMinutes: Int = batumiMinutesNow(),
+): Int? =
+    nearestScheduledDeparture(times, currentMinutes)?.let { time ->
+        (time.hour * 60 + time.minute - currentMinutes + MinutesPerDay) % MinutesPerDay
+    }
+
 private fun batumiMinutesNow(): Int =
     ((Clock.System.now().toEpochMilliseconds() / 60_000 + BatumiUtcOffsetMinutes) % MinutesPerDay).toInt()

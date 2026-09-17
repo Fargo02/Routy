@@ -19,7 +19,7 @@ import com.example.routy.core.localization.*
 import com.example.routy.core.transport.domain.*
 
 // Small, shared vector vocabulary; no platform icon fonts or bitmap dependencies.
-enum class Glyph { Map, Routes, Star, Search, Settings, Back, Stop, Location, Close, Chevron }
+enum class Glyph { Map, Routes, Star, StarFilled, Search, Settings, Back, Stop, Location, Close, Chevron }
 
 @Composable
 fun RoutyIcon(
@@ -134,6 +134,18 @@ fun RoutyIcon(
                 p.close()
                 drawPath(p, color, style = Stroke(1.8f * u))
             }
+            Glyph.StarFilled -> {
+                val p = Path()
+                for (i in 0..9) {
+                    val a = (i * 36 - 90) * kotlin.math.PI / 180
+                    val r = if (i % 2 == 0) 10.0 else 4.5
+                    val x = (12 + kotlin.math.cos(a) * r).toFloat() * u
+                    val y = (12 + kotlin.math.sin(a) * r).toFloat() * u
+                    if (i == 0) p.moveTo(x, y) else p.lineTo(x, y)
+                }
+                p.close()
+                drawPath(p, color)
+            }
             Glyph.Settings -> {
                 drawCircle(color, 8 * u, style = Stroke(2 * u))
                 drawCircle(color, 3 * u, style = Stroke(2 * u))
@@ -192,6 +204,8 @@ fun RouteCard(
     route: Route,
     onClick: () -> Unit,
     stopCount: Int? = null,
+    subtitle: String? = null,
+    trailingLabel: String? = null,
 ) {
     val strings = LocalStrings.current
     Card(
@@ -210,12 +224,21 @@ fun RouteCard(
             Column(Modifier.weight(1f)) {
                 Text(route.name.resolve(strings.language, route.id), style = MaterialTheme.typography.titleMedium)
                 Text(
-                    stopCount?.let(strings::stopsCount) ?: strings[TextKey.Details],
+                    subtitle ?: stopCount?.let(strings::stopsCount) ?: strings[TextKey.Details],
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     style = MaterialTheme.typography.bodyMedium,
                 )
             }
-            RoutyIcon(Glyph.Chevron, strings[TextKey.Details])
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                trailingLabel?.let {
+                    Text(
+                        it,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                }
+                RoutyIcon(Glyph.Chevron, strings[TextKey.Details])
+            }
         }
     }
 }

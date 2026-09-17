@@ -52,7 +52,7 @@ fun RouteDetailsScreen(
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         Button({ model.actionHandler(RouteDetailsAction.ShowMap) }) { Text(strings[TextKey.ShowMap]) }
                         FilledTonalButton({ model.actionHandler(RouteDetailsAction.ToggleFavorite) }) {
-                            RoutyIcon(Glyph.Star)
+                            RoutyIcon(if (state.favorite) Glyph.StarFilled else Glyph.Star)
                             Spacer(Modifier.width(8.dp))
                             Text(strings[if (state.favorite) TextKey.Saved else TextKey.Save])
                         }

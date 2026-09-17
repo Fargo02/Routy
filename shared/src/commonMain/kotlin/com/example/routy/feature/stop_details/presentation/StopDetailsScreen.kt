@@ -13,6 +13,7 @@ import com.example.routy.core.mvi.CollectEffects
 import com.example.routy.core.navigation.Destination
 import com.example.routy.feature.stop_details.presentation.state.*
 import com.example.routy.feature.stop_details.domain.nearestScheduledDeparture
+import com.example.routy.feature.stop_details.domain.minutesUntilNextScheduledDeparture
 
 @Composable
 fun StopDetailsScreen(
@@ -35,7 +36,7 @@ fun StopDetailsScreen(
             item {
                 Text(details.stop.name.resolve(strings.language, details.stop.id), style = MaterialTheme.typography.headlineSmall)
                 FilledTonalButton({ model.actionHandler(StopDetailsAction.ToggleFavorite) }) {
-                    RoutyIcon(Glyph.Star)
+                    RoutyIcon(if (state.favorite) Glyph.StarFilled else Glyph.Star)
                     Spacer(Modifier.width(8.dp))
                     Text(strings[if (state.favorite) TextKey.Saved else TextKey.Save])
                 }
@@ -44,22 +45,31 @@ fun StopDetailsScreen(
                 Text(strings[TextKey.Schedule], style = MaterialTheme.typography.titleLarge)
                 Text(strings[TextKey.ScheduleNote], style = MaterialTheme.typography.bodySmall)
             }
-            details.routes.forEach { route ->
-                item { RouteCard(route, { model.actionHandler(StopDetailsAction.SelectRoute(route.id)) }) }
-                details.stop.services.filter { it.routeId == route.id }.forEach { service ->
+            details.routes
+                .map { route ->
+                    val times =
+                        details.stop.services
+                            .filter { it.routeId == route.id }
+                            .flatMap { it.times }
+                    route to nearestScheduledDeparture(times)
+                }
+                .sortedBy { (route, _) ->
+                    val times =
+                        details.stop.services
+                            .filter { it.routeId == route.id }
+                            .flatMap { it.times }
+                    minutesUntilNextScheduledDeparture(times) ?: Int.MAX_VALUE
+                }
+                .forEach { (route, nextDeparture) ->
                     item {
-                        Surface(shape = MaterialTheme.shapes.medium, color = MaterialTheme.colorScheme.surfaceContainer) {
-                            val nextDeparture = nearestScheduledDeparture(service.times)
-                            Text(
-                                nextDeparture?.let { "${strings[TextKey.NextDeparture]}: $it" }
-                                    ?: strings[TextKey.NoSchedule],
-                                Modifier.fillMaxWidth().padding(16.dp),
-                                style = MaterialTheme.typography.bodyLarge,
-                            )
-                        }
+                        RouteCard(
+                            route = route,
+                            onClick = { model.actionHandler(StopDetailsAction.SelectRoute(route.id)) },
+                            subtitle = strings[TextKey.Departure],
+                            trailingLabel = nextDeparture?.toString(),
+                        )
                     }
                 }
-            }
         } else if (state.network.network != null) {
             item { EmptyPanel() }
         }

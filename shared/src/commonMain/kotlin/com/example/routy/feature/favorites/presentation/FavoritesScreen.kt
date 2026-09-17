@@ -15,6 +15,9 @@ import com.example.routy.core.localization.*
 import com.example.routy.feature.favorites.presentation.state.*
 import com.example.routy.feature.route_details.domain.GetRouteDetailsUseCase
 import com.example.routy.feature.stop_details.domain.GetStopDetailsUseCase
+import com.example.routy.feature.stop_details.domain.nearestScheduledDeparture
+import com.example.routy.feature.stop_details.domain.scheduledFrequencyMinutes
+import com.example.routy.feature.stop_details.domain.minutesUntilNextScheduledDeparture
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -42,7 +45,11 @@ fun FavoritesScreen(
                 ),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            item { StatusPanel(state.network) { model.actionHandler(FavoritesAction.Retry) } }
+            item {
+                Box(Modifier.fillMaxWidth().heightIn(min = 20.dp)) {
+                    StatusPanel(state.network) { model.actionHandler(FavoritesAction.Retry) }
+                }
+            }
             if (state.routes.isEmpty() && state.stops.isEmpty() && state.network.network != null) item { EmptyPanel(TextKey.NoFavorites) }
             items(
                 state.routes,
@@ -51,7 +58,20 @@ fun FavoritesScreen(
                 FavoriteSwipeToDismiss(
                     onDismiss = { model.actionHandler(FavoritesAction.RemoveRoute(route.id)) },
                 ) {
-                    RouteCard(route, { selectedRouteId = route.id })
+                    val frequency =
+                        state.network.network
+                            ?.let { GetRouteDetailsUseCase()(it, route.id) }
+                            ?.groups
+                            ?.values
+                            ?.asSequence()
+                            ?.flatten()
+                            ?.mapNotNull { scheduledFrequencyMinutes(it.service.times) }
+                            ?.firstOrNull()
+                    RouteCard(
+                        route = route,
+                        onClick = { selectedRouteId = route.id },
+                        subtitle = frequency?.let(strings::runsEvery),
+                    )
                 }
             }
             items(
@@ -157,7 +177,22 @@ fun FavoritesScreen(
                         }
                     }
                     item { Text(strings[TextKey.ScheduleNote], style = MaterialTheme.typography.bodySmall) }
-                    details.routes.forEach { route ->
+                    details.routes
+                        .map { route ->
+                            val times =
+                                details.stop.services
+                                    .filter { it.routeId == route.id }
+                                    .flatMap { it.times }
+                            route to nearestScheduledDeparture(times)
+                        }
+                        .sortedBy { (route, _) ->
+                            val times =
+                                details.stop.services
+                                    .filter { it.routeId == route.id }
+                                    .flatMap { it.times }
+                            minutesUntilNextScheduledDeparture(times) ?: Int.MAX_VALUE
+                        }
+                        .forEach { (route, nextDeparture) ->
                         item {
                             RouteCard(
                                 route,
@@ -168,21 +203,9 @@ fun FavoritesScreen(
                                         selectedRouteId = route.id
                                     }
                                 },
+                                subtitle = strings[TextKey.Departure],
+                                trailingLabel = nextDeparture?.toString(),
                             )
-                        }
-                        details.stop.services.filter { it.routeId == route.id }.forEach { service ->
-                            item {
-                                Surface(
-                                    shape = MaterialTheme.shapes.medium,
-                                    color = MaterialTheme.colorScheme.surfaceContainer,
-                                ) {
-                                    Text(
-                                        service.times.joinToString("   ").ifEmpty { strings[TextKey.NoSchedule] },
-                                        Modifier.fillMaxWidth().padding(16.dp),
-                                        style = MaterialTheme.typography.bodyLarge,
-                                    )
-                                }
-                            }
                         }
                     }
                 } else {

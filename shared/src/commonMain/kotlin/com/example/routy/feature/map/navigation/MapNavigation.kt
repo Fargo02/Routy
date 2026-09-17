@@ -4,6 +4,7 @@ import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
+import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.composable
 import com.example.routy.core.designsystem.Glyph
 import com.example.routy.core.localization.TextKey
@@ -19,8 +20,11 @@ data object Map : BottomNavigationItem {
 
 fun NavController.navigateToMapScreen() =
     navigateIfResumed(Map) {
-        popUpTo(graph.id)
+        popUpTo(graph.findStartDestination().id) {
+            saveState = true
+        }
         launchSingleTop = true
+        restoreState = true
     }
 
 fun NavGraphBuilder.mapScreen() {
