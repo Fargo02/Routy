@@ -126,6 +126,13 @@ class Strings(
             Language.Georgian -> "ყოველ $minutes წუთში"
             Language.Russian -> "Каждые $minutes мин."
         }
+
+    fun minutesShort(minutes: Int): String =
+        when (language) {
+            Language.English -> "$minutes min"
+            Language.Georgian -> "$minutes წთ"
+            Language.Russian -> "$minutes мин"
+        }
 }
 
 private fun russianStops(count: Int): String =

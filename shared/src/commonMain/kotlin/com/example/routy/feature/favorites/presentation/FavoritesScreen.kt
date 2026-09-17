@@ -3,6 +3,7 @@ package com.example.routy.feature.favorites.presentation
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -23,6 +24,12 @@ import kotlinx.coroutines.launch
 
 private const val RouteSheetPrefix = "route:"
 private const val StopSheetPrefix = "stop:"
+
+private data class UpcomingBus(
+    val routeName: String,
+    val minutes: Int,
+    val routeColorIndex: Int,
+)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -91,15 +98,35 @@ fun FavoritesScreen(
                 state.stops,
                 key = { "stop:${it.id}" },
             ) { stop ->
+                val upcomingBuses =
+                    remember(stop, state.network.network, strings.language) {
+                        val routes = state.network.network?.routes.orEmpty()
+                        val routesById = routes.associateBy { it.id }
+                        stop.services
+                            .groupBy { it.routeId }
+                            .mapNotNull { (routeId, services) ->
+                                val minutes =
+                                    minutesUntilNextScheduledDeparture(services.flatMap { it.times })
+                                        ?: return@mapNotNull null
+                                val route = routesById[routeId] ?: return@mapNotNull null
+                                UpcomingBus(
+                                    routeName = route.name.resolve(strings.language, route.id),
+                                    minutes = minutes,
+                                    routeColorIndex = routes.indexOf(route).coerceAtLeast(0),
+                                )
+                            }.sortedBy(UpcomingBus::minutes)
+                            .take(3)
+                    }
                 FavoriteSwipeToDismiss(
                     onDismiss = { model.actionHandler(FavoritesAction.RemoveStop(stop.id)) },
                 ) {
-                    StopCard(
-                        stop,
+                    FavoriteStopCard(
+                        stop = stop,
+                        upcomingBuses = upcomingBuses,
                         onClick = {
                             sheetContent = "$StopSheetPrefix${stop.id}"
                         },
-                        subtitle = strings.vehiclesCount(stop.services.map { it.routeId }.distinct().size),
+                        fallbackSubtitle = strings.vehiclesCount(stop.services.map { it.routeId }.distinct().size),
                     )
                 }
             }
@@ -253,6 +280,69 @@ fun FavoritesScreen(
                 }
             },
         )
+    }
+}
+
+@Composable
+private fun FavoriteStopCard(
+    stop: com.example.routy.core.transport.domain.BusStop,
+    upcomingBuses: List<UpcomingBus>,
+    fallbackSubtitle: String,
+    onClick: () -> Unit,
+) {
+    val strings = LocalStrings.current
+    val palette = LocalRoutyPalette.current
+    Card(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+    ) {
+        Column(Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 16.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.onSurfaceVariant) {
+                    RoutyIcon(Glyph.Stop)
+                }
+                Text(
+                    stop.name.resolve(strings.language, stop.id),
+                    modifier = Modifier.weight(1f),
+                    style = MaterialTheme.typography.titleMedium,
+                )
+                RoutyIcon(Glyph.Chevron, strings[TextKey.Details])
+            }
+            if (upcomingBuses.isEmpty()) {
+                Text(
+                    fallbackSubtitle,
+                    modifier = Modifier.padding(start = 38.dp, top = 8.dp),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            } else {
+                FlowRow(
+                    modifier = Modifier.padding(start = 38.dp, top = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    upcomingBuses.forEach { bus ->
+                        val color = palette.routeColors[bus.routeColorIndex % palette.routeColors.size]
+                        Surface(
+                            color = color.copy(alpha = 0.13f),
+                            shape = RoundedCornerShape(10.dp),
+                        ) {
+                            Text(
+                                "${bus.routeName} · ${strings.minutesShort(bus.minutes)}",
+                                modifier = Modifier.padding(horizontal = 9.dp, vertical = 5.dp),
+                                style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.onSurface,
+                            )
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 
