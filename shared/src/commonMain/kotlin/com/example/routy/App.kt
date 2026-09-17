@@ -126,6 +126,10 @@ fun App(graph: AppGraph) {
                                 map.actionHandler(MapAction.ShowStopOnMap(id))
                                 navController.navigateToMapScreen()
                             },
+                            showRouteOnMap = { id ->
+                                map.actionHandler(MapAction.SelectRoute(id))
+                                navController.navigateToMapScreen()
+                            },
                         )
                         settingsScreen(settings)
                         routeDetailsScreen(
@@ -187,8 +191,8 @@ private fun FloatingBottomNavigation(
         contentAlignment = Alignment.Center,
     ) {
         Surface(
-            color = MaterialTheme.colorScheme.inverseSurface,
-            contentColor = MaterialTheme.colorScheme.inverseOnSurface,
+            color = MaterialTheme.colorScheme.surfaceContainer,
+            contentColor = MaterialTheme.colorScheme.onSurface,
             shape = RoundedCornerShape(40.dp),
             shadowElevation = 12.dp,
         ) {
@@ -208,7 +212,7 @@ private fun FloatingBottomNavigation(
                         color =
                             if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
                         contentColor =
-                            if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.inverseOnSurface,
+                                if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
                         shape = CircleShape,
                     ) {
                         Box(contentAlignment = Alignment.Center) { RoutyIcon(item.icon) }

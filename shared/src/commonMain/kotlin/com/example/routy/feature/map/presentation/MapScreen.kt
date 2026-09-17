@@ -721,7 +721,8 @@ fun MapScreen(
                     routeSchedule?.groups?.forEach { (group, stops) ->
                         item {
                             Text(
-                                if (group == null) strings[TextKey.Unspecified] else "${strings[TextKey.Group]} $group",
+                                stops.lastOrNull()?.stop?.let { stop -> stop.name.resolve(strings.language, stop.id) }
+                                    ?: strings[TextKey.Unspecified],
                                 style = MaterialTheme.typography.titleMedium,
                             )
                         }

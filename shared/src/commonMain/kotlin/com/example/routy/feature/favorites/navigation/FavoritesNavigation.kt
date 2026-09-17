@@ -36,6 +36,7 @@ fun NavGraphBuilder.favoritesScreen(
     transport: ObserveTransportUseCase,
     favorites: FavoritesUseCase,
     showStopOnMap: (String) -> Unit,
+    showRouteOnMap: (String) -> Unit,
 ) {
     composable<Favorites>(
         enterTransition = { EnterTransition.None },
@@ -46,6 +47,7 @@ fun NavGraphBuilder.favoritesScreen(
         FavoritesScreen(
             viewModel { FavoritesViewModel(transport, favorites) },
             showStopOnMap,
+            showRouteOnMap,
         )
     }
 }

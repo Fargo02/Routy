@@ -29,6 +29,7 @@ private const val StopSheetPrefix = "stop:"
 fun FavoritesScreen(
     model: FavoritesViewModel,
     showStopOnMap: (String) -> Unit,
+    showRouteOnMap: (String) -> Unit,
 ) {
     val state by model.uiState.collectAsStateWithLifecycle()
     val strings = LocalStrings.current
@@ -98,6 +99,7 @@ fun FavoritesScreen(
                         onClick = {
                             sheetContent = "$StopSheetPrefix${stop.id}"
                         },
+                        subtitle = strings.vehiclesCount(stop.services.map { it.routeId }.distinct().size),
                     )
                 }
             }
@@ -128,12 +130,18 @@ fun FavoritesScreen(
                             details.route.name.resolve(strings.language, details.route.id),
                             style = MaterialTheme.typography.headlineSmall,
                         )
+                        Spacer(Modifier.height(16.dp))
+                        Button(onClick = {
+                            sheetContent = null
+                            showRouteOnMap(routeId)
+                        }) { Text(strings[TextKey.ShowMap]) }
                     }
                     item { Text(strings[TextKey.ScheduleNote], style = MaterialTheme.typography.bodySmall) }
                     details.groups.forEach { (group, stops) ->
                         item {
                             Text(
-                                if (group == null) strings[TextKey.Unspecified] else "${strings[TextKey.Group]} $group",
+                                stops.lastOrNull()?.stop?.let { stop -> stop.name.resolve(strings.language, stop.id) }
+                                    ?: strings[TextKey.Unspecified],
                                 style = MaterialTheme.typography.titleMedium,
                             )
                         }
@@ -172,6 +180,7 @@ fun FavoritesScreen(
                             details.stop.name.resolve(strings.language, details.stop.id),
                             style = MaterialTheme.typography.headlineSmall,
                         )
+                        Spacer(Modifier.height(16.dp))
                         FlowRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                             Button(
                                 onClick = {
