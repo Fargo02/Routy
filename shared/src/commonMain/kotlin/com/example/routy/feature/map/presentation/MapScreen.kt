@@ -68,6 +68,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.routy.PlatformBackHandler
 import com.example.routy.core.designsystem.Glyph
+import com.example.routy.core.designsystem.EmptyPanel
 import com.example.routy.core.designsystem.LocalRoutyPalette
 import com.example.routy.core.designsystem.RouteCard
 import com.example.routy.core.designsystem.RoutyIcon
@@ -83,6 +84,7 @@ import com.example.routy.core.navigation.Destination
 import com.example.routy.feature.map.presentation.state.MapAction
 import com.example.routy.feature.map.presentation.state.MapCamera
 import com.example.routy.feature.map.presentation.state.MapEffect
+import com.example.routy.feature.route_details.domain.GetRouteDetailsUseCase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -149,6 +151,7 @@ fun MapScreen(
     var vehicleDetailsVisible by rememberSaveable { mutableStateOf(false) }
     var routeInfoVisible by rememberSaveable { mutableStateOf(false) }
     var routeInfoRouteId by rememberSaveable { mutableStateOf<String?>(null) }
+    var routeScheduleVisible by rememberSaveable { mutableStateOf(false) }
     var routeInfoSwipeDistance by remember { mutableStateOf(0f) }
     var selectedVehicle by rememberSaveable { mutableStateOf<String?>(null) }
     var selectedStop by rememberSaveable { mutableStateOf<String?>(null) }
@@ -328,6 +331,7 @@ fun MapScreen(
         selectedVehicle = null
         vehicleDetailsVisible = false
         routeInfoVisible = false
+        routeScheduleVisible = false
     }
     LaunchedEffect(selectedStop) {
         state.stops.firstOrNull { it.id == selectedStop }?.let {
@@ -443,20 +447,9 @@ fun MapScreen(
                 }
             }
             Column(
-                Modifier.align(Alignment.BottomEnd).padding(end = 16.dp, bottom = 132.dp),
+                Modifier.align(Alignment.CenterEnd).padding(end = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                if (state.selectedRouteIds.isNotEmpty()) {
-                    SmallFloatingActionButton(
-                        {
-                            routeInfoRouteId = state.routeId
-                            routeInfoVisible = true
-                        },
-                        containerColor = MaterialTheme.colorScheme.surface,
-                    ) {
-                        RoutyIcon(Glyph.Routes, strings[TextKey.Live])
-                    }
-                }
                 MapZoomButton(
                     label = "Приблизить карту",
                     symbol = "+",
@@ -483,13 +476,21 @@ fun MapScreen(
                         }
                     },
                 )
-                SmallFloatingActionButton({
-                    model.actionHandler(MapAction.OpenStops)
-                }, containerColor = MaterialTheme.colorScheme.surface) {
-                    RoutyIcon(
-                        Glyph.Stop,
-                        strings[TextKey.Nearby],
-                    )
+            }
+            Column(
+                Modifier.align(Alignment.BottomEnd).padding(end = 16.dp, bottom = 156.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                if (state.selectedRouteIds.isNotEmpty()) {
+                    SmallFloatingActionButton(
+                        {
+                            routeInfoRouteId = state.routeId
+                            routeInfoVisible = true
+                        },
+                        containerColor = MaterialTheme.colorScheme.surface,
+                    ) {
+                        RoutyIcon(Glyph.Routes, strings[TextKey.Live])
+                    }
                 }
                 SmallFloatingActionButton({
                     model.actionHandler(MapAction.MyLocation)
@@ -507,13 +508,60 @@ fun MapScreen(
         val activeRouteId = routeInfoRouteId?.takeIf { it in routeIds } ?: routeIds.lastOrNull()
         val activeRouteIndex = routeIds.indexOf(activeRouteId)
         val activeVehicles = vehicles.vehicles.filter { it.routeId == activeRouteId }
+        val routeSchedule =
+            remember(state.network.network, activeRouteId) {
+                activeRouteId?.let { id -> state.network.network?.let { GetRouteDetailsUseCase()(it, id) } }
+            }
         ModalBottomSheet(
-            onDismissRequest = { routeInfoVisible = false },
+            onDismissRequest = {
+                routeInfoVisible = false
+                routeScheduleVisible = false
+            },
             sheetState = routeInfoSheetState,
             containerColor = MaterialTheme.colorScheme.surface,
             contentWindowInsets = { WindowInsets.safeDrawing.only(WindowInsetsSides.Top) },
         ) {
-            Column(
+            if (routeScheduleVisible) {
+                LazyColumn(
+                    Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = 32.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    item {
+                        TextButton(onClick = { routeScheduleVisible = false }) {
+                            RoutyIcon(Glyph.Back, strings[TextKey.Back])
+                            Spacer(Modifier.width(8.dp))
+                            Text(strings[TextKey.Back])
+                        }
+                        routeSchedule?.let { details ->
+                            Text(
+                                details.route.name.resolve(strings.language, details.route.id),
+                                style = MaterialTheme.typography.headlineSmall,
+                            )
+                        }
+                    }
+                    item { Text(strings[TextKey.ScheduleNote], style = MaterialTheme.typography.bodySmall) }
+                    routeSchedule?.groups?.forEach { (group, stops) ->
+                        item {
+                            Text(
+                                if (group == null) strings[TextKey.Unspecified] else "${strings[TextKey.Group]} $group",
+                                style = MaterialTheme.typography.titleMedium,
+                            )
+                        }
+                        items(stops, key = { "$group:${it.stop.id}" }) { routeStop ->
+                            StopCard(
+                                stop = routeStop.stop,
+                                onClick = { routeScheduleVisible = false },
+                                subtitle =
+                                    routeStop.service.times
+                                        .take(4)
+                                        .joinToString(" • ")
+                                        .ifEmpty { strings[TextKey.NoSchedule] },
+                            )
+                        }
+                    } ?: item { EmptyPanel() }
+                }
+            } else Column(
                 Modifier
                     .fillMaxWidth()
                     .padding(vertical = 8.dp)
@@ -598,7 +646,7 @@ fun MapScreen(
                         vehicles.isLoading -> strings[TextKey.Loading]
                         vehicles.isStale -> strings[TextKey.Stale]
                         activeVehicles.isEmpty() -> strings[TextKey.NoBuses]
-                        else -> "${activeVehicles.size} ${strings[TextKey.Vehicle]}"
+                        else -> strings.vehiclesCount(activeVehicles.size)
                     },
                     Modifier.padding(horizontal = 24.dp),
                     style = MaterialTheme.typography.bodyMedium,
@@ -622,8 +670,8 @@ fun MapScreen(
                 }
                 TextButton(
                     onClick = {
-                        routeInfoVisible = false
-                        activeRouteId?.let { model.actionHandler(MapAction.OpenRouteDetails(it)) }
+                        routeScheduleVisible = true
+                        scope.launch { routeInfoSheetState.expand() }
                     },
                     modifier = Modifier.padding(horizontal = 24.dp).padding(bottom = 12.dp),
                 ) { Text(strings[TextKey.Details]) }

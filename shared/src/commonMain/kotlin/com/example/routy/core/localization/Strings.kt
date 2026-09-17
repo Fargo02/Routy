@@ -103,6 +103,13 @@ class Strings(
             Language.Russian -> "$count ${russianStops(count)}"
         }
 
+    fun vehiclesCount(count: Int): String =
+        when (language) {
+            Language.English -> "$count ${if (count == 1) "bus" else "buses"}"
+            Language.Georgian -> "$count ავტობუსი"
+            Language.Russian -> "$count ${russianBuses(count)}"
+        }
+
     fun runsEvery(minutes: Int): String =
         when (language) {
             Language.English -> "Every $minutes min"
@@ -119,6 +126,17 @@ private fun russianStops(count: Int): String =
                 1 -> "остановка"
                 in 2..4 -> "остановки"
                 else -> "остановок"
+            }
+    }
+
+private fun russianBuses(count: Int): String =
+    when (val remainder = count % 100) {
+        in 11..14 -> "автобусов"
+        else ->
+            when (remainder % 10) {
+                1 -> "автобус"
+                in 2..4 -> "автобуса"
+                else -> "автобусов"
             }
     }
 
