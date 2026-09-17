@@ -8,6 +8,7 @@ local.properties
 .idea
 .DS_Store
 captures
+androidApp/release/
 .externalNativeBuild
 .cxx
 *.xcodeproj/*
