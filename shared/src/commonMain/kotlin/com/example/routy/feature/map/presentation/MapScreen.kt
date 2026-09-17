@@ -91,6 +91,7 @@ import com.example.routy.core.transport.domain.BusStop
 import com.example.routy.feature.route_details.domain.GetRouteDetailsUseCase
 import com.example.routy.feature.stop_details.domain.scheduledFrequencyMinutes
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.yield
@@ -159,6 +160,7 @@ fun MapScreen(
     var locationEnabled by rememberSaveable { mutableStateOf(false) }
     var focusLocation by remember { mutableStateOf(false) }
     var initialStopFocused by rememberSaveable { mutableStateOf(false) }
+    var initialLocationCheckFinished by rememberSaveable { mutableStateOf(false) }
     var vehicleDetailsVisible by rememberSaveable { mutableStateOf(false) }
     var routeInfoVisible by rememberSaveable { mutableStateOf(false) }
     var routeInfoRouteId by rememberSaveable { mutableStateOf<String?>(null) }
@@ -465,8 +467,21 @@ fun MapScreen(
             )
         }
     }
-    LaunchedEffect(state.network.network, state.trackedStopId, state.favoriteStopIds, initialStopFocused) {
+    LaunchedEffect(location.permission) {
+        if (location.permission !is LocationPermission.NotGranted) {
+            locationEnabled = true
+            delay(1_500)
+        }
+        initialLocationCheckFinished = true
+    }
+    LaunchedEffect(location.lastLocation, state.network.network, state.trackedStopId, state.favoriteStopIds, initialStopFocused, initialLocationCheckFinished) {
         if (initialStopFocused) return@LaunchedEffect
+        location.lastLocation?.let { userLocation ->
+            mapState.animateCameraPosition(CameraPosition(target = userLocation.position, zoom = 14.0))
+            initialStopFocused = true
+            return@LaunchedEffect
+        }
+        if (!initialLocationCheckFinished) return@LaunchedEffect
         val initialStop =
             state.network.network
                 ?.stops
