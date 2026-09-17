@@ -48,9 +48,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -61,12 +62,15 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.example.routy.PlatformBackHandler
 import com.example.routy.notifyBusApproaching
 import com.example.routy.requestBusNotificationPermission
@@ -88,6 +92,7 @@ import com.example.routy.feature.map.presentation.state.MapAction
 import com.example.routy.feature.map.presentation.state.MapCamera
 import com.example.routy.feature.map.presentation.state.MapEffect
 import com.example.routy.core.transport.domain.BusStop
+import com.example.routy.core.transport.domain.VehicleState
 import com.example.routy.feature.route_details.domain.GetRouteDetailsUseCase
 import com.example.routy.feature.stop_details.domain.scheduledFrequencyMinutes
 import kotlinx.coroutines.Dispatchers
@@ -104,7 +109,9 @@ import org.jetbrains.compose.resources.painterResource
 import org.maplibre.compose.camera.CameraPosition
 import org.maplibre.compose.expressions.dsl.const
 import org.maplibre.compose.expressions.dsl.feature
+import org.maplibre.compose.expressions.dsl.format
 import org.maplibre.compose.expressions.dsl.image
+import org.maplibre.compose.expressions.dsl.span
 import org.maplibre.compose.interaction.ClickResult
 import org.maplibre.compose.layers.CircleLayer
 import org.maplibre.compose.layers.LineLayer
@@ -117,12 +124,20 @@ import org.maplibre.compose.map.MapEvent
 import org.maplibre.compose.map.MaplibreMap
 import org.maplibre.compose.map.rememberMapState
 import org.maplibre.compose.sources.GeoJsonData
+import org.maplibre.compose.sources.GeoJsonOptions
 import org.maplibre.compose.sources.rememberGeoJsonSource
 import org.maplibre.compose.style.BaseStyle
 import org.maplibre.spatialk.geojson.Position
 import routy.shared.generated.resources.Res
+import routy.shared.generated.resources.azure_bus
+import routy.shared.generated.resources.blue_bus
 import routy.shared.generated.resources.bus
+import routy.shared.generated.resources.dark_blue_bus
 import routy.shared.generated.resources.favorite_stop
+import routy.shared.generated.resources.green_bus
+import routy.shared.generated.resources.orage_bus
+import routy.shared.generated.resources.pink_bus
+import routy.shared.generated.resources.red_bus
 import routy.shared.generated.resources.tracking_stop
 
 /** Style provider is a replaceable presentation configuration, never a domain dependency. */
@@ -141,7 +156,11 @@ fun MapScreen(
 ) {
     val state by model.uiState.collectAsStateWithLifecycle()
     val camera by model.camera.collectAsStateWithLifecycle()
-    val vehicles by model.vehicles.collectAsStateWithLifecycle()
+    val vehicles by
+        model.vehicles.collectAsStateWithLifecycle(
+            initialValue = VehicleState(isLoading = false),
+            lifecycle = LocalLifecycleOwner.current.lifecycle,
+        )
     val strings = LocalStrings.current
     val palette = LocalRoutyPalette.current
     val routes =
@@ -216,12 +235,34 @@ fun MapScreen(
     val busDirectionPainter = painterResource(Res.drawable.bus)
     val favoriteStopPainter = painterResource(Res.drawable.favorite_stop)
     val trackingStopPainter = painterResource(Res.drawable.tracking_stop)
+    val routeBusPainters =
+        listOf(
+            painterResource(Res.drawable.blue_bus),
+            painterResource(Res.drawable.red_bus),
+            painterResource(Res.drawable.green_bus),
+            painterResource(Res.drawable.orage_bus),
+            painterResource(Res.drawable.azure_bus),
+            painterResource(Res.drawable.pink_bus),
+            painterResource(Res.drawable.dark_blue_bus),
+        )
     val location = rememberLocationState(enabled = locationEnabled)
     val systemSettings = rememberSystemSettingsLauncher()
     var locationPrompt by remember { mutableStateOf(false) }
-    val vehicleJson by produceState(EMPTY_GEOJSON, vehicles.vehicles) {
-        value = withContext(Dispatchers.Default) { vehiclesGeoJson(vehicles.vehicles) }
+    val vehiclesByRoute = remember(vehicles.vehicles) { vehicles.vehicles.groupBy { it.routeId } }
+    SideEffect {
+        model.logVehicleLayersComposed(
+            routeCount = vehiclesByRoute.size,
+            vehicleCount = vehicles.vehicles.size,
+            selectedRouteCount = state.selectedRouteIds.size,
+        )
     }
+    val routeLabels =
+        remember(state.network.network?.routes, strings.language) {
+            state.network.network
+                ?.routes
+                ?.associate { route -> route.id to route.name.resolve(strings.language, route.id) }
+                .orEmpty()
+        }
     val selectedStopJson =
         remember(
             mapStops,
@@ -250,6 +291,13 @@ fun MapScreen(
             )
         }
     val dark = MaterialTheme.colorScheme.background.red < 0.3f
+    // Route lines must be ready before MapLibre redraws its tiles after a zoom gesture.
+    val routeSourceOptions =
+        remember {
+            GeoJsonOptions(
+                synchronousUpdate = true,
+            )
+        }
     val mapState =
         rememberMapState(
             baseStyle = BaseStyle.Uri(if (dark) style.dark else style.light),
@@ -265,25 +313,31 @@ fun MapScreen(
         ) {
             val stopSource = rememberGeoJsonSource(GeoJsonData.JsonString(mapStopsGeoJson))
             val favoriteStopSource = rememberGeoJsonSource(GeoJsonData.JsonString(favoriteStopsGeoJson))
-            val vehicleSource = rememberGeoJsonSource(GeoJsonData.JsonString(vehicleJson))
             val selectionSource = rememberGeoJsonSource(GeoJsonData.JsonString(selectedStopJson))
             val trackingStopSource = rememberGeoJsonSource(GeoJsonData.JsonString(trackingStopJson))
-            val trackingRouteSource = rememberGeoJsonSource(GeoJsonData.JsonString(trackingRouteJson))
+            val trackingRouteSource =
+                rememberGeoJsonSource(
+                    GeoJsonData.JsonString(trackingRouteJson),
+                    options = routeSourceOptions,
+                )
             state.geometries.forEachIndexed { index, geometry ->
                 val routeSource =
-                    rememberGeoJsonSource(GeoJsonData.JsonString(routeGeoJson(listOf(geometry))))
+                    rememberGeoJsonSource(
+                        GeoJsonData.JsonString(routeGeoJson(listOf(geometry))),
+                        options = routeSourceOptions,
+                    )
                 val routeColor = palette.routeColors[index % palette.routeColors.size]
                 LineLayer(
                     "route-outline-${geometry.routeId}",
                     routeSource,
                     color = const(palette.routeOutline),
-                    width = const(8.dp),
+                    width = const(5.dp),
                 )
                 LineLayer(
                     "route-${geometry.routeId}",
                     routeSource,
                     color = const(routeColor),
-                    width = const(5.dp),
+                    width = const(3.dp),
                 )
             }
             LineLayer(
@@ -337,24 +391,43 @@ fun MapScreen(
                 iconSize = const(0.4f),
                 iconAllowOverlap = const(true),
             )
-            SymbolLayer(
-                "vehicles",
-                vehicleSource,
-                iconImage = image(busDirectionPainter),
-                iconSize = const(0.08f),
-                iconRotate = feature["heading"].cast(),
-                iconAllowOverlap = const(true),
-                onClick = { features ->
-                    features
-                        .firstOrNull()
-                        ?.properties
-                        ?.get("id")
-                        ?.jsonPrimitive
-                        ?.content
-                        ?.let { model.actionHandler(MapAction.SelectVehicle(it)) }
-                    ClickResult.Consume
-                },
-            )
+            vehiclesByRoute.entries.sortedBy { it.key }.forEach { (routeId, routeVehicles) ->
+                key(routeId) {
+                    DisposableEffect(routeId) {
+                        model.logVehicleLayerAttached(routeVehicles.size)
+                        onDispose { model.logVehicleLayerDetached() }
+                    }
+                    val routeVehicleSource =
+                        rememberGeoJsonSource(GeoJsonData.JsonString(vehiclesGeoJson(routeVehicles)))
+                    val selectedRouteIndex = state.selectedRouteIds.indexOf(routeId)
+                    val routeLabel = routeLabels[routeId] ?: routeId
+                    SymbolLayer(
+                        "vehicles-$routeId",
+                        routeVehicleSource,
+                        iconImage = image(routeBusPainters.getOrNull(selectedRouteIndex) ?: busDirectionPainter),
+                        iconSize = const(if (selectedRouteIndex >= 0) 0.1f else 0.08f),
+                        iconRotate = feature["heading"].cast(),
+                        iconAllowOverlap = const(true),
+                        textField = format(span(routeLabel)),
+                        textColor = const(Color(0xFF0F172A)),
+                        textHaloColor = const(Color.White),
+                        textHaloWidth = const(1.dp),
+                        textFont = const(listOf("Noto Sans Bold")),
+                        textSize = const(12.sp),
+                        textAllowOverlap = const(true),
+                        onClick = { features ->
+                            features
+                                .firstOrNull()
+                                ?.properties
+                                ?.get("id")
+                                ?.jsonPrimitive
+                                ?.content
+                                ?.let { model.actionHandler(MapAction.SelectVehicle(it)) }
+                            ClickResult.Consume
+                        },
+                    )
+                }
+            }
             if (locationEnabled) LocationPuck(idPrefix = "user", locationState = location)
         }
 
@@ -570,15 +643,18 @@ fun MapScreen(
                     key = { it.id },
                 ) { route ->
                     val selected = route.id in state.selectedRouteIds
+                    val routeColor = palette.routeColors[state.selectedRouteIds.indexOf(route.id).mod(palette.routeColors.size)]
+                    val selectedContentColor = if (routeColor.luminance() > 0.45f) Color(0xFF0F172A) else Color.White
                     FilterChip(
                         selected = selected,
+                        enabled = selected || state.selectedRouteIds.size < 7,
                         onClick = { model.actionHandler(MapAction.SelectRoute(route.id)) },
                         label = {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 if (route.id in state.favoriteRouteIds) {
                                     CompositionLocalProvider(
                                         LocalContentColor provides
-                                            if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.tertiary,
+                                            if (selected) selectedContentColor else MaterialTheme.colorScheme.tertiary,
                                     ) {
                                         RoutyIcon(Glyph.StarFilled)
                                     }
@@ -590,9 +666,9 @@ fun MapScreen(
                         colors =
                             FilterChipDefaults.filterChipColors(
                                 containerColor = MaterialTheme.colorScheme.surface,
-                                selectedContainerColor = MaterialTheme.colorScheme.primary,
-                                selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
-                                selectedLeadingIconColor = MaterialTheme.colorScheme.onPrimary,
+                                selectedContainerColor = routeColor,
+                                selectedLabelColor = selectedContentColor,
+                                selectedLeadingIconColor = selectedContentColor,
                             ),
                         border = null,
                     )
@@ -928,8 +1004,12 @@ fun MapScreen(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
                             items(state.search.quickRoutes, key = { it.id }) { route ->
+                                val selected = route.id in state.selectedRouteIds
+                                val routeColor = palette.routeColors[state.selectedRouteIds.indexOf(route.id).mod(palette.routeColors.size)]
+                                val selectedContentColor = if (routeColor.luminance() > 0.45f) Color(0xFF0F172A) else Color.White
                                 FilterChip(
-                                    selected = route.id in state.selectedRouteIds,
+                                    selected = selected,
+                                    enabled = selected || state.selectedRouteIds.size < 7,
                                     onClick = {
                                         model.actionHandler(
                                             MapAction.SelectSearchRoute(
@@ -940,7 +1020,10 @@ fun MapScreen(
                                     label = {
                                         Row(verticalAlignment = Alignment.CenterVertically) {
                                             if (route.id in state.favoriteRouteIds) {
-                                                CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.tertiary) {
+                                                CompositionLocalProvider(
+                                                    LocalContentColor provides
+                                                        if (selected) selectedContentColor else MaterialTheme.colorScheme.tertiary,
+                                                ) {
                                                     RoutyIcon(
                                                         Glyph.StarFilled,
                                                         strings[TextKey.Favorites],
@@ -951,6 +1034,13 @@ fun MapScreen(
                                             Text(route.name.resolve(strings.language, route.id))
                                         }
                                     },
+                                    colors =
+                                        FilterChipDefaults.filterChipColors(
+                                            containerColor = MaterialTheme.colorScheme.surface,
+                                            selectedContainerColor = routeColor,
+                                            selectedLabelColor = selectedContentColor,
+                                            selectedLeadingIconColor = selectedContentColor,
+                                        ),
                                 )
                             }
                         }

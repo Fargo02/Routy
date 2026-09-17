@@ -105,7 +105,7 @@ class MapViewModelTest {
                 assertEquals(listOf("r", "another"), handle.get<List<String>>("routeIds"))
                 assertFalse(model.uiState.value.search.isOpen)
                 assertEquals(2, active)
-                assertEquals(3, subscriptions)
+                assertEquals(2, subscriptions)
                 visible.cancelAndJoin()
                 runCurrent()
                 assertEquals(0, active)

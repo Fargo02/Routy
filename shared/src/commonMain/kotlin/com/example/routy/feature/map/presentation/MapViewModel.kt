@@ -18,13 +18,14 @@ import com.example.routy.feature.stop_details.navigation.StopDetails
 import com.example.routy.feature.stops.domain.SearchStopsUseCase
 import com.example.routy.feature.stops.navigation.Stops
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
 class MapViewModel(
     private val transport: ObserveTransportUseCase,
-    vehicles: ObserveRouteVehiclesUseCase,
+    private val observeVehicles: ObserveRouteVehiclesUseCase,
     details: GetRouteDetailsUseCase,
     private val favorites: FavoritesUseCase,
     private val searchRoutes: SearchRoutesUseCase = SearchRoutesUseCase(),
@@ -32,6 +33,10 @@ class MapViewModel(
     private val savedState: SavedStateHandle = SavedStateHandle(),
     private val logger: AppLogger = SilentLogger,
 ) : ViewModel() {
+    private companion object {
+        const val MaxSelectedRoutes = 7
+    }
+
     private val _effects = Channel<MapEffect>(Channel.BUFFERED)
     val effects = _effects.receiveAsFlow()
 
@@ -64,6 +69,21 @@ class MapViewModel(
                 }
             (routeIds + listOfNotNull(saved.trackedRouteId) + recoveryRouteIds).distinct()
         }
+    private val vehicleStatesByRoute = mutableMapOf<String, VehicleState>()
+    private val vehicleJobsByRoute = mutableMapOf<String, Job>()
+    private val vehicleSubscriberCount = MutableStateFlow(0)
+    private val _vehicles = MutableStateFlow(VehicleState(isLoading = false))
+    private var activeVehicleRouteIds = emptyList<String>()
+
+    /**
+     * A single route has its own polling job. Adding another route therefore cannot cancel the
+     * existing job and briefly replace its markers with the repository's initial empty state.
+     */
+    val vehicles: Flow<VehicleState> =
+        _vehicles
+            .onSubscription { vehicleSubscriberCount.update { it + 1 } }
+            .onCompletion { vehicleSubscriberCount.update { count -> (count - 1).coerceAtLeast(0) } }
+
     val uiState =
         combine(transport.state, activeRouteIds, selectedRouteIds, favorites.state, searchRequest) { network, activeRouteIds, selectedRouteIds, saved, search ->
             val routes = network.network?.let { data -> activeRouteIds.mapNotNull { details(data, it) } }.orEmpty()
@@ -121,27 +141,84 @@ class MapViewModel(
                 "savedCount=${state.favoriteStopIds.size}, visibleCount=${state.stops.count { it.id in state.favoriteStopIds }}",
             )
         }.flowOn(Dispatchers.Default).stateIn(viewModelScope, SharingStarted.WhileSubscribed(0), MapState())
-    val vehicles =
-        activeRouteIds
-            .flatMapLatest { routeIds ->
-                if (routeIds.isEmpty()) {
-                    flowOf(VehicleState(isLoading = false))
-                } else {
-                    combine(routeIds.map { vehicles(it) }) { states ->
-                        VehicleState(
-                            vehicles = states.flatMap { it.vehicles },
-                            isLoading = states.any { it.isLoading },
-                            isStale = states.any { it.isStale },
-                            updatedAtMillis = states.mapNotNull { it.updatedAtMillis }.maxOrNull(),
-                            error = states.firstNotNullOfOrNull { it.error },
-                        )
-                    }
+    init {
+        viewModelScope.launch {
+            combine(activeRouteIds, vehicleSubscriberCount) { routeIds, subscriberCount -> routeIds to subscriberCount }
+                .collect { (routeIds, subscriberCount) ->
+                    reconcileVehiclePolling(routeIds, subscriberCount)
                 }
-            }.stateIn(
-                viewModelScope,
-                SharingStarted.WhileSubscribed(stopTimeoutMillis = 0, replayExpirationMillis = 0),
-                VehicleState(isLoading = false),
+        }
+    }
+
+    private fun reconcileVehiclePolling(routeIds: List<String>, subscriberCount: Int) {
+        if (subscriberCount == 0) {
+            vehicleJobsByRoute.values.forEach(Job::cancel)
+            vehicleJobsByRoute.clear()
+            return
+        }
+
+        activeVehicleRouteIds = routeIds
+        vehicleJobsByRoute.keys.filter { it !in routeIds }.toList().forEach { routeId ->
+            vehicleJobsByRoute.remove(routeId)?.cancel()
+            vehicleStatesByRoute.remove(routeId)
+        }
+        routeIds.filterNot(vehicleJobsByRoute::containsKey).forEach { routeId ->
+            vehicleJobsByRoute[routeId] =
+                viewModelScope.launch {
+                    observeVehicles(routeId)
+                        .onStart {
+                            logger.diagnostic(
+                                LogEvent.MapVehiclePollingStarted,
+                                "activeRoutes=${vehicleJobsByRoute.size}",
+                            )
+                        }.onCompletion {
+                            logger.diagnostic(
+                                LogEvent.MapVehiclePollingStopped,
+                                "activeRoutes=${vehicleJobsByRoute.size}",
+                            )
+                        }.collect { state ->
+                            vehicleStatesByRoute[routeId] = state
+                            publishVehicleState(activeVehicleRouteIds)
+                        }
+                }
+        }
+        publishVehicleState(routeIds)
+    }
+
+    private fun publishVehicleState(routeIds: List<String>) {
+        val states = routeIds.mapNotNull(vehicleStatesByRoute::get)
+        _vehicles.value =
+            VehicleState(
+                vehicles = states.flatMap { it.vehicles },
+                isLoading = states.any { it.isLoading },
+                isStale = states.any { it.isStale },
+                updatedAtMillis = states.mapNotNull { it.updatedAtMillis }.maxOrNull(),
+                error = states.firstNotNullOfOrNull { it.error },
             )
+        logger.diagnostic(
+            LogEvent.MapVehicleStateCombined,
+            "vehicles=${_vehicles.value.vehicles.size}, loading=${_vehicles.value.isLoading}, stale=${_vehicles.value.isStale}",
+        )
+    }
+
+    fun logVehicleLayersComposed(
+        routeCount: Int,
+        vehicleCount: Int,
+        selectedRouteCount: Int,
+    ) {
+        logger.diagnostic(
+            LogEvent.MapVehicleLayersComposed,
+            "routes=$routeCount, vehicles=$vehicleCount, selected=$selectedRouteCount",
+        )
+    }
+
+    fun logVehicleLayerAttached(vehicleCount: Int) {
+        logger.diagnostic(LogEvent.MapVehicleLayerAttached, "vehicles=$vehicleCount")
+    }
+
+    fun logVehicleLayerDetached() {
+        logger.diagnostic(LogEvent.MapVehicleLayerDetached, "")
+    }
 
     fun actionHandler(action: MapAction) {
         when (action) {
@@ -175,7 +252,12 @@ class MapViewModel(
 
     private fun toggleRoute(id: String) {
         val selected = selectedRouteIds.value
-        savedState["routeIds"] = if (id in selected) selected - id else selected + id
+        savedState["routeIds"] =
+            when {
+                id in selected -> selected - id
+                selected.size >= MaxSelectedRoutes -> selected
+                else -> selected + id
+            }
     }
 
     private fun saveCamera(camera: MapCamera) {

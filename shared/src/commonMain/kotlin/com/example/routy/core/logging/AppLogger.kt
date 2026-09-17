@@ -7,6 +7,8 @@ enum class LogLevel { Debug, Info, Warning, Error }
 enum class LogEvent {
     CacheLoaded, CacheReadFailed, CacheWriteFailed, DatabaseRefreshFailed, VehicleRefreshFailed,
     FavoriteStopsChanged, MapFavoriteStopsUpdated,
+    MapVehiclePollingStarted, MapVehiclePollingStopped, MapVehicleStateCombined,
+    MapVehicleLayersComposed, MapVehicleLayerAttached, MapVehicleLayerDetached,
 }
 
 /** Structured records deliberately cannot contain payloads, identifiers, or coordinates. */

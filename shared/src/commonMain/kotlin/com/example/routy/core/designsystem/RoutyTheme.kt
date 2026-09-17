@@ -89,7 +89,6 @@ private val routeColors =
         Color(0xFF2563EB),
         Color(0xFFEF4444),
         Color(0xFF16A34A),
-        Color(0xFFF59E0B),
         Color(0xFFF97316),
         Color(0xFF06B6D4),
         Color(0xFFEC4899),

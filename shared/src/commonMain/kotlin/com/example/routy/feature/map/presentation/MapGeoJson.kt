@@ -44,6 +44,7 @@ fun vehiclesGeoJson(vehicles: List<Vehicle>): String =
                 put("id", vehicle.id)
                 putJsonObject("properties") {
                     put("id", vehicle.id)
+                    put("routeLabel", vehicle.routeId)
                     put("heading", vehicle.headingDegrees ?: 0f)
                 }
                 putJsonObject("geometry") {
