@@ -17,7 +17,6 @@ import com.example.routy.core.di.AppGraph
 import com.example.routy.core.logging.PlatformLogger
 import com.example.routy.core.preferences.domain.Appearance
 import com.example.routy.core.storage.AndroidPersistentFiles
-import com.example.routy.initializeBusNotifications
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.okhttp.OkHttp
 
@@ -26,7 +25,6 @@ class MainActivity : ComponentActivity() {
         installSplashScreen()
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
-        initializeBusNotifications(this)
         val model =
             ViewModelProvider(
                 this,

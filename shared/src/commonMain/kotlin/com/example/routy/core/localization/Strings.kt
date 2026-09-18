@@ -72,16 +72,6 @@ enum class TextKey {
     QuickSelect,
     SearchEmptyTitle,
     SearchEmptyBody,
-    TrackBus,
-    TrackBusBody,
-    ChooseStop,
-    ChooseStopOnMap,
-    FavoriteStops,
-    StartTracking,
-    StopTracking,
-    Tracking,
-    BusApproaching,
-    BusApproachingBody,
 }
 
 class Strings(
@@ -228,16 +218,6 @@ private val english =
         TextKey.QuickSelect to "Quick pick",
         TextKey.SearchEmptyTitle to "Nothing found",
         TextKey.SearchEmptyBody to "Try a stop name or route number.",
-        TextKey.TrackBus to "Track bus",
-        TextKey.TrackBusBody to "Choose a stop and we'll let you know when this bus is nearby.",
-        TextKey.ChooseStop to "Choose stop",
-        TextKey.ChooseStopOnMap to "Choose on map",
-        TextKey.FavoriteStops to "Saved stops",
-        TextKey.StartTracking to "Start tracking",
-        TextKey.StopTracking to "Stop tracking",
-        TextKey.Tracking to "Tracking",
-        TextKey.BusApproaching to "Bus is approaching",
-        TextKey.BusApproachingBody to "is close to",
     )
 
 private val georgian =
@@ -310,16 +290,6 @@ private val georgian =
         TextKey.QuickSelect to "სწრაფი არჩევა",
         TextKey.SearchEmptyTitle to "ვერაფერი მოიძებნა",
         TextKey.SearchEmptyBody to "სცადეთ გაჩერების სახელი ან მარშრუტის ნომერი.",
-        TextKey.TrackBus to "ავტობუსის თვალყურის დევნება",
-        TextKey.TrackBusBody to "აირჩიეთ გაჩერება და შეგატყობინებთ, როცა ავტობუსი ახლოს იქნება.",
-        TextKey.ChooseStop to "გაჩერების არჩევა",
-        TextKey.ChooseStopOnMap to "რუკაზე არჩევა",
-        TextKey.FavoriteStops to "შენახული გაჩერებები",
-        TextKey.StartTracking to "თვალყურის დევნების დაწყება",
-        TextKey.StopTracking to "თვალყურის დევნების შეწყვეტა",
-        TextKey.Tracking to "თვალყურის დევნება",
-        TextKey.BusApproaching to "ავტობუსი ახლოვდება",
-        TextKey.BusApproachingBody to "ახლოს არის",
     )
 
 private val russian =
@@ -392,14 +362,4 @@ private val russian =
         TextKey.QuickSelect to "Быстрый выбор",
         TextKey.SearchEmptyTitle to "Ничего не найдено",
         TextKey.SearchEmptyBody to "Попробуйте изменить название остановки или номер маршрута.",
-        TextKey.TrackBus to "Отслеживать автобус",
-        TextKey.TrackBusBody to "Выберите остановку — мы уведомим, когда этот автобус будет рядом.",
-        TextKey.ChooseStop to "Выберите остановку",
-        TextKey.ChooseStopOnMap to "Выбрать на карте",
-        TextKey.FavoriteStops to "Избранные остановки",
-        TextKey.StartTracking to "Начать отслеживание",
-        TextKey.StopTracking to "Остановить отслеживание",
-        TextKey.Tracking to "Отслеживание",
-        TextKey.BusApproaching to "Автобус приближается",
-        TextKey.BusApproachingBody to "приближается к остановке",
     )

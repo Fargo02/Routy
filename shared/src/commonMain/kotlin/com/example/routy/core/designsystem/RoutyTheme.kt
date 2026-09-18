@@ -24,7 +24,6 @@ object RoutySpacing {
 data class RoutyPalette(
     val route: Color,
     val routeOutline: Color,
-    val selected: Color,
     val routeColors: List<Color>,
     val searchSheet: Color,
 )
@@ -34,7 +33,6 @@ val LocalRoutyPalette =
         RoutyPalette(
             route = Color(0xFF2563EB),
             routeOutline = Color.White,
-            selected = Color(0xFFFFB800),
             routeColors = routeColors,
             searchSheet = Color(0xFFF8FAFC),
         )
@@ -52,7 +50,6 @@ fun RoutyTheme(
         RoutyPalette(
             route = colors.primary,
             routeOutline = colors.surface,
-            selected = colors.tertiary,
             routeColors = routeColors,
             searchSheet = if (dark) colors.surface else Color(0xFFF8FAFC),
         )

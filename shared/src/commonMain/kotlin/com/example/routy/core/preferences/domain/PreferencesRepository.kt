@@ -14,9 +14,6 @@ data class Preferences(
     val colorTheme: ColorTheme = ColorTheme.Ocean,
     val routeIds: Set<String> = emptySet(),
     val stopIds: Set<String> = emptySet(),
-    val trackedVehicleId: String? = null,
-    val trackedStopId: String? = null,
-    val trackedRouteId: String? = null,
 )
 
 interface PreferencesRepository {
@@ -33,6 +30,4 @@ interface PreferencesRepository {
     suspend fun toggleRoute(id: String): Outcome<Unit>
 
     suspend fun toggleStop(id: String): Outcome<Unit>
-
-    suspend fun setTracking(vehicleId: String?, stopId: String?, routeId: String?): Outcome<Unit>
 }

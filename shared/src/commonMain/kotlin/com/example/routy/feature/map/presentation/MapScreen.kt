@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.only
@@ -74,8 +73,6 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.example.routy.PlatformBackHandler
-import com.example.routy.notifyBusApproaching
-import com.example.routy.requestBusNotificationPermission
 import com.example.routy.core.designsystem.Glyph
 import com.example.routy.core.designsystem.EmptyPanel
 import com.example.routy.core.designsystem.LocalRoutyPalette
@@ -104,11 +101,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.yield
 import kotlinx.serialization.json.jsonPrimitive
-import kotlin.math.PI
-import kotlin.math.asin
-import kotlin.math.cos
-import kotlin.math.sin
-import kotlin.math.sqrt
 import org.jetbrains.compose.resources.painterResource
 import org.maplibre.compose.camera.CameraPosition
 import org.maplibre.compose.expressions.dsl.const
@@ -143,7 +135,6 @@ import routy.shared.generated.resources.green_bus
 import routy.shared.generated.resources.orage_bus
 import routy.shared.generated.resources.pink_bus
 import routy.shared.generated.resources.red_bus
-import routy.shared.generated.resources.tracking_stop
 
 /** Style provider is a replaceable presentation configuration, never a domain dependency. */
 data class MapStyleConfig(
@@ -192,44 +183,11 @@ fun MapScreen(
     var routeInfoSwipeDistance by remember { mutableStateOf(0f) }
     var selectedVehicle by rememberSaveable { mutableStateOf<String?>(null) }
     var selectedStop by rememberSaveable { mutableStateOf<String?>(null) }
-    var trackingVehicleId by rememberSaveable { mutableStateOf<String?>(null) }
-    var trackingStopId by rememberSaveable { mutableStateOf<String?>(null) }
-    var trackingSetupVisible by rememberSaveable { mutableStateOf(false) }
-    var stopPickerVisible by rememberSaveable { mutableStateOf(false) }
-    var pickingTrackingStop by rememberSaveable { mutableStateOf(false) }
-    var stopPickerQuery by rememberSaveable { mutableStateOf("") }
-    var busReachedTrackingStop by rememberSaveable { mutableStateOf(false) }
-    val trackingStop = state.network.network?.stops?.firstOrNull { it.id == trackingStopId }
-    val isTrackingActive =
-        trackingVehicleId != null &&
-            trackingStopId != null &&
-            trackingVehicleId == state.trackedVehicleId &&
-            trackingStopId == state.trackedStopId
-    val trackingVehicle = vehicles.vehicles.firstOrNull { it.id == trackingVehicleId }
-    val trackingRouteJson =
-        remember(isTrackingActive, trackingVehicle, trackingStop, state.geometries) {
-            if (isTrackingActive && trackingVehicle != null && trackingStop != null) {
-                trackingRouteGeoJson(
-                    trackingVehicle,
-                    trackingStop,
-                    state.trackingGeometry?.takeIf { it.routeId == trackingVehicle.routeId },
-                )
-            } else {
-                EMPTY_GEOJSON
-            }
-        }
-    val mapStops = if (pickingTrackingStop) state.network.network?.stops.orEmpty() else state.stops
+    val mapStops = state.stops
 
     fun selectMapStop(id: String) {
         selectedStop = id
-        if (pickingTrackingStop) {
-            trackingStopId = id
-            busReachedTrackingStop = false
-            pickingTrackingStop = false
-            trackingSetupVisible = true
-        } else {
-            model.actionHandler(MapAction.SelectStop(id))
-        }
+        model.actionHandler(MapAction.SelectStop(id))
     }
 
     PlatformBackHandler(enabled = isActive && state.selectedRouteIds.isNotEmpty()) {
@@ -239,7 +197,6 @@ fun MapScreen(
     var mapError by remember { mutableStateOf(false) }
     val busDirectionPainter = painterResource(Res.drawable.bus)
     val favoriteStopPainter = painterResource(Res.drawable.favorite_stop)
-    val trackingStopPainter = painterResource(Res.drawable.tracking_stop)
     val routeBusPainters =
         listOf(
             painterResource(Res.drawable.blue_bus),
@@ -270,31 +227,12 @@ fun MapScreen(
                 .orEmpty()
         }
     val selectedStopJson =
-        remember(
-            mapStops,
-            selectedStop,
-            trackingStopId,
-            isTrackingActive,
-        ) {
-            if (isTrackingActive && selectedStop == trackingStopId) {
-                EMPTY_GEOJSON
-            } else {
-                stopsGeoJson(mapStops.filter { it.id == selectedStop })
-            }
-        }
-    val trackingStopJson =
-        remember(trackingStop, isTrackingActive) {
-            if (isTrackingActive && trackingStop != null) stopsGeoJson(listOf(trackingStop)) else EMPTY_GEOJSON
-        }
+        remember(mapStops, selectedStop) { stopsGeoJson(mapStops.filter { it.id == selectedStop }) }
     val mapStopsGeoJson =
         remember(mapStops, state.favoriteStopIds) { stopsGeoJson(mapStops, state.favoriteStopIds) }
     val favoriteStopsGeoJson =
-        remember(mapStops, state.favoriteStopIds, trackingStopId, isTrackingActive) {
-            stopsGeoJson(
-                mapStops.filter { stop ->
-                    stop.id in state.favoriteStopIds && !(isTrackingActive && stop.id == trackingStopId)
-                },
-            )
+        remember(mapStops, state.favoriteStopIds) {
+            stopsGeoJson(mapStops.filter { stop -> stop.id in state.favoriteStopIds })
         }
     val dark = MaterialTheme.colorScheme.background.red < 0.3f
     val styleUri = if (dark) style.dark else style.light
@@ -325,12 +263,6 @@ fun MapScreen(
             val stopSource = rememberGeoJsonSource(GeoJsonData.JsonString(mapStopsGeoJson))
             val favoriteStopSource = rememberGeoJsonSource(GeoJsonData.JsonString(favoriteStopsGeoJson))
             val selectionSource = rememberGeoJsonSource(GeoJsonData.JsonString(selectedStopJson))
-            val trackingStopSource = rememberGeoJsonSource(GeoJsonData.JsonString(trackingStopJson))
-            val trackingRouteSource =
-                rememberGeoJsonSource(
-                    GeoJsonData.JsonString(trackingRouteJson),
-                    options = routeSourceOptions,
-                )
             state.geometries.forEach { geometry ->
                 val routeSource =
                     rememberGeoJsonSource(
@@ -352,12 +284,6 @@ fun MapScreen(
                     width = const(3.dp),
                 )
             }
-            LineLayer(
-                "tracking-route",
-                trackingRouteSource,
-                color = const(palette.selected),
-                width = const(6.dp),
-            )
             CircleLayer(
                 "stops",
                 stopSource,
@@ -396,13 +322,6 @@ fun MapScreen(
                     },
                 )
             }
-            SymbolLayer(
-                "tracking-stop",
-                trackingStopSource,
-                iconImage = image(trackingStopPainter),
-                iconSize = const(0.4f),
-                iconAllowOverlap = const(true),
-            )
             VehicleLayers(
                 vehicles = animatedVehicles,
                 routeColorIndex = state::routeColorIndex,
@@ -478,40 +397,6 @@ fun MapScreen(
         routeInfoVisible = false
         routeScheduleVisible = false
     }
-    LaunchedEffect(state.trackedVehicleId, state.trackedStopId) {
-        if (trackingVehicleId != state.trackedVehicleId || trackingStopId != state.trackedStopId) {
-            trackingVehicleId = state.trackedVehicleId
-            trackingStopId = state.trackedStopId
-            selectedStop = state.trackedStopId
-            busReachedTrackingStop = false
-        }
-    }
-    LaunchedEffect(isTrackingActive, trackingVehicle, state.trackedRouteId) {
-        if (isTrackingActive && state.trackedRouteId == null && trackingVehicle != null) {
-            // Migrates tracking records created before route persistence was introduced.
-            model.actionHandler(MapAction.SetTracking(trackingVehicleId, trackingStopId, trackingVehicle.routeId))
-        }
-    }
-    LaunchedEffect(vehicles.vehicles, trackingVehicleId, trackingStop, isTrackingActive) {
-        if (!isTrackingActive) return@LaunchedEffect
-        val bus = vehicles.vehicles.firstOrNull { it.id == trackingVehicleId } ?: return@LaunchedEffect
-        val stop = trackingStop ?: return@LaunchedEffect
-        val distance = distanceMeters(bus.position.latitude, bus.position.longitude, stop.position.latitude, stop.position.longitude)
-        if (!busReachedTrackingStop && distance <= 250.0) {
-            notifyBusApproaching(
-                strings[TextKey.BusApproaching],
-                "${strings[TextKey.Vehicle]} ${bus.id} ${strings[TextKey.BusApproachingBody]} ${stop.name.resolve(strings.language, stop.id)}",
-            )
-            busReachedTrackingStop = true
-        } else if (busReachedTrackingStop && distance > 350.0) {
-            // The bus has left the stop's area after the arrival alert: this trip is complete.
-            trackingVehicleId = null
-            trackingStopId = null
-            selectedStop = null
-            busReachedTrackingStop = false
-            model.actionHandler(MapAction.SetTracking(null, null, null))
-        }
-    }
     LaunchedEffect(selectedStop) {
         state.network.network?.stops?.firstOrNull { it.id == selectedStop }?.let {
             mapState.animateCameraPosition(
@@ -532,7 +417,7 @@ fun MapScreen(
         }
         initialLocationCheckFinished = true
     }
-    LaunchedEffect(location.lastLocation, state.network.network, state.trackedStopId, state.favoriteStopIds, initialStopFocused, initialLocationCheckFinished) {
+    LaunchedEffect(location.lastLocation, state.network.network, state.favoriteStopIds, initialStopFocused, initialLocationCheckFinished) {
         if (initialStopFocused) return@LaunchedEffect
         location.lastLocation?.let { userLocation ->
             mapState.animateCameraPosition(CameraPosition(target = userLocation.position, zoom = 14.0))
@@ -543,10 +428,7 @@ fun MapScreen(
         val initialStop =
             state.network.network
                 ?.stops
-                ?.firstOrNull { it.id == state.trackedStopId }
-                ?: state.network.network
-                    ?.stops
-                    ?.firstOrNull { it.id in state.favoriteStopIds }
+                ?.firstOrNull { it.id in state.favoriteStopIds }
                 ?: return@LaunchedEffect
         mapState.animateCameraPosition(
             mapState.cameraPosition.copy(
@@ -693,7 +575,7 @@ fun MapScreen(
             Column(
                 Modifier
                     .align(Alignment.BottomEnd)
-                    .padding(end = 16.dp, bottom = if (isTrackingActive && trackingStop != null) 264.dp else 156.dp),
+                    .padding(end = 16.dp, bottom = 156.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 if (state.selectedRouteIds.isNotEmpty()) {
@@ -714,36 +596,6 @@ fun MapScreen(
                         Glyph.Location,
                         strings[TextKey.MyLocation],
                     )
-                }
-            }
-            if (isTrackingActive && trackingStop != null) {
-                Surface(
-                    onClick = { trackingSetupVisible = true },
-                    modifier =
-                        Modifier
-                            .align(Alignment.BottomCenter)
-                            .fillMaxWidth()
-                            .padding(start = 16.dp, end = 16.dp, bottom = 132.dp),
-                    shape = MaterialTheme.shapes.medium,
-                    color = MaterialTheme.colorScheme.surface,
-                    contentColor = MaterialTheme.colorScheme.onSurface,
-                    shadowElevation = 8.dp,
-                ) {
-                    Row(
-                        Modifier.padding(horizontal = 18.dp, vertical = 14.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    ) {
-                        RoutyIcon(Glyph.Routes)
-                        Column(Modifier.weight(1f)) {
-                            Text(strings[TextKey.Tracking], style = MaterialTheme.typography.labelLarge)
-                            Text(
-                                "${strings[TextKey.Vehicle]} $trackingVehicleId → ${trackingStop.name.resolve(strings.language, trackingStop.id)}",
-                                style = MaterialTheme.typography.bodyMedium,
-                            )
-                        }
-                        RoutyIcon(Glyph.Chevron, strings[TextKey.Details])
-                    }
                 }
             }
         }
@@ -1114,19 +966,6 @@ fun MapScreen(
                 text = { Text(strings[if (vehicles.isStale || vehicle == null) TextKey.Stale else TextKey.Live]) },
                 confirmButton = {
                     TextButton({
-                        trackingVehicleId = id
-                        trackingStopId = null
-                        busReachedTrackingStop = false
-                        // A new tracking flow must not inherit a pending map-stop selection.
-                        selectedStop = null
-                        pickingTrackingStop = false
-                        stopPickerVisible = false
-                        vehicleDetailsVisible = false
-                        trackingSetupVisible = true
-                    }) { Text(strings[TextKey.TrackBus]) }
-                },
-                dismissButton = {
-                    TextButton({
                         vehicle?.let {
                             scope.launch {
                                 mapState.animateCameraPosition(CameraPosition(target = Position(it.position.longitude, it.position.latitude), zoom = 16.0))
@@ -1135,105 +974,12 @@ fun MapScreen(
                         vehicleDetailsVisible = false
                     }) { Text(strings[TextKey.ShowMap]) }
                 },
+                dismissButton = {
+                    TextButton({ vehicleDetailsVisible = false }) { Text(strings[TextKey.Close]) }
+                },
             )
         }
     }
-    if (trackingSetupVisible) {
-        AlertDialog(
-            onDismissRequest = { trackingSetupVisible = false },
-            containerColor = MaterialTheme.colorScheme.surface,
-            title = { Text(strings[TextKey.TrackBus]) },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text(strings[TextKey.TrackBusBody])
-                    FilledTonalButton(onClick = { stopPickerVisible = true }, modifier = Modifier.fillMaxWidth()) {
-                        RoutyIcon(Glyph.Stop)
-                        Spacer(Modifier.width(8.dp))
-                        Text(trackingStop?.let { it.name.resolve(strings.language, it.id) } ?: strings[TextKey.ChooseStop])
-                    }
-                    TextButton(onClick = {
-                        trackingSetupVisible = false
-                        pickingTrackingStop = true
-                    }) { Text(strings[TextKey.ChooseStopOnMap]) }
-                }
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        requestBusNotificationPermission()
-                        model.actionHandler(MapAction.SetTracking(trackingVehicleId, trackingStopId, trackingVehicle?.routeId))
-                        selectedStop = trackingStopId
-                        trackingSetupVisible = false
-                    },
-                    enabled = trackingStop != null,
-                ) { Text(strings[TextKey.StartTracking]) }
-            },
-            dismissButton = {
-                if (trackingStopId != null) TextButton(onClick = {
-                    trackingVehicleId = null
-                    trackingStopId = null
-                    selectedStop = null
-                    busReachedTrackingStop = false
-                    model.actionHandler(MapAction.SetTracking(null, null, null))
-                    trackingSetupVisible = false
-                }) { Text(strings[TextKey.StopTracking]) }
-            },
-        )
-    }
-    if (stopPickerVisible) {
-        val allStops = state.network.network?.stops.orEmpty()
-        val orderedStops = allStops.filter { it.id in state.favoriteStopIds } + allStops.filterNot { it.id in state.favoriteStopIds }
-        val matchingStops = orderedStops.filter { stop -> stopPickerQuery.isBlank() || stop.name.matches(stopPickerQuery) || stop.number?.toString()?.contains(stopPickerQuery) == true }
-        ModalBottomSheet(
-            onDismissRequest = { stopPickerVisible = false },
-            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-            containerColor = MaterialTheme.colorScheme.surface,
-        ) {
-            LazyColumn(
-                Modifier.fillMaxWidth().height(560.dp).imePadding(),
-                contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = 32.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                item {
-                    Text(strings[TextKey.ChooseStop], style = MaterialTheme.typography.headlineSmall)
-                    Spacer(Modifier.height(12.dp))
-                    SearchField(
-                        value = stopPickerQuery,
-                        placeholder = strings[TextKey.SearchStops],
-                        onChange = { stopPickerQuery = it },
-                        onClear = { stopPickerQuery = "" },
-                    )
-                }
-                if (stopPickerQuery.isBlank() && state.favoriteStopIds.isNotEmpty()) item {
-                    Text(strings[TextKey.FavoriteStops], style = MaterialTheme.typography.titleMedium)
-                }
-                items(matchingStops, key = { it.id }) { stop ->
-                    StopCard(
-                        stop = stop,
-                        subtitle = stop.services.map { it.routeId }.distinct().joinToString(" · "),
-                        isFavorite = stop.id in state.favoriteStopIds,
-                        onClick = {
-                            trackingStopId = stop.id
-                            selectedStop = stop.id
-                            busReachedTrackingStop = false
-                            pickingTrackingStop = false
-                            stopPickerVisible = false
-                        },
-                    )
-                }
-                if (matchingStops.isEmpty()) item { SearchEmptyState() }
-            }
-        }
-    }
-}
-
-private fun Double.toRadians(): Double = this * PI / 180
-
-private fun distanceMeters(latitudeA: Double, longitudeA: Double, latitudeB: Double, longitudeB: Double): Double {
-    val latitudeDelta = (latitudeB - latitudeA).toRadians()
-    val longitudeDelta = (longitudeB - longitudeA).toRadians()
-    val haversine = sin(latitudeDelta / 2).let { it * it } + cos(latitudeA.toRadians()) * cos(latitudeB.toRadians()) * sin(longitudeDelta / 2).let { it * it }
-    return 6_371_000.0 * 2 * asin(sqrt(haversine))
 }
 
 @Composable

@@ -63,8 +63,6 @@ class MapViewModelTest {
                             override suspend fun toggleRoute(id: String) = Outcome.Success(Unit)
 
                             override suspend fun toggleStop(id: String) = Outcome.Success(Unit)
-
-                            override suspend fun setTracking(vehicleId: String?, stopId: String?, routeId: String?) = Outcome.Success(Unit)
                         },
                     )
                 val model =
@@ -103,7 +101,7 @@ class MapViewModelTest {
                 model.actionHandler(MapAction.SelectSearchRoute("another"))
                 runCurrent()
                 assertEquals(listOf("r", "another"), handle.get<List<String>>("routeIds"))
-                assertFalse(model.uiState.value.search.isOpen)
+                assertFalse(model.uiState.first { it.selectedRouteIds.size == 2 }.search.isOpen)
                 assertEquals(2, active)
                 assertEquals(2, subscriptions)
                 visible.cancelAndJoin()
@@ -223,6 +221,4 @@ private class StubPreferences : PreferencesRepository {
     override suspend fun toggleRoute(id: String) = Outcome.Success(Unit)
 
     override suspend fun toggleStop(id: String) = Outcome.Success(Unit)
-
-    override suspend fun setTracking(vehicleId: String?, stopId: String?, routeId: String?) = Outcome.Success(Unit)
 }

@@ -20,9 +20,6 @@ private data class PreferencesRecord(
     val colorTheme: String = "Ocean",
     val routeIds: Set<String> = emptySet(),
     val stopIds: Set<String> = emptySet(),
-    val trackedVehicleId: String? = null,
-    val trackedStopId: String? = null,
-    val trackedRouteId: String? = null,
 ) {
     fun domain() =
         Preferences(
@@ -31,9 +28,6 @@ private data class PreferencesRecord(
             colorTheme = ColorTheme.entries.firstOrNull { it.name == colorTheme } ?: ColorTheme.Ocean,
             routeIds = routeIds,
             stopIds = stopIds,
-            trackedVehicleId = trackedVehicleId,
-            trackedStopId = trackedStopId,
-            trackedRouteId = trackedRouteId,
         )
 }
 
@@ -80,9 +74,6 @@ class FilePreferencesRepository(
                         colorTheme = next.colorTheme.name,
                         routeIds = next.routeIds,
                         stopIds = next.stopIds,
-                        trackedVehicleId = next.trackedVehicleId,
-                        trackedStopId = next.trackedStopId,
-                        trackedRouteId = next.trackedRouteId,
                     ),
                 ),
             )
@@ -114,7 +105,4 @@ class FilePreferencesRepository(
         if (result is Outcome.Success) logger.diagnostic(LogEvent.FavoriteStopsChanged, "savedCount=${state.value.stopIds.size}")
         return result
     }
-
-    override suspend fun setTracking(vehicleId: String?, stopId: String?, routeId: String?): Outcome<Unit> =
-        update { it.copy(trackedVehicleId = vehicleId, trackedStopId = stopId, trackedRouteId = routeId) }
 }

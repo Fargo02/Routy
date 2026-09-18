@@ -67,21 +67,6 @@ class MapViewModel(
     private val searchOpen = MutableStateFlow(savedState.get<Boolean>("searchOpen") ?: false)
     private val searchQuery = MutableStateFlow(savedState.get<String>("searchQuery") ?: "")
     private val searchRequest = combine(searchOpen, searchQuery) { isOpen, query -> isOpen to query }
-    private val activeRouteIds =
-        combine(selectedRouteIds, favorites.state, transport.state) { routeIds, saved, network ->
-            val recoveryRouteIds =
-                if (saved.trackedRouteId == null && saved.trackedStopId != null) {
-                    network.network
-                        ?.stops
-                        ?.firstOrNull { it.id == saved.trackedStopId }
-                        ?.services
-                        ?.map { it.routeId }
-                        .orEmpty()
-                } else {
-                    emptyList()
-                }
-            (routeIds + listOfNotNull(saved.trackedRouteId) + recoveryRouteIds).distinct()
-        }
     private val vehicleStatesByRoute = mutableMapOf<String, VehicleState>()
     private val vehicleJobsByRoute = mutableMapOf<String, Job>()
     private val vehicleSubscriberCount = MutableStateFlow(0)
@@ -98,7 +83,7 @@ class MapViewModel(
             .onCompletion { vehicleSubscriberCount.update { count -> (count - 1).coerceAtLeast(0) } }
 
     val uiState =
-        combine(transport.state, activeRouteIds, selectedRoutes, favorites.state, searchRequest) { network, activeRouteIds, selection, saved, search ->
+        combine(transport.state, selectedRouteIds, selectedRoutes, favorites.state, searchRequest) { network, activeRouteIds, selection, saved, search ->
             val (selectedRouteIds, routeColorIndices) = selection
             val routes = network.network?.let { data -> activeRouteIds.mapNotNull { details(data, it) } }.orEmpty()
             val stops =
@@ -141,12 +126,8 @@ class MapViewModel(
                 routeColorIndices = routeColorIndices,
                 favoriteRouteIds = saved.routeIds,
                 favoriteStopIds = saved.stopIds,
-                trackedVehicleId = saved.trackedVehicleId,
-                trackedStopId = saved.trackedStopId,
-                trackedRouteId = saved.trackedRouteId,
                 stops = stops,
                 geometries = geometries,
-                trackingGeometry = saved.trackedRouteId?.let { routeId -> network.network?.geometries?.get(routeId) },
                 stopGeoJson = stopsGeoJson(stops, saved.stopIds),
                 search = searchState,
             )
@@ -158,7 +139,7 @@ class MapViewModel(
         }.flowOn(Dispatchers.Default).stateIn(viewModelScope, SharingStarted.WhileSubscribed(0), MapState())
     init {
         viewModelScope.launch {
-            combine(activeRouteIds, vehicleSubscriberCount) { routeIds, subscriberCount -> routeIds to subscriberCount }
+            combine(selectedRouteIds, vehicleSubscriberCount) { routeIds, subscriberCount -> routeIds to subscriberCount }
                 .collect { (routeIds, subscriberCount) ->
                     reconcileVehiclePolling(routeIds, subscriberCount)
                 }
@@ -247,7 +228,6 @@ class MapViewModel(
             is MapAction.LoadMapStyle -> loadMapStyle(action.uri)
             is MapAction.SaveCamera -> saveCamera(action.camera)
             is MapAction.ToggleRouteFavorite -> viewModelScope.launch { favorites.route(action.id) }
-            is MapAction.SetTracking -> viewModelScope.launch { favorites.tracking(action.vehicleId, action.stopId, action.routeId) }
             MapAction.OpenSearch -> setSearchOpen(true)
             MapAction.CloseSearch -> closeSearch()
             is MapAction.SearchQueryChanged -> setSearchQuery(action.query)
