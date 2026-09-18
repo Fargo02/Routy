@@ -35,6 +35,7 @@ fun StopDetailsScreen(
         if (details != null) {
             item {
                 Text(details.stop.name.resolve(strings.language, details.stop.id), style = MaterialTheme.typography.headlineSmall)
+                Spacer(Modifier.height(16.dp))
                 FilledTonalButton({ model.actionHandler(StopDetailsAction.ToggleFavorite) }) {
                     RoutyIcon(if (state.favorite) Glyph.StarFilled else Glyph.Star)
                     Spacer(Modifier.width(8.dp))
