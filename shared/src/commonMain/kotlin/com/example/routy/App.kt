@@ -1,5 +1,8 @@
 package com.example.routy
 
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -163,7 +166,12 @@ fun App(graph: AppGraph) {
                         modifier = Modifier.align(Alignment.BottomCenter),
                         items = listOf(Map, Favorites, Settings),
                         selected = visibleDestination,
-                        onNavigate = navController::navigateTo,
+                        onNavigate = { destination ->
+                            val returningToMap =
+                                destination == Map &&
+                                    (visibleDestination.hasRouteType<Favorites>() || visibleDestination.hasRouteType<Settings>())
+                            if (returningToMap) navController.popBackStack() else navController.navigateTo(destination)
+                        },
                     )
                 }
             }
@@ -196,26 +204,42 @@ private fun FloatingBottomNavigation(
             shape = RoundedCornerShape(40.dp),
             shadowElevation = 12.dp,
         ) {
-            Row(
-                Modifier.fillMaxWidth().height(76.dp).padding(horizontal = 8.dp),
-                horizontalArrangement = Arrangement.SpaceEvenly,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                items.forEach { item ->
-                    val isSelected = selected.matches(item)
-                    Surface(
-                        onClick = { onNavigate(item) },
-                        modifier =
-                            Modifier
-                                .size(56.dp)
-                                .semantics { contentDescription = item.title.name },
-                        color =
-                            if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
-                        contentColor =
-                                if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
-                        shape = CircleShape,
-                    ) {
-                        Box(contentAlignment = Alignment.Center) { RoutyIcon(item.icon) }
+            BoxWithConstraints(Modifier.fillMaxWidth().height(76.dp).padding(horizontal = 8.dp)) {
+                val selectedIndex = items.indexOfFirst { selected.matches(it) }.coerceAtLeast(0)
+                val itemSlotWidth = 64.dp
+                val gap = (maxWidth - itemSlotWidth * items.size) / (items.size + 1)
+                val targetOffset = gap + (itemSlotWidth + gap) * selectedIndex + 6.dp
+                val selectionOffset by
+                    animateDpAsState(
+                        targetValue = targetOffset,
+                        animationSpec = tween(durationMillis = 260, easing = FastOutSlowInEasing),
+                        label = "bottom-nav-selection",
+                )
+                Surface(
+                    modifier = Modifier.offset(x = selectionOffset, y = 12.dp).size(52.dp),
+                    color = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                    shape = CircleShape,
+                ) {}
+                Row(
+                    Modifier.fillMaxSize(),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    items.forEach { item ->
+                        val isSelected = selected.matches(item)
+                        Box(Modifier.width(itemSlotWidth).fillMaxHeight(), contentAlignment = Alignment.Center) {
+                            Surface(
+                                onClick = { onNavigate(item) },
+                                modifier = Modifier.size(52.dp).semantics { contentDescription = item.title.name },
+                                color = Color.Transparent,
+                                contentColor =
+                                        if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
+                                shape = CircleShape,
+                            ) {
+                                Box(contentAlignment = Alignment.Center) { RoutyIcon(item.icon) }
+                            }
+                        }
                     }
                 }
             }
