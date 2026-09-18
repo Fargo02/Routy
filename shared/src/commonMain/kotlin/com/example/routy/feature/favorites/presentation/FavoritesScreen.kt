@@ -176,7 +176,8 @@ fun FavoritesScreen(
                             StopCard(
                                 item.stop,
                                 onClick = {
-                                    sheetContent = "$StopSheetPrefix${item.stop.id}"
+                                    sheetContent = null
+                                    showStopOnMap(item.stop.id)
                                 },
                                 subtitle =
                                     item.service.times
