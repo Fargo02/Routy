@@ -20,9 +20,14 @@ class StopsViewModel(
 
     private val query = MutableStateFlow("")
     val uiState =
-        combine(transport.state, query) { network, term ->
-            StopsState(term, search(network.network?.stops.orEmpty(), term), network)
-        }.flowOn(Dispatchers.Default).stateIn(viewModelScope, SharingStarted.WhileSubscribed(0), StopsState())
+        combine(transport.state, query) { network, term -> stopsState(network, term) }
+            .flowOn(Dispatchers.Default)
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(0), stopsState(transport.state.value, query.value))
+
+    private fun stopsState(
+        network: NetworkState,
+        term: String,
+    ) = StopsState(term, search(network.network?.stops.orEmpty(), term), network)
 
     fun actionHandler(action: StopsAction) {
         when (action) {

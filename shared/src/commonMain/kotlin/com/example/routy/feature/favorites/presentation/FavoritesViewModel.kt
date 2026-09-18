@@ -2,6 +2,7 @@ package com.example.routy.feature.favorites.presentation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.routy.core.preferences.domain.Preferences
 import com.example.routy.core.transport.domain.*
 import com.example.routy.feature.favorites.domain.FavoritesUseCase
 import com.example.routy.feature.favorites.presentation.state.*
@@ -13,19 +14,27 @@ class FavoritesViewModel(
     private val favorites: FavoritesUseCase,
 ) : ViewModel() {
     val uiState =
-        combine(transport.state, favorites.state) { network, saved ->
-            FavoritesState(
-                network.network
-                    ?.routes
-                    .orEmpty()
-                    .filter { it.id in saved.routeIds },
-                network.network?.stops.orEmpty().filter {
-                    it.id in
-                        saved.stopIds
-                },
-                network,
+        combine(transport.state, favorites.state) { network, saved -> favoritesState(network, saved) }
+            .stateIn(
+                viewModelScope,
+                SharingStarted.WhileSubscribed(0),
+                favoritesState(transport.state.value, favorites.state.value),
             )
-        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(0), FavoritesState())
+
+    private fun favoritesState(
+        network: NetworkState,
+        saved: Preferences,
+    ) = FavoritesState(
+        network.network
+            ?.routes
+            .orEmpty()
+            .filter { it.id in saved.routeIds },
+        network.network?.stops.orEmpty().filter {
+            it.id in
+                saved.stopIds
+        },
+        network,
+    )
 
     fun actionHandler(action: FavoritesAction) {
         when (action) {
@@ -34,5 +43,4 @@ class FavoritesViewModel(
             FavoritesAction.Retry -> viewModelScope.launch { transport.refresh() }
         }
     }
-
 }

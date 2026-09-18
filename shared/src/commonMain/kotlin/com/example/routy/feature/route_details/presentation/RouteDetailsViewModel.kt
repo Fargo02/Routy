@@ -2,6 +2,7 @@ package com.example.routy.feature.route_details.presentation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.routy.core.preferences.domain.Preferences
 import com.example.routy.core.transport.domain.*
 import com.example.routy.feature.favorites.domain.FavoritesUseCase
 import com.example.routy.feature.route_details.domain.*
@@ -14,7 +15,7 @@ import kotlinx.coroutines.launch
 class RouteDetailsViewModel(
     private val routeId: String,
     private val transport: ObserveTransportUseCase,
-    details: GetRouteDetailsUseCase,
+    private val details: GetRouteDetailsUseCase,
     private val favorites: FavoritesUseCase,
     observeVehicles: ObserveRouteVehiclesUseCase,
 ) : ViewModel() {
@@ -22,9 +23,12 @@ class RouteDetailsViewModel(
     val effects = _effects.receiveAsFlow()
 
     val uiState =
-        combine(transport.state, favorites.state) { network, saved ->
-            RouteDetailsState(network.network?.let { details(it, routeId) }, routeId in saved.routeIds, network)
-        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(0), RouteDetailsState())
+        combine(transport.state, favorites.state) { network, saved -> routeDetailsState(network, saved) }
+            .stateIn(
+                viewModelScope,
+                SharingStarted.WhileSubscribed(0),
+                routeDetailsState(transport.state.value, favorites.state.value),
+            )
 
     val vehicles =
         observeVehicles(routeId).stateIn(
@@ -32,6 +36,11 @@ class RouteDetailsViewModel(
             SharingStarted.WhileSubscribed(stopTimeoutMillis = 0, replayExpirationMillis = 0),
             VehicleState(),
         )
+
+    private fun routeDetailsState(
+        network: NetworkState,
+        saved: Preferences,
+    ) = RouteDetailsState(network.network?.let { details(it, routeId) }, routeId in saved.routeIds, network)
 
     fun actionHandler(action: RouteDetailsAction) {
         when (action) {
