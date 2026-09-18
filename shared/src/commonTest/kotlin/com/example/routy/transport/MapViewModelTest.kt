@@ -114,4 +114,74 @@ class MapViewModelTest {
                 Dispatchers.resetMain()
             }
         }
+
+    @Test fun deselectingRouteKeepsColorsOfRoutesThatStaySelected() =
+        runTest {
+            Dispatchers.setMain(StandardTestDispatcher(testScheduler))
+            val store = ViewModelStore()
+            try {
+                val transport =
+                    object : TransportRepository {
+                        override val state = MutableStateFlow(NetworkState(TransportParser().network(TransportParserTest.fixture)))
+
+                        override suspend fun refresh() = Unit
+
+                        override fun observeNetwork() = state
+                    }
+                val vehicles =
+                    object : VehicleRepository {
+                        override fun observeVehicles(routeId: String): Flow<VehicleState> = flowOf(VehicleState(isLoading = false))
+                    }
+                val handle = SavedStateHandle()
+                val model =
+                    MapViewModel(
+                        ObserveTransportUseCase(transport),
+                        ObserveRouteVehiclesUseCase(vehicles),
+                        GetRouteDetailsUseCase(),
+                        FavoritesUseCase(StubPreferences()),
+                        savedState = handle,
+                    )
+                store.put("map", model)
+                val collector = launch(UnconfinedTestDispatcher(testScheduler)) { model.uiState.collect() }
+                listOf("r", "another", "third").forEach { model.actionHandler(MapAction.SelectRoute(it)) }
+                assertEquals(
+                    mapOf("r" to 0, "another" to 1, "third" to 2),
+                    model.uiState.first { it.selectedRouteIds.size == 3 }.routeColorIndices,
+                )
+                model.actionHandler(MapAction.SelectRoute("r"))
+                assertEquals(
+                    mapOf("another" to 1, "third" to 2),
+                    model.uiState.first { "r" !in it.selectedRouteIds }.routeColorIndices,
+                )
+                model.actionHandler(MapAction.SelectRoute("fourth"))
+                val refilled = model.uiState.first { "fourth" in it.selectedRouteIds }
+                assertEquals(mapOf("another" to 1, "third" to 2, "fourth" to 0), refilled.routeColorIndices)
+                assertEquals(-1, refilled.routeColorIndex("r"))
+                model.actionHandler(MapAction.ClearSelectedRoutes)
+                assertEquals(emptyMap(), model.uiState.first { it.selectedRouteIds.isEmpty() }.routeColorIndices)
+                collector.cancelAndJoin()
+                runCurrent()
+            } finally {
+                store.clear()
+                Dispatchers.resetMain()
+            }
+        }
+}
+
+private class StubPreferences : PreferencesRepository {
+    override val state = MutableStateFlow(Preferences())
+
+    override suspend fun load() = Outcome.Success(Unit)
+
+    override suspend fun setLanguage(language: Language) = Outcome.Success(Unit)
+
+    override suspend fun setAppearance(appearance: Appearance) = Outcome.Success(Unit)
+
+    override suspend fun setColorTheme(colorTheme: ColorTheme) = Outcome.Success(Unit)
+
+    override suspend fun toggleRoute(id: String) = Outcome.Success(Unit)
+
+    override suspend fun toggleStop(id: String) = Outcome.Success(Unit)
+
+    override suspend fun setTracking(vehicleId: String?, stopId: String?, routeId: String?) = Outcome.Success(Unit)
 }

@@ -35,6 +35,7 @@ class MapViewModel(
 ) : ViewModel() {
     private companion object {
         const val MaxSelectedRoutes = 7
+        const val FreeColorSlot = ""
     }
 
     private val _effects = Channel<MapEffect>(Channel.BUFFERED)
@@ -42,6 +43,13 @@ class MapViewModel(
 
     private val selectedRouteIds =
         savedState.getStateFlow("routeIds", savedState.get<String>("routeId")?.let(::listOf).orEmpty())
+
+    private val routeColorSlots =
+        savedState.getStateFlow("routeColorSlots", selectedRouteIds.value)
+    private val selectedRoutes =
+        combine(selectedRouteIds, routeColorSlots) { routeIds, slots ->
+            routeIds to colorIndices(routeIds, slots)
+        }
     private val _camera =
         MutableStateFlow(
             MapCamera(
@@ -85,7 +93,8 @@ class MapViewModel(
             .onCompletion { vehicleSubscriberCount.update { count -> (count - 1).coerceAtLeast(0) } }
 
     val uiState =
-        combine(transport.state, activeRouteIds, selectedRouteIds, favorites.state, searchRequest) { network, activeRouteIds, selectedRouteIds, saved, search ->
+        combine(transport.state, activeRouteIds, selectedRoutes, favorites.state, searchRequest) { network, activeRouteIds, selection, saved, search ->
+            val (selectedRouteIds, routeColorIndices) = selection
             val routes = network.network?.let { data -> activeRouteIds.mapNotNull { details(data, it) } }.orEmpty()
             val stops =
                 if (activeRouteIds.isEmpty()) {
@@ -124,6 +133,7 @@ class MapViewModel(
             MapState(
                 network = network,
                 selectedRouteIds = selectedRouteIds,
+                routeColorIndices = routeColorIndices,
                 favoriteRouteIds = saved.routeIds,
                 favoriteStopIds = saved.stopIds,
                 trackedVehicleId = saved.trackedVehicleId,
@@ -223,7 +233,10 @@ class MapViewModel(
     fun actionHandler(action: MapAction) {
         when (action) {
             is MapAction.SelectRoute -> toggleRoute(action.id)
-            MapAction.ClearSelectedRoutes -> savedState["routeIds"] = emptyList<String>()
+            MapAction.ClearSelectedRoutes -> {
+                savedState["routeIds"] = emptyList<String>()
+                savedState["routeColorSlots"] = emptyList<String>()
+            }
             MapAction.ClearSelectedStop -> sendEffect(MapEffect.ClearStopSelection)
             is MapAction.SaveCamera -> saveCamera(action.camera)
             is MapAction.ToggleRouteFavorite -> viewModelScope.launch { favorites.route(action.id) }
@@ -252,12 +265,33 @@ class MapViewModel(
 
     private fun toggleRoute(id: String) {
         val selected = selectedRouteIds.value
-        savedState["routeIds"] =
-            when {
-                id in selected -> selected - id
-                selected.size >= MaxSelectedRoutes -> selected
-                else -> selected + id
+        val slots = routeColorSlots.value
+        when {
+            id in selected -> {
+                savedState["routeIds"] = selected - id
+                savedState["routeColorSlots"] =
+                    slots.map { if (it == id) FreeColorSlot else it }.dropLastWhile { it == FreeColorSlot }
             }
+            selected.size >= MaxSelectedRoutes -> Unit
+            else -> {
+                savedState["routeIds"] = selected + id
+                val freeSlot = slots.indexOf(FreeColorSlot)
+                savedState["routeColorSlots"] =
+                    if (freeSlot >= 0) slots.toMutableList().also { it[freeSlot] = id } else slots + id
+            }
+        }
+    }
+
+    private fun colorIndices(
+        routeIds: List<String>,
+        slots: List<String>,
+    ): Map<String, Int> {
+        val assigned = slots.map { if (it in routeIds) it else FreeColorSlot }.toMutableList()
+        routeIds.filterNot { it in assigned }.forEach { routeId ->
+            val freeSlot = assigned.indexOf(FreeColorSlot)
+            if (freeSlot >= 0) assigned[freeSlot] = routeId else assigned += routeId
+        }
+        return routeIds.associateWith { assigned.indexOf(it) }
     }
 
     private fun saveCamera(camera: MapCamera) {

@@ -101,6 +101,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.yield
 import kotlinx.serialization.json.jsonPrimitive
+import kotlin.math.PI
 import kotlin.math.asin
 import kotlin.math.cos
 import kotlin.math.sin
@@ -320,13 +321,14 @@ fun MapScreen(
                     GeoJsonData.JsonString(trackingRouteJson),
                     options = routeSourceOptions,
                 )
-            state.geometries.forEachIndexed { index, geometry ->
+            state.geometries.forEach { geometry ->
                 val routeSource =
                     rememberGeoJsonSource(
                         GeoJsonData.JsonString(routeGeoJson(listOf(geometry))),
                         options = routeSourceOptions,
                     )
-                val routeColor = palette.routeColors[index % palette.routeColors.size]
+                val routeColor =
+                    palette.routeColors[state.routeColorIndex(geometry.routeId).coerceAtLeast(0) % palette.routeColors.size]
                 LineLayer(
                     "route-outline-${geometry.routeId}",
                     routeSource,
@@ -399,7 +401,7 @@ fun MapScreen(
                     }
                     val routeVehicleSource =
                         rememberGeoJsonSource(GeoJsonData.JsonString(vehiclesGeoJson(routeVehicles)))
-                    val selectedRouteIndex = state.selectedRouteIds.indexOf(routeId)
+                    val selectedRouteIndex = state.routeColorIndex(routeId)
                     val routeLabel = routeLabels[routeId] ?: routeId
                     SymbolLayer(
                         "vehicles-$routeId",
@@ -643,7 +645,7 @@ fun MapScreen(
                     key = { it.id },
                 ) { route ->
                     val selected = route.id in state.selectedRouteIds
-                    val routeColor = palette.routeColors[state.selectedRouteIds.indexOf(route.id).mod(palette.routeColors.size)]
+                    val routeColor = palette.routeColors[state.routeColorIndex(route.id).mod(palette.routeColors.size)]
                     val selectedContentColor = if (routeColor.luminance() > 0.45f) Color(0xFF0F172A) else Color.White
                     FilterChip(
                         selected = selected,
@@ -1005,7 +1007,7 @@ fun MapScreen(
                         ) {
                             items(state.search.quickRoutes, key = { it.id }) { route ->
                                 val selected = route.id in state.selectedRouteIds
-                                val routeColor = palette.routeColors[state.selectedRouteIds.indexOf(route.id).mod(palette.routeColors.size)]
+                                val routeColor = palette.routeColors[state.routeColorIndex(route.id).mod(palette.routeColors.size)]
                                 val selectedContentColor = if (routeColor.luminance() > 0.45f) Color(0xFF0F172A) else Color.White
                                 FilterChip(
                                     selected = selected,
@@ -1242,10 +1244,12 @@ fun MapScreen(
     }
 }
 
+private fun Double.toRadians(): Double = this * PI / 180
+
 private fun distanceMeters(latitudeA: Double, longitudeA: Double, latitudeB: Double, longitudeB: Double): Double {
-    val latitudeDelta = Math.toRadians(latitudeB - latitudeA)
-    val longitudeDelta = Math.toRadians(longitudeB - longitudeA)
-    val haversine = sin(latitudeDelta / 2).let { it * it } + cos(Math.toRadians(latitudeA)) * cos(Math.toRadians(latitudeB)) * sin(longitudeDelta / 2).let { it * it }
+    val latitudeDelta = (latitudeB - latitudeA).toRadians()
+    val longitudeDelta = (longitudeB - longitudeA).toRadians()
+    val haversine = sin(latitudeDelta / 2).let { it * it } + cos(latitudeA.toRadians()) * cos(latitudeB.toRadians()) * sin(longitudeDelta / 2).let { it * it }
     return 6_371_000.0 * 2 * asin(sqrt(haversine))
 }
 

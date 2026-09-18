@@ -15,6 +15,7 @@ data class MapCamera(
 data class MapState(
     val network: NetworkState = NetworkState(),
     val selectedRouteIds: List<String> = emptyList(),
+    val routeColorIndices: Map<String, Int> = emptyMap(),
     val favoriteRouteIds: Set<String> = emptySet(),
     val favoriteStopIds: Set<String> = emptySet(),
     val trackedVehicleId: String? = null,
@@ -28,6 +29,8 @@ data class MapState(
 ) {
     val routeId: String?
         get() = selectedRouteIds.lastOrNull()
+
+    fun routeColorIndex(routeId: String): Int = routeColorIndices[routeId] ?: -1
 }
 
 data class MapSearchState(
