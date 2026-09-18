@@ -115,6 +115,47 @@ class MapViewModelTest {
             }
         }
 
+    @Test fun showingRouteFromStopDetailsKeepsItSelectedWhenRepeated() =
+        runTest {
+            Dispatchers.setMain(StandardTestDispatcher(testScheduler))
+            val store = ViewModelStore()
+            try {
+                val transport =
+                    object : TransportRepository {
+                        override val state = MutableStateFlow(NetworkState(TransportParser().network(TransportParserTest.fixture)))
+
+                        override suspend fun refresh() = Unit
+
+                        override fun observeNetwork() = state
+                    }
+                val vehicles =
+                    object : VehicleRepository {
+                        override fun observeVehicles(routeId: String): Flow<VehicleState> = flowOf(VehicleState(isLoading = false))
+                    }
+                val handle = SavedStateHandle()
+                val model =
+                    MapViewModel(
+                        ObserveTransportUseCase(transport),
+                        ObserveRouteVehiclesUseCase(vehicles),
+                        GetRouteDetailsUseCase(),
+                        FavoritesUseCase(StubPreferences()),
+                        savedState = handle,
+                    )
+                store.put("map", model)
+                val collector = launch(UnconfinedTestDispatcher(testScheduler)) { model.uiState.collect() }
+                model.actionHandler(MapAction.ShowRoute("r"))
+                assertEquals(listOf("r"), model.uiState.first { it.selectedRouteIds.isNotEmpty() }.selectedRouteIds)
+                model.actionHandler(MapAction.ShowRoute("r"))
+                runCurrent()
+                assertEquals(listOf("r"), model.uiState.value.selectedRouteIds)
+                collector.cancelAndJoin()
+                runCurrent()
+            } finally {
+                store.clear()
+                Dispatchers.resetMain()
+            }
+        }
+
     @Test fun deselectingRouteKeepsColorsOfRoutesThatStaySelected() =
         runTest {
             Dispatchers.setMain(StandardTestDispatcher(testScheduler))

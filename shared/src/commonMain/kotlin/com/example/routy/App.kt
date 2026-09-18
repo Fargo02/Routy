@@ -20,7 +20,6 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -68,7 +67,6 @@ import com.example.routy.feature.stop_details.navigation.StopDetails
 import com.example.routy.feature.stop_details.navigation.stopDetailsScreen
 import com.example.routy.feature.stops.navigation.Stops
 import com.example.routy.feature.stops.navigation.stopsScreen
-import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -87,7 +85,6 @@ fun App(graph: AppGraph) {
             currentDestination
         }
     val owner = LocalLifecycleOwner.current
-    val scope = rememberCoroutineScope()
     val map: MapViewModel =
         viewModel {
             MapViewModel(
@@ -150,11 +147,9 @@ fun App(graph: AppGraph) {
                         stopDetailsScreen(
                             transport = graph.transport,
                             favorites = graph.favorites,
-                            navigate = { destination ->
-                                scope.launch {
-                                    navController.popBackStack()
-                                    navController.navigateTo(destination)
-                                }
+                            showRouteOnMap = { id ->
+                                map.actionHandler(MapAction.ShowRoute(id))
+                                navController.popBackStack(Map, inclusive = false)
                             },
                             onDismiss = {
                                 map.actionHandler(MapAction.ClearSelectedStop)

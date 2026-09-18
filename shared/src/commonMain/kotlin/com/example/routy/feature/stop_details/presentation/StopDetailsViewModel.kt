@@ -5,7 +5,6 @@ import androidx.lifecycle.viewModelScope
 import com.example.routy.core.preferences.domain.Preferences
 import com.example.routy.core.transport.domain.*
 import com.example.routy.feature.favorites.domain.FavoritesUseCase
-import com.example.routy.feature.route_details.navigation.RouteDetails
 import com.example.routy.feature.stop_details.domain.*
 import com.example.routy.feature.stop_details.presentation.state.*
 import kotlinx.coroutines.channels.Channel
@@ -41,7 +40,7 @@ class StopDetailsViewModel(
                     val result = favorites.stop(stopId)
                     if (result is Outcome.Failure) sendEffect(StopDetailsEffect.Error(result.error))
                 }
-            is StopDetailsAction.SelectRoute -> sendEffect(StopDetailsEffect.Navigate(RouteDetails(action.id)))
+            is StopDetailsAction.SelectRoute -> sendEffect(StopDetailsEffect.ShowRouteOnMap(action.id))
             StopDetailsAction.Retry -> viewModelScope.launch { transport.refresh() }
         }
     }
