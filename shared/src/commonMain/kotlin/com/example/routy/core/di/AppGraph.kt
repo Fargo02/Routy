@@ -2,6 +2,7 @@ package com.example.routy.core.di
 
 import com.example.routy.core.logging.AppLogger
 import com.example.routy.core.logging.SilentLogger
+import com.example.routy.core.map.data.CachingMapStyleSource
 import com.example.routy.core.preferences.data.FilePreferencesRepository
 import com.example.routy.core.transport.data.*
 import com.example.routy.core.transport.domain.*
@@ -26,6 +27,7 @@ class AppGraph(
             OfflineTransportRepository(remote, FileTransportLocalDataSource(files), parser, clock, config, logger = logger),
         )
     val vehicles = ObserveRouteVehiclesUseCase(PollingVehicleRepository(remote, parser, clock, config, logger = logger))
+    val mapStyle = CachingMapStyleSource(http, files)
     val settings = SettingsUseCase(preferences)
     val favorites = FavoritesUseCase(preferences)
 

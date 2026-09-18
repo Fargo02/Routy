@@ -8,6 +8,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.routy.core.logging.AppLogger
 import com.example.routy.core.logging.LogEvent
 import com.example.routy.core.logging.SilentLogger
+import com.example.routy.core.map.domain.MapStyleSource
 import com.example.routy.core.transport.domain.*
 import com.example.routy.feature.favorites.domain.FavoritesUseCase
 import com.example.routy.feature.map.presentation.state.*
@@ -28,6 +29,7 @@ class MapViewModel(
     private val observeVehicles: ObserveRouteVehiclesUseCase,
     details: GetRouteDetailsUseCase,
     private val favorites: FavoritesUseCase,
+    private val mapStyle: MapStyleSource? = null,
     private val searchRoutes: SearchRoutesUseCase = SearchRoutesUseCase(),
     private val searchStops: SearchStopsUseCase = SearchStopsUseCase(),
     private val savedState: SavedStateHandle = SavedStateHandle(),
@@ -40,6 +42,9 @@ class MapViewModel(
 
     private val _effects = Channel<MapEffect>(Channel.BUFFERED)
     val effects = _effects.receiveAsFlow()
+    private val _mapStyleJson = MutableStateFlow<String?>(null)
+    val mapStyleJson = _mapStyleJson.asStateFlow()
+    private var mapStyleJob: Job? = null
 
     private val selectedRouteIds =
         savedState.getStateFlow("routeIds", savedState.get<String>("routeId")?.let(::listOf).orEmpty())
@@ -238,6 +243,7 @@ class MapViewModel(
                 savedState["routeColorSlots"] = emptyList<String>()
             }
             MapAction.ClearSelectedStop -> sendEffect(MapEffect.ClearStopSelection)
+            is MapAction.LoadMapStyle -> loadMapStyle(action.uri)
             is MapAction.SaveCamera -> saveCamera(action.camera)
             is MapAction.ToggleRouteFavorite -> viewModelScope.launch { favorites.route(action.id) }
             is MapAction.SetTracking -> viewModelScope.launch { favorites.tracking(action.vehicleId, action.stopId, action.routeId) }
@@ -292,6 +298,17 @@ class MapViewModel(
             if (freeSlot >= 0) assigned[freeSlot] = routeId else assigned += routeId
         }
         return routeIds.associateWith { assigned.indexOf(it) }
+    }
+
+    private fun loadMapStyle(uri: String?) {
+        mapStyleJob?.cancel()
+        _mapStyleJson.value = null
+        val source = mapStyle
+        if (uri == null || source == null) return
+        mapStyleJob =
+            viewModelScope.launch {
+                source.style(uri)?.let { _mapStyleJson.value = contrastBoostedStyle(it) }
+            }
     }
 
     private fun saveCamera(camera: MapCamera) {

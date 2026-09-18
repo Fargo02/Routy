@@ -292,6 +292,11 @@ fun MapScreen(
             )
         }
     val dark = MaterialTheme.colorScheme.background.red < 0.3f
+    val styleUri = if (dark) style.dark else style.light
+    val mapStyleJson by model.mapStyleJson.collectAsStateWithLifecycle()
+    LaunchedEffect(dark, styleUri) { model.actionHandler(MapAction.LoadMapStyle(styleUri.takeIf { dark })) }
+    val baseStyle =
+        remember(styleUri, mapStyleJson) { mapStyleJson?.let(BaseStyle::Json) ?: BaseStyle.Uri(styleUri) }
     // Route lines must be ready before MapLibre redraws its tiles after a zoom gesture.
     val routeSourceOptions =
         remember {
@@ -301,7 +306,7 @@ fun MapScreen(
         }
     val mapState =
         rememberMapState(
-            baseStyle = BaseStyle.Uri(if (dark) style.dark else style.light),
+            baseStyle = baseStyle,
             initialCameraPosition =
                 CameraPosition(
                     target =

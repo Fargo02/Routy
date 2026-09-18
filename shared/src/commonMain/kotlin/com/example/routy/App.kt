@@ -95,6 +95,7 @@ fun App(graph: AppGraph) {
                 graph.vehicles,
                 GetRouteDetailsUseCase(),
                 graph.favorites,
+                graph.mapStyle,
                 savedState = createSavedStateHandle(),
                 logger = graph.logger,
             )

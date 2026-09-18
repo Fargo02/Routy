@@ -9,6 +9,10 @@ sealed interface MapAction {
 
     data object ClearSelectedStop : MapAction
 
+    data class LoadMapStyle(
+        val uri: String?,
+    ) : MapAction
+
     data class SaveCamera(
         val camera: MapCamera,
     ) : MapAction
