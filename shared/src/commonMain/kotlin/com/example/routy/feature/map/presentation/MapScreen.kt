@@ -49,6 +49,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
@@ -63,6 +64,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.semantics.contentDescription
@@ -92,6 +94,7 @@ import com.example.routy.feature.map.presentation.state.MapAction
 import com.example.routy.feature.map.presentation.state.MapCamera
 import com.example.routy.feature.map.presentation.state.MapEffect
 import com.example.routy.core.transport.domain.BusStop
+import com.example.routy.core.transport.domain.Vehicle
 import com.example.routy.core.transport.domain.VehicleState
 import com.example.routy.feature.route_details.domain.GetRouteDetailsUseCase
 import com.example.routy.feature.stop_details.domain.scheduledFrequencyMinutes
@@ -128,6 +131,7 @@ import org.maplibre.compose.sources.GeoJsonData
 import org.maplibre.compose.sources.GeoJsonOptions
 import org.maplibre.compose.sources.rememberGeoJsonSource
 import org.maplibre.compose.style.BaseStyle
+import org.maplibre.compose.util.MaplibreComposable
 import org.maplibre.spatialk.geojson.Position
 import routy.shared.generated.resources.Res
 import routy.shared.generated.resources.azure_bus
@@ -249,10 +253,11 @@ fun MapScreen(
     val location = rememberLocationState(enabled = locationEnabled)
     val systemSettings = rememberSystemSettingsLauncher()
     var locationPrompt by remember { mutableStateOf(false) }
-    val vehiclesByRoute = remember(vehicles.vehicles) { vehicles.vehicles.groupBy { it.routeId } }
+    val animatedVehicles = rememberAnimatedVehicles(vehicles)
+    val vehicleRouteCount = remember(vehicles.vehicles) { vehicles.vehicles.distinctBy(Vehicle::routeId).size }
     SideEffect {
         model.logVehicleLayersComposed(
-            routeCount = vehiclesByRoute.size,
+            routeCount = vehicleRouteCount,
             vehicleCount = vehicles.vehicles.size,
             selectedRouteCount = state.selectedRouteIds.size,
         )
@@ -398,43 +403,16 @@ fun MapScreen(
                 iconSize = const(0.4f),
                 iconAllowOverlap = const(true),
             )
-            vehiclesByRoute.entries.sortedBy { it.key }.forEach { (routeId, routeVehicles) ->
-                key(routeId) {
-                    DisposableEffect(routeId) {
-                        model.logVehicleLayerAttached(routeVehicles.size)
-                        onDispose { model.logVehicleLayerDetached() }
-                    }
-                    val routeVehicleSource =
-                        rememberGeoJsonSource(GeoJsonData.JsonString(vehiclesGeoJson(routeVehicles)))
-                    val selectedRouteIndex = state.routeColorIndex(routeId)
-                    val routeLabel = routeLabels[routeId] ?: routeId
-                    SymbolLayer(
-                        "vehicles-$routeId",
-                        routeVehicleSource,
-                        iconImage = image(routeBusPainters.getOrNull(selectedRouteIndex) ?: busDirectionPainter),
-                        iconSize = const(if (selectedRouteIndex >= 0) 0.1f else 0.08f),
-                        iconRotate = feature["heading"].cast(),
-                        iconAllowOverlap = const(true),
-                        textField = format(span(routeLabel)),
-                        textColor = const(Color(0xFF0F172A)),
-                        textHaloColor = const(Color.White),
-                        textHaloWidth = const(1.dp),
-                        textFont = const(listOf("Noto Sans Bold")),
-                        textSize = const(12.sp),
-                        textAllowOverlap = const(true),
-                        onClick = { features ->
-                            features
-                                .firstOrNull()
-                                ?.properties
-                                ?.get("id")
-                                ?.jsonPrimitive
-                                ?.content
-                                ?.let { model.actionHandler(MapAction.SelectVehicle(it)) }
-                            ClickResult.Consume
-                        },
-                    )
-                }
-            }
+            VehicleLayers(
+                vehicles = animatedVehicles,
+                routeColorIndex = state::routeColorIndex,
+                routeLabels = routeLabels,
+                routeBusPainters = routeBusPainters,
+                busDirectionPainter = busDirectionPainter,
+                onAttached = model::logVehicleLayerAttached,
+                onDetached = model::logVehicleLayerDetached,
+                onVehicleClick = { model.actionHandler(MapAction.SelectVehicle(it)) },
+            )
             if (locationEnabled) LocationPuck(idPrefix = "user", locationState = location)
         }
 
@@ -1279,5 +1257,57 @@ private fun MapZoomButton(
             style = MaterialTheme.typography.headlineMedium,
             modifier = Modifier.semantics { contentDescription = label },
         )
+    }
+}
+
+@Composable
+@MaplibreComposable
+private fun VehicleLayers(
+    vehicles: State<List<Vehicle>>,
+    routeColorIndex: (String) -> Int,
+    routeLabels: Map<String, String>,
+    routeBusPainters: List<Painter>,
+    busDirectionPainter: Painter,
+    onAttached: (Int) -> Unit,
+    onDetached: () -> Unit,
+    onVehicleClick: (String) -> Unit,
+) {
+    val vehiclesByRoute = vehicles.value.groupBy { it.routeId }
+    vehiclesByRoute.entries.sortedBy { it.key }.forEach { (routeId, routeVehicles) ->
+        key(routeId) {
+            DisposableEffect(routeId) {
+                onAttached(routeVehicles.size)
+                onDispose { onDetached() }
+            }
+            val routeVehicleSource =
+                rememberGeoJsonSource(GeoJsonData.JsonString(vehiclesGeoJson(routeVehicles)))
+            val selectedRouteIndex = routeColorIndex(routeId)
+            val routeLabel = routeLabels[routeId] ?: routeId
+            SymbolLayer(
+                "vehicles-$routeId",
+                routeVehicleSource,
+                iconImage = image(routeBusPainters.getOrNull(selectedRouteIndex) ?: busDirectionPainter),
+                iconSize = const(if (selectedRouteIndex >= 0) 0.1f else 0.08f),
+                iconRotate = feature["heading"].cast(),
+                iconAllowOverlap = const(true),
+                textField = format(span(routeLabel)),
+                textColor = const(Color(0xFF0F172A)),
+                textHaloColor = const(Color.White),
+                textHaloWidth = const(1.dp),
+                textFont = const(listOf("Noto Sans Bold")),
+                textSize = const(12.sp),
+                textAllowOverlap = const(true),
+                onClick = { features ->
+                    features
+                        .firstOrNull()
+                        ?.properties
+                        ?.get("id")
+                        ?.jsonPrimitive
+                        ?.content
+                        ?.let(onVehicleClick)
+                    ClickResult.Consume
+                },
+            )
+        }
     }
 }
