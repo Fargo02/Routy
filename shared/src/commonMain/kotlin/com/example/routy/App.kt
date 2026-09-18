@@ -128,7 +128,7 @@ fun App(graph: AppGraph) {
                                 navController.navigateToMapScreen()
                             },
                             showRouteOnMap = { id ->
-                                map.actionHandler(MapAction.SelectRoute(id))
+                                map.actionHandler(MapAction.ShowRoute(id))
                                 navController.navigateToMapScreen()
                             },
                         )
@@ -139,7 +139,7 @@ fun App(graph: AppGraph) {
                             vehicles = graph.vehicles,
                             navigate = navController::navigateTo,
                             showMap = { id ->
-                                map.actionHandler(MapAction.SelectRoute(id))
+                                map.actionHandler(MapAction.ShowRoute(id))
                                 navController.navigateToMapScreen()
                             },
                             message = { snackbar.showSnackbar(it) },

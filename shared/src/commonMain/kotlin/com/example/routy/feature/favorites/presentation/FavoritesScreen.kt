@@ -247,7 +247,8 @@ fun FavoritesScreen(
                             RouteCard(
                                 route,
                                 onClick = {
-                                    sheetContent = "$RouteSheetPrefix${route.id}"
+                                    sheetContent = null
+                                    showRouteOnMap(route.id)
                                 },
                                 subtitle = strings[TextKey.Departure],
                                 trailingLabel = nextDeparture?.toString(),
