@@ -7,7 +7,7 @@ title: Privacy Policy — Routy
 **App:** Routy (Batumi public transport)
 **Package name:** `ge.routy.transport`
 **Developer:** Fargo02 ([github.com/Fargo02/Routy](https://github.com/Fargo02/Routy))
-**Contact:** `trenin.work@gmail.compf`
+**Contact:** `trenin.work@gmail.com`
 **Effective date:** 19 September 2026
 **Last updated:** 19 September 2026
 
@@ -123,7 +123,7 @@ it. The revision history of this file is public in the repository.
 
 ## Contact
 
-Questions about this policy: `TODO: contact@example.com`
+Questions about this policy: `trenin.work@gmail.com`
 
 ---
 
@@ -132,7 +132,7 @@ Questions about this policy: `TODO: contact@example.com`
 **Приложение:** Routy (общественный транспорт Батуми)
 **Имя пакета:** `ge.routy.transport`
 **Разработчик:** Fargo02 ([github.com/Fargo02/Routy](https://github.com/Fargo02/Routy))
-**Контакт:** `TODO: contact@example.com`
+**Контакт:** `trenin.work@gmail.com`
 **Дата вступления в силу:** 19 сентября 2026 г.
 **Последнее обновление:** 19 сентября 2026 г.
 
@@ -246,4 +246,4 @@ Google Play для приложений, установленных из маг�
 
 ## Контакты
 
-Вопросы по политике: `TODO: contact@example.com`
+Вопросы по политике: `trenin.work@gmail.com`
