@@ -1,7 +1,7 @@
 package com.example.routy.feature.settings.presentation
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -18,6 +18,7 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -33,6 +34,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.routy.core.designsystem.Glyph
 import com.example.routy.core.designsystem.RoutyIcon
+import com.example.routy.core.designsystem.ScreenBackdrop
 import com.example.routy.core.designsystem.ScreenScaffold
 import com.example.routy.core.localization.LocalStrings
 import com.example.routy.core.localization.TextKey
@@ -41,6 +43,8 @@ import com.example.routy.core.preferences.domain.ColorTheme
 import com.example.routy.core.transport.domain.Language
 import com.example.routy.feature.settings.presentation.state.SettingsAction
 import kotlinx.coroutines.launch
+import routy.shared.generated.resources.Res
+import routy.shared.generated.resources.settings_backdrop
 
 private enum class SettingsSheet { Language, ColorTheme, Appearance }
 
@@ -60,38 +64,43 @@ fun SettingsScreen(model: SettingsViewModel) {
         }
     }
     ScreenScaffold(topBar = {
-        TopAppBar(title = {
-            Text(
-                strings[TextKey.Settings],
-                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-            )
-        })
+        TopAppBar(
+            title = {
+                Text(
+                    strings[TextKey.Settings],
+                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                )
+            },
+            colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
+        )
     }) { padding ->
-        Column(
-            Modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.surface)
-                .verticalScroll(rememberScrollState())
-                .padding(
-                    top = padding.calculateTopPadding() + 12.dp,
-                    bottom = padding.calculateBottomPadding() + 24.dp,
-                ),
-        ) {
-            Column {
-                SettingRow(
-                    strings[TextKey.Language],
-                    strings[languageKey(state.language)],
-                ) { sheet = SettingsSheet.Language }
-                HorizontalDivider(Modifier.padding(horizontal = 24.dp), color = MaterialTheme.colorScheme.outlineVariant)
-                SettingRow(
-                    strings[TextKey.ColorTheme],
-                    strings[colorKey(state.colorTheme)],
-                ) { sheet = SettingsSheet.ColorTheme }
-                HorizontalDivider(Modifier.padding(horizontal = 24.dp), color = MaterialTheme.colorScheme.outlineVariant)
-                SettingRow(
-                    strings[TextKey.Appearance],
-                    strings[appearanceKey(state.appearance)],
-                ) { sheet = SettingsSheet.Appearance }
+        Box(Modifier.fillMaxSize()) {
+            ScreenBackdrop(Res.drawable.settings_backdrop)
+            Column(
+                Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(
+                        top = padding.calculateTopPadding() + 12.dp,
+                        bottom = padding.calculateBottomPadding() + 24.dp,
+                    ),
+            ) {
+                Column {
+                    SettingRow(
+                        strings[TextKey.Language],
+                        strings[languageKey(state.language)],
+                    ) { sheet = SettingsSheet.Language }
+                    HorizontalDivider(Modifier.padding(horizontal = 24.dp), color = MaterialTheme.colorScheme.outlineVariant)
+                    SettingRow(
+                        strings[TextKey.ColorTheme],
+                        strings[colorKey(state.colorTheme)],
+                    ) { sheet = SettingsSheet.ColorTheme }
+                    HorizontalDivider(Modifier.padding(horizontal = 24.dp), color = MaterialTheme.colorScheme.outlineVariant)
+                    SettingRow(
+                        strings[TextKey.Appearance],
+                        strings[appearanceKey(state.appearance)],
+                    ) { sheet = SettingsSheet.Appearance }
+                }
             }
         }
     }

@@ -9,6 +9,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -20,6 +21,8 @@ import com.example.routy.feature.stop_details.domain.GetStopDetailsUseCase
 import com.example.routy.feature.stop_details.domain.minutesUntilNextScheduledDeparture
 import com.example.routy.feature.stop_details.domain.nearestScheduledDeparture
 import com.example.routy.feature.stop_details.domain.scheduledFrequencyMinutes
+import routy.shared.generated.resources.Res
+import routy.shared.generated.resources.favorites_backdrop
 
 private const val RouteSheetPrefix = "route:"
 private const val StopSheetPrefix = "stop:"
@@ -53,94 +56,103 @@ fun FavoritesScreen(
                         style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
                     )
                 },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
             )
         },
     ) { screenPadding ->
-        LazyColumn(
-            Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface),
-            contentPadding =
-                PaddingValues(
-                    start = 20.dp,
-                    top = screenPadding.calculateTopPadding(),
-                    end = 20.dp,
-                    bottom = screenPadding.calculateBottomPadding() + 20.dp,
-                ),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            item {
-                Box(Modifier.fillMaxWidth().heightIn(min = 12.dp)) {
-                    StatusPanel(state.network) { model.actionHandler(FavoritesAction.Retry) }
-                }
-            }
-            if (state.routes.isEmpty() && state.stops.isEmpty() && state.network.network != null) item { EmptyPanel(TextKey.NoFavorites) }
-            items(
-                state.routes,
-                key = { "route:${it.id}" },
-            ) { route ->
-                FavoriteSwipeToDismiss(
-                    onDismiss = { model.actionHandler(FavoritesAction.RemoveRoute(route.id)) },
-                ) {
-                    val frequency =
-                        state.network.network
-                            ?.let { GetRouteDetailsUseCase()(it, route.id) }
-                            ?.groups
-                            ?.values
-                            ?.asSequence()
-                            ?.flatten()
-                            ?.mapNotNull { scheduledFrequencyMinutes(it.service.times) }
-                            ?.firstOrNull()
-                    RouteCard(
-                        route = route,
-                        onClick = {
-                            sheetContent = "$RouteSheetPrefix${route.id}"
-                        },
-                        subtitle = frequency?.let(strings::runsEvery),
-                    )
-                }
-            }
-            items(
-                state.stops,
-                key = { "stop:${it.id}" },
-            ) { stop ->
-                val upcomingBuses =
-                    remember(stop, state.network.network, strings.language) {
-                        val routes =
-                            state.network.network
-                                ?.routes
-                                .orEmpty()
-                        val routesById = routes.associateBy { it.id }
-                        stop.services
-                            .groupBy { it.routeId }
-                            .mapNotNull { (routeId, services) ->
-                                val minutes =
-                                    minutesUntilNextScheduledDeparture(services.flatMap { it.times })
-                                        ?: return@mapNotNull null
-                                val route = routesById[routeId] ?: return@mapNotNull null
-                                UpcomingBus(
-                                    routeName = route.name.resolve(strings.language, route.id),
-                                    minutes = minutes,
-                                    routeColorIndex = routes.indexOf(route).coerceAtLeast(0),
-                                )
-                            }.sortedBy(UpcomingBus::minutes)
-                            .take(3)
+        Box(Modifier.fillMaxSize()) {
+            ScreenBackdrop(Res.drawable.favorites_backdrop)
+            LazyColumn(
+                Modifier.fillMaxSize(),
+                contentPadding =
+                    PaddingValues(
+                        start = 20.dp,
+                        top = screenPadding.calculateTopPadding(),
+                        end = 20.dp,
+                        bottom = screenPadding.calculateBottomPadding() + 20.dp,
+                    ),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                item {
+                    Box(Modifier.fillMaxWidth().heightIn(min = 12.dp)) {
+                        StatusPanel(state.network) { model.actionHandler(FavoritesAction.Retry) }
                     }
-                FavoriteSwipeToDismiss(
-                    onDismiss = { model.actionHandler(FavoritesAction.RemoveStop(stop.id)) },
+                }
+                if (state.routes.isEmpty() &&
+                    state.stops.isEmpty() &&
+                    state.network.network != null
                 ) {
-                    FavoriteStopCard(
-                        stop = stop,
-                        upcomingBuses = upcomingBuses,
-                        onClick = {
-                            sheetContent = "$StopSheetPrefix${stop.id}"
-                        },
-                        fallbackSubtitle =
-                            strings.vehiclesCount(
-                                stop.services
-                                    .map { it.routeId }
-                                    .distinct()
-                                    .size,
-                            ),
-                    )
+                    item { EmptyPanel(TextKey.NoFavorites) }
+                }
+                items(
+                    state.routes,
+                    key = { "route:${it.id}" },
+                ) { route ->
+                    FavoriteSwipeToDismiss(
+                        onDismiss = { model.actionHandler(FavoritesAction.RemoveRoute(route.id)) },
+                    ) {
+                        val frequency =
+                            state.network.network
+                                ?.let { GetRouteDetailsUseCase()(it, route.id) }
+                                ?.groups
+                                ?.values
+                                ?.asSequence()
+                                ?.flatten()
+                                ?.mapNotNull { scheduledFrequencyMinutes(it.service.times) }
+                                ?.firstOrNull()
+                        RouteCard(
+                            route = route,
+                            onClick = {
+                                sheetContent = "$RouteSheetPrefix${route.id}"
+                            },
+                            subtitle = frequency?.let(strings::runsEvery),
+                        )
+                    }
+                }
+                items(
+                    state.stops,
+                    key = { "stop:${it.id}" },
+                ) { stop ->
+                    val upcomingBuses =
+                        remember(stop, state.network.network, strings.language) {
+                            val routes =
+                                state.network.network
+                                    ?.routes
+                                    .orEmpty()
+                            val routesById = routes.associateBy { it.id }
+                            stop.services
+                                .groupBy { it.routeId }
+                                .mapNotNull { (routeId, services) ->
+                                    val minutes =
+                                        minutesUntilNextScheduledDeparture(services.flatMap { it.times })
+                                            ?: return@mapNotNull null
+                                    val route = routesById[routeId] ?: return@mapNotNull null
+                                    UpcomingBus(
+                                        routeName = route.name.resolve(strings.language, route.id),
+                                        minutes = minutes,
+                                        routeColorIndex = routes.indexOf(route).coerceAtLeast(0),
+                                    )
+                                }.sortedBy(UpcomingBus::minutes)
+                                .take(3)
+                        }
+                    FavoriteSwipeToDismiss(
+                        onDismiss = { model.actionHandler(FavoritesAction.RemoveStop(stop.id)) },
+                    ) {
+                        FavoriteStopCard(
+                            stop = stop,
+                            upcomingBuses = upcomingBuses,
+                            onClick = {
+                                sheetContent = "$StopSheetPrefix${stop.id}"
+                            },
+                            fallbackSubtitle =
+                                strings.vehiclesCount(
+                                    stop.services
+                                        .map { it.routeId }
+                                        .distinct()
+                                        .size,
+                                ),
+                        )
+                    }
                 }
             }
         }
