@@ -20,3 +20,5 @@ androidApp/release/
 node_modules/
 google-services.json
 keystore.properties
+*.jks
+*.keystore
