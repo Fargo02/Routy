@@ -296,7 +296,7 @@ fun StatusPanel(
 ) {
     val strings = LocalStrings.current
     when {
-        state.network == null && state.error == null -> LoadingSkeleton()
+        state.network == null && state.error == null -> LoadingIndicator()
         state.error != null ->
             Surface(color = MaterialTheme.colorScheme.surfaceContainer, shape = RoundedCornerShape(20.dp)) {
                 Column(Modifier.fillMaxWidth().padding(16.dp).semantics { liveRegion = LiveRegionMode.Polite }) {
@@ -314,21 +314,11 @@ fun StatusPanel(
 }
 
 @Composable
-fun LoadingSkeleton() {
+fun LoadingIndicator() {
     val strings = LocalStrings.current
-    Surface(
-        modifier =
-            Modifier.fillMaxWidth().semantics {
-                contentDescription = strings[TextKey.Loading]
-            },
-        color = MaterialTheme.colorScheme.surfaceContainer,
-        shape = RoundedCornerShape(20.dp),
-    ) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text(strings[TextKey.Loading], style = MaterialTheme.typography.bodyMedium)
-            LinearProgressIndicator(Modifier.fillMaxWidth())
-        }
-    }
+    LinearProgressIndicator(
+        Modifier.fillMaxWidth().semantics { contentDescription = strings[TextKey.Loading] },
+    )
 }
 
 @Composable
