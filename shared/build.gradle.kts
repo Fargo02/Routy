@@ -54,7 +54,6 @@ kotlin {
             implementation(libs.androidx.activity.compose)
             runtimeOnly(libs.maplibre.runtime)
             implementation(libs.compose.uiToolingPreview)
-            implementation(libs.compose.uiTooling)
         }
         iosMain.dependencies { implementation(libs.ktor.darwin) }
         commonMain.dependencies {
@@ -78,10 +77,6 @@ kotlin {
             implementation(libs.ktor.mock)
         }
     }
-}
-
-dependencies {
-    androidRuntimeClasspath(libs.compose.uiTooling)
 }
 
 ktlint {
