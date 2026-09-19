@@ -1034,7 +1034,7 @@ private fun VehicleLayers(
                 "vehicles-$routeId",
                 routeVehicleSource,
                 iconImage = image(routeBusPainters.getOrNull(selectedRouteIndex) ?: busDirectionPainter),
-                iconSize = const(if (selectedRouteIndex >= 0) 0.1f else 0.08f),
+                iconSize = const(if (selectedRouteIndex >= 0) 0.4f else 0.32f),
                 iconRotate = feature["heading"].cast(),
                 iconAllowOverlap = const(true),
                 textField = format(span(routeLabel)),
