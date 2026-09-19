@@ -3,6 +3,8 @@ package com.example.routy
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -24,6 +26,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -227,8 +230,16 @@ private fun FloatingBottomNavigation(
                         val isSelected = selected.matches(item)
                         Box(Modifier.width(itemSlotWidth).fillMaxHeight(), contentAlignment = Alignment.Center) {
                             Surface(
-                                onClick = { onNavigate(item) },
-                                modifier = Modifier.size(52.dp).semantics { contentDescription = item.title.name },
+                                modifier =
+                                    Modifier
+                                        .size(52.dp)
+                                        .semantics { contentDescription = item.title.name }
+                                        .clickable(
+                                            interactionSource = remember { MutableInteractionSource() },
+                                            indication = null,
+                                            role = Role.Tab,
+                                            onClick = { onNavigate(item) },
+                                        ),
                                 color = Color.Transparent,
                                 contentColor =
                                         if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
