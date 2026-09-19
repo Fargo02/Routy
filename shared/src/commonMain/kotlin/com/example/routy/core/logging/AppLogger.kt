@@ -9,6 +9,7 @@ enum class LogEvent {
     FavoriteStopsChanged, MapFavoriteStopsUpdated,
     MapVehiclePollingStarted, MapVehiclePollingStopped, MapVehicleStateCombined,
     MapVehicleLayersComposed, MapVehicleLayerAttached, MapVehicleLayerDetached,
+    StopNamesTranslated, StopNamesTranslationFailed,
 }
 
 /** Structured records deliberately cannot contain payloads, identifiers, or coordinates. */

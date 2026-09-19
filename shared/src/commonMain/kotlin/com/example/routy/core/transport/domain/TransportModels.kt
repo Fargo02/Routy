@@ -12,22 +12,42 @@ data class GeoPoint(
 
 enum class Language { English, Georgian, Russian }
 
+private val scripts =
+    mapOf(
+        Language.English to Regex("[A-Za-z]"),
+        Language.Georgian to Regex("[\\u10A0-\\u10FF]"),
+        Language.Russian to Regex("[\\u0400-\\u04FF]"),
+    )
+
 data class LocalizedName(
     val english: String?,
     val georgian: String?,
     val original: String?,
+    val translated: String? = null,
 ) {
     fun resolve(
         language: Language,
         fallback: String,
     ): String =
-        listOf(if (language == Language.Georgian) georgian else english, english, georgian, original)
+        listOf(inLanguage(language), translated, english, georgian, original)
             .firstOrNull { !it.isNullOrBlank() }
             ?.trim() ?: fallback
 
     fun matches(query: String): Boolean =
-        listOf(english, georgian, original)
+        listOf(english, georgian, original, translated)
             .any { it?.contains(query, ignoreCase = true) == true }
+
+    fun translationSource(language: Language): String? {
+        if (inLanguage(language) != null) return null
+        return listOf(georgian, original, english).firstOrNull { !it.isNullOrBlank() }?.trim()
+    }
+
+    private fun inLanguage(language: Language): String? =
+        when (language) {
+            Language.English -> english
+            Language.Georgian -> georgian
+            Language.Russian -> null
+        }?.takeIf { it.isNotBlank() && scripts.getValue(language).containsMatchIn(it) }
 }
 
 data class ScheduleTime(
