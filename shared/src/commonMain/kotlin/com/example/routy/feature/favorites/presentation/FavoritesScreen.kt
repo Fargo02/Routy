@@ -43,7 +43,7 @@ fun FavoritesScreen(
     var sheetContent by rememberSaveable { mutableStateOf<String?>(null) }
     val selectedRouteId = sheetContent?.removePrefix(RouteSheetPrefix)?.takeIf { sheetContent?.startsWith(RouteSheetPrefix) == true }
     val selectedStopId = sheetContent?.removePrefix(StopSheetPrefix)?.takeIf { sheetContent?.startsWith(StopSheetPrefix) == true }
-    var stopRemovalConfirmationId by rememberSaveable { mutableStateOf<String?>(null) }
+    var removalConfirmation by rememberSaveable { mutableStateOf<String?>(null) }
     val detailsSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     ScreenScaffold(
         topBar = {
@@ -158,10 +158,19 @@ fun FavoritesScreen(
                             style = MaterialTheme.typography.headlineSmall,
                         )
                         Spacer(Modifier.height(16.dp))
-                        Button(onClick = {
-                            sheetContent = null
-                            showRouteOnMap(routeId)
-                        }) { Text(strings[TextKey.ShowMap]) }
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            Button(
+                                onClick = {
+                                    sheetContent = null
+                                    showRouteOnMap(routeId)
+                                },
+                            ) { Text(strings[TextKey.ShowMap]) }
+                            if (state.routes.any { it.id == routeId }) {
+                                FilledTonalButton(
+                                    onClick = { removalConfirmation = "$RouteSheetPrefix$routeId" },
+                                ) { Text(strings[TextKey.Remove]) }
+                            }
+                        }
                     }
                     item { Text(strings[TextKey.ScheduleNote], style = MaterialTheme.typography.bodySmall) }
                     details.groups.forEach { (group, stops) ->
@@ -218,10 +227,7 @@ fun FavoritesScreen(
                             ) { Text(strings[TextKey.ShowMap]) }
                             if (state.stops.any { it.id == stopId }) {
                                 FilledTonalButton(
-                                    onClick = {
-                                        sheetContent = null
-                                        stopRemovalConfirmationId = stopId
-                                    },
+                                    onClick = { removalConfirmation = "$StopSheetPrefix$stopId" },
                                 ) { Text(strings[TextKey.Remove]) }
                             }
                         }
@@ -262,27 +268,38 @@ fun FavoritesScreen(
         }
     }
     }
-    stopRemovalConfirmationId?.let { stopId ->
-        AlertDialog(
-            onDismissRequest = { stopRemovalConfirmationId = null },
-            containerColor = MaterialTheme.colorScheme.surface,
-            title = { Text(strings[TextKey.RemoveFavoriteTitle]) },
-            text = { Text(strings[TextKey.RemoveFavoriteBody]) },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        stopRemovalConfirmationId = null
-                        model.actionHandler(FavoritesAction.RemoveStop(stopId))
-                    },
-                ) { Text(strings[TextKey.Remove]) }
+    removalConfirmation?.let { target ->
+        RemoveFavoriteDialog(
+            onConfirm = {
+                removalConfirmation = null
+                sheetContent = null
+                val action =
+                    if (target.startsWith(RouteSheetPrefix)) {
+                        FavoritesAction.RemoveRoute(target.removePrefix(RouteSheetPrefix))
+                    } else {
+                        FavoritesAction.RemoveStop(target.removePrefix(StopSheetPrefix))
+                    }
+                model.actionHandler(action)
             },
-            dismissButton = {
-                TextButton(onClick = { stopRemovalConfirmationId = null }) {
-                    Text(strings[TextKey.Close])
-                }
-            },
+            onDismiss = { removalConfirmation = null },
         )
     }
+}
+
+@Composable
+private fun RemoveFavoriteDialog(
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val strings = LocalStrings.current
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = MaterialTheme.colorScheme.surface,
+        title = { Text(strings[TextKey.RemoveFavoriteTitle]) },
+        text = { Text(strings[TextKey.RemoveFavoriteBody]) },
+        confirmButton = { TextButton(onClick = onConfirm) { Text(strings[TextKey.Remove]) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(strings[TextKey.Close]) } },
+    )
 }
 
 @Composable
@@ -389,24 +406,12 @@ private fun FavoriteSwipeToDismiss(
         content = content,
     )
     if (removalConfirmationVisible) {
-        AlertDialog(
-            onDismissRequest = { removalConfirmationVisible = false },
-            containerColor = MaterialTheme.colorScheme.surface,
-            title = { Text(strings[TextKey.RemoveFavoriteTitle]) },
-            text = { Text(strings[TextKey.RemoveFavoriteBody]) },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        removalConfirmationVisible = false
-                        onDismiss()
-                    },
-                ) { Text(strings[TextKey.Remove]) }
+        RemoveFavoriteDialog(
+            onConfirm = {
+                removalConfirmationVisible = false
+                onDismiss()
             },
-            dismissButton = {
-                TextButton(onClick = { removalConfirmationVisible = false }) {
-                    Text(strings[TextKey.Close])
-                }
-            },
+            onDismiss = { removalConfirmationVisible = false },
         )
     }
 }
