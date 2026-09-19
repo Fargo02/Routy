@@ -22,5 +22,4 @@ fun minutesUntilNextScheduledDeparture(
         (time.hour * 60 + time.minute - currentMinutes + MinutesPerDay) % MinutesPerDay
     }
 
-private fun batumiMinutesNow(): Int =
-    ((Clock.System.now().toEpochMilliseconds() / 60_000 + BatumiUtcOffsetMinutes) % MinutesPerDay).toInt()
+private fun batumiMinutesNow(): Int = ((Clock.System.now().toEpochMilliseconds() / 60_000 + BatumiUtcOffsetMinutes) % MinutesPerDay).toInt()

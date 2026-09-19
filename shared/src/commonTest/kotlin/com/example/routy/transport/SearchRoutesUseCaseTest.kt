@@ -34,10 +34,9 @@ class SearchRoutesUseCaseTest {
     private fun route(
         id: String,
         number: String,
-    ) =
-        Route(
-            id = id,
-            name = LocalizedName(english = number, georgian = null, original = null),
-            sortOrder = null,
-        )
+    ) = Route(
+        id = id,
+        name = LocalizedName(english = number, georgian = null, original = null),
+        sortOrder = null,
+    )
 }

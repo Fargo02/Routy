@@ -36,12 +36,15 @@ class PollingVehicleRepository(
             emit(previous)
             while (currentCoroutineContext().isActive) {
                 previous =
-                    when (val result = transportOperation(dispatcher) {
-                        parser.vehicles(
-                            remote.vehicles(routeId),
-                            routeId
-                        )
-                    }) {
+                    when (
+                        val result =
+                            transportOperation(dispatcher) {
+                                parser.vehicles(
+                                    remote.vehicles(routeId),
+                                    routeId,
+                                )
+                            }
+                    ) {
                         is Outcome.Success ->
                             VehicleState(
                                 result.value.map { vehicle ->
@@ -52,7 +55,7 @@ class PollingVehicleRepository(
                                             prior?.let {
                                                 headingBetween(
                                                     it.position,
-                                                    vehicle.position
+                                                    vehicle.position,
                                                 )
                                             }
                                                 ?: prior?.headingDegrees,
@@ -66,7 +69,7 @@ class PollingVehicleRepository(
                             logger.log(
                                 LogLevel.Warning,
                                 LogEvent.VehicleRefreshFailed,
-                                result.error
+                                result.error,
                             )
                             val age = previous.updatedAtMillis?.let { clock.nowMillis() - it }
                             previous.copy(
@@ -93,9 +96,11 @@ class PollingVehicleRepository(
         val toLatitude = to.latitude * PI / 180.0
         val longitudeDifference = longitudeDelta * PI / 180.0
         val y = sin(longitudeDifference) * cos(toLatitude)
-        val x = cos(fromLatitude) * sin(toLatitude) - sin(fromLatitude) * cos(toLatitude) * cos(
-            longitudeDifference
-        )
+        val x =
+            cos(fromLatitude) * sin(toLatitude) - sin(fromLatitude) * cos(toLatitude) *
+                cos(
+                    longitudeDifference,
+                )
         return ((atan2(y, x) * 180.0 / PI + 360.0) % 360.0).toFloat()
     }
 }

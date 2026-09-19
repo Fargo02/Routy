@@ -52,6 +52,7 @@ fun SettingsScreen(model: SettingsViewModel) {
     var sheet by rememberSaveable { mutableStateOf<SettingsSheet?>(null) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val scope = rememberCoroutineScope()
+
     fun closeSheet() {
         scope.launch {
             sheetState.hide()
@@ -62,31 +63,34 @@ fun SettingsScreen(model: SettingsViewModel) {
         TopAppBar(title = {
             Text(
                 strings[TextKey.Settings],
-                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
+                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
             )
         })
     }) { padding ->
         Column(
-            Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface)
-                .verticalScroll(rememberScrollState()).padding(
+            Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.surface)
+                .verticalScroll(rememberScrollState())
+                .padding(
                     top = padding.calculateTopPadding() + 12.dp,
-                    bottom = padding.calculateBottomPadding() + 24.dp
-                )
+                    bottom = padding.calculateBottomPadding() + 24.dp,
+                ),
         ) {
             Column {
                 SettingRow(
                     strings[TextKey.Language],
-                    strings[languageKey(state.language)]
+                    strings[languageKey(state.language)],
                 ) { sheet = SettingsSheet.Language }
                 HorizontalDivider(Modifier.padding(horizontal = 24.dp), color = MaterialTheme.colorScheme.outlineVariant)
                 SettingRow(
                     strings[TextKey.ColorTheme],
-                    strings[colorKey(state.colorTheme)]
+                    strings[colorKey(state.colorTheme)],
                 ) { sheet = SettingsSheet.ColorTheme }
                 HorizontalDivider(Modifier.padding(horizontal = 24.dp), color = MaterialTheme.colorScheme.outlineVariant)
                 SettingRow(
                     strings[TextKey.Appearance],
-                    strings[appearanceKey(state.appearance)]
+                    strings[appearanceKey(state.appearance)],
                 ) { sheet = SettingsSheet.Appearance }
             }
         }
@@ -95,43 +99,68 @@ fun SettingsScreen(model: SettingsViewModel) {
         ModalBottomSheet(
             onDismissRequest = { sheet = null },
             sheetState = sheetState,
-            containerColor = MaterialTheme.colorScheme.surface
+            containerColor = MaterialTheme.colorScheme.surface,
         ) {
             Column(
                 Modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, bottom = 32.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
+                verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
                 Text(
-                    strings[when (active) {
-                        SettingsSheet.Language -> TextKey.Language; SettingsSheet.ColorTheme -> TextKey.ColorTheme; SettingsSheet.Appearance -> TextKey.Appearance
-                    }],
+                    strings[
+                        when (active) {
+                            SettingsSheet.Language -> TextKey.Language
+                            SettingsSheet.ColorTheme -> TextKey.ColorTheme
+                            SettingsSheet.Appearance -> TextKey.Appearance
+                        },
+                    ],
                     Modifier.padding(vertical = 12.dp),
-                    style = MaterialTheme.typography.headlineSmall
+                    style = MaterialTheme.typography.headlineSmall,
                 )
                 when (active) {
-                    SettingsSheet.Language -> Language.entries.forEach { value ->
-                        Option(
-                            strings[languageKey(
-                                value
-                            )], state.language == value
-                        ) { model.actionHandler(SettingsAction.SetLanguage(value)); closeSheet() }
-                    }
+                    SettingsSheet.Language ->
+                        Language.entries.forEach { value ->
+                            Option(
+                                strings[
+                                    languageKey(
+                                        value,
+                                    ),
+                                ],
+                                state.language == value,
+                            ) {
+                                model.actionHandler(SettingsAction.SetLanguage(value))
+                                closeSheet()
+                            }
+                        }
 
-                    SettingsSheet.ColorTheme -> ColorTheme.entries.forEach { value ->
-                        Option(
-                            strings[colorKey(
-                                value
-                            )], state.colorTheme == value
-                        ) { model.actionHandler(SettingsAction.SetColorTheme(value)); closeSheet() }
-                    }
+                    SettingsSheet.ColorTheme ->
+                        ColorTheme.entries.forEach { value ->
+                            Option(
+                                strings[
+                                    colorKey(
+                                        value,
+                                    ),
+                                ],
+                                state.colorTheme == value,
+                            ) {
+                                model.actionHandler(SettingsAction.SetColorTheme(value))
+                                closeSheet()
+                            }
+                        }
 
-                    SettingsSheet.Appearance -> Appearance.entries.forEach { value ->
-                        Option(
-                            strings[appearanceKey(
-                                value
-                            )], state.appearance == value
-                        ) { model.actionHandler(SettingsAction.SetAppearance(value)); closeSheet() }
-                    }
+                    SettingsSheet.Appearance ->
+                        Appearance.entries.forEach { value ->
+                            Option(
+                                strings[
+                                    appearanceKey(
+                                        value,
+                                    ),
+                                ],
+                                state.appearance == value,
+                            ) {
+                                model.actionHandler(SettingsAction.SetAppearance(value))
+                                closeSheet()
+                            }
+                        }
                 }
             }
         }
@@ -139,52 +168,75 @@ fun SettingsScreen(model: SettingsViewModel) {
 }
 
 @Composable
-private fun SettingRow(title: String, value: String, onClick: () -> Unit) = Surface(
+private fun SettingRow(
+    title: String,
+    value: String,
+    onClick: () -> Unit,
+) = Surface(
     onClick = onClick,
-    color = Color.Transparent
+    color = Color.Transparent,
 ) {
     Row(
         Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 18.dp),
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(title, Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge); Text(
-        value,
-        color = MaterialTheme.colorScheme.primary,
-        style = MaterialTheme.typography.bodyLarge
-    ); Spacer(Modifier.width(8.dp)); RoutyIcon(Glyph.Chevron)
+        Text(title, Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
+        Text(
+            value,
+            color = MaterialTheme.colorScheme.primary,
+            style = MaterialTheme.typography.bodyLarge,
+        )
+        Spacer(Modifier.width(8.dp))
+        RoutyIcon(Glyph.Chevron)
     }
 }
 
 @Composable
-private fun Option(title: String, selected: Boolean, onClick: () -> Unit) = Surface(
+private fun Option(
+    title: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+) = Surface(
     onClick = onClick,
     shape = MaterialTheme.shapes.medium,
-    color = if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface
+    color = if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface,
 ) {
     Row(
         Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 16.dp),
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
             title,
             Modifier.weight(1f),
-            style = MaterialTheme.typography.bodyLarge
-        ); if (selected) Text(
-        "✓",
-        color = MaterialTheme.colorScheme.primary,
-        style = MaterialTheme.typography.titleLarge
-    )
+            style = MaterialTheme.typography.bodyLarge,
+        )
+        if (selected) {
+            Text(
+                "✓",
+                color = MaterialTheme.colorScheme.primary,
+                style = MaterialTheme.typography.titleLarge,
+            )
+        }
     }
 }
 
-private fun languageKey(value: Language) = when (value) {
-    Language.English -> TextKey.English; Language.Georgian -> TextKey.Georgian; Language.Russian -> TextKey.Russian
-}
+private fun languageKey(value: Language) =
+    when (value) {
+        Language.English -> TextKey.English
+        Language.Georgian -> TextKey.Georgian
+        Language.Russian -> TextKey.Russian
+    }
 
-private fun colorKey(value: ColorTheme) = when (value) {
-    ColorTheme.Ocean -> TextKey.Ocean; ColorTheme.Mint -> TextKey.Mint; ColorTheme.Mono -> TextKey.Mono
-}
+private fun colorKey(value: ColorTheme) =
+    when (value) {
+        ColorTheme.Ocean -> TextKey.Ocean
+        ColorTheme.Mint -> TextKey.Mint
+        ColorTheme.Mono -> TextKey.Mono
+    }
 
-private fun appearanceKey(value: Appearance) = when (value) {
-    Appearance.System -> TextKey.System; Appearance.Light -> TextKey.Light; Appearance.Dark -> TextKey.Dark
-}
+private fun appearanceKey(value: Appearance) =
+    when (value) {
+        Appearance.System -> TextKey.System
+        Appearance.Light -> TextKey.Light
+        Appearance.Dark -> TextKey.Dark
+    }

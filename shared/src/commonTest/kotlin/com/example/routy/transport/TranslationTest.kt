@@ -55,7 +55,11 @@ class TranslationTest {
     private class Preferences(
         language: Language,
     ) : PreferencesRepository {
-        override val state = MutableStateFlow(com.example.routy.core.preferences.domain.Preferences(language = language))
+        override val state =
+            MutableStateFlow(
+                com.example.routy.core.preferences.domain
+                    .Preferences(language = language),
+            )
 
         override suspend fun load() = Outcome.Success(Unit)
 
@@ -207,7 +211,10 @@ class TranslationTest {
             val sources = network.untranslatedStopNames(Language.Russian)
             assertTrue(sources.isNotEmpty())
             assertEquals(sources, remote.batches.flatten().toSet())
-            val stop = repository.state.value.network?.stops?.first()
+            val stop =
+                repository.state.value.network
+                    ?.stops
+                    ?.first()
             assertEquals("Russian:${stop?.name?.translationSource(Language.Russian)}", stop?.name?.translated)
             scope.cancel()
         }

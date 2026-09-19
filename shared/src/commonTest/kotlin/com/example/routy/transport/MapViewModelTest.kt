@@ -101,7 +101,11 @@ class MapViewModelTest {
                 model.actionHandler(MapAction.SelectSearchRoute("another"))
                 runCurrent()
                 assertEquals(listOf("r", "another"), handle.get<List<String>>("routeIds"))
-                assertFalse(model.uiState.first { it.selectedRouteIds.size == 2 }.search.isOpen)
+                assertFalse(
+                    model.uiState
+                        .first { it.selectedRouteIds.size == 2 }
+                        .search.isOpen,
+                )
                 assertEquals(2, active)
                 assertEquals(2, subscriptions)
                 visible.cancelAndJoin()

@@ -17,10 +17,9 @@ import com.example.routy.core.localization.*
 import com.example.routy.feature.favorites.presentation.state.*
 import com.example.routy.feature.route_details.domain.GetRouteDetailsUseCase
 import com.example.routy.feature.stop_details.domain.GetStopDetailsUseCase
+import com.example.routy.feature.stop_details.domain.minutesUntilNextScheduledDeparture
 import com.example.routy.feature.stop_details.domain.nearestScheduledDeparture
 import com.example.routy.feature.stop_details.domain.scheduledFrequencyMinutes
-import com.example.routy.feature.stop_details.domain.minutesUntilNextScheduledDeparture
-import kotlinx.coroutines.launch
 
 private const val RouteSheetPrefix = "route:"
 private const val StopSheetPrefix = "stop:"
@@ -48,7 +47,12 @@ fun FavoritesScreen(
     ScreenScaffold(
         topBar = {
             TopAppBar(
-                title = { Text(strings[TextKey.Favorites], style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)) },
+                title = {
+                    Text(
+                        strings[TextKey.Favorites],
+                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                    )
+                },
             )
         },
     ) { screenPadding ->
@@ -100,7 +104,10 @@ fun FavoritesScreen(
             ) { stop ->
                 val upcomingBuses =
                     remember(stop, state.network.network, strings.language) {
-                        val routes = state.network.network?.routes.orEmpty()
+                        val routes =
+                            state.network.network
+                                ?.routes
+                                .orEmpty()
                         val routesById = routes.associateBy { it.id }
                         stop.services
                             .groupBy { it.routeId }
@@ -126,7 +133,13 @@ fun FavoritesScreen(
                         onClick = {
                             sheetContent = "$StopSheetPrefix${stop.id}"
                         },
-                        fallbackSubtitle = strings.vehiclesCount(stop.services.map { it.routeId }.distinct().size),
+                        fallbackSubtitle =
+                            strings.vehiclesCount(
+                                stop.services
+                                    .map { it.routeId }
+                                    .distinct()
+                                    .size,
+                            ),
                     )
                 }
             }
@@ -142,131 +155,129 @@ fun FavoritesScreen(
             contentWindowInsets = { WindowInsets.safeDrawing.only(WindowInsetsSides.Top) },
         ) {
             selectedRouteId?.let { routeId ->
-        val details =
-            remember(state.network.network, routeId) {
-                state.network.network?.let { GetRouteDetailsUseCase()(it, routeId) }
-            }
-            LazyColumn(
-                Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = 32.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                if (details != null) {
-                    item {
-                        Text(
-                            details.route.name.resolve(strings.language, details.route.id),
-                            style = MaterialTheme.typography.headlineSmall,
-                        )
-                        Spacer(Modifier.height(16.dp))
-                        FlowRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                            Button(
-                                onClick = {
-                                    sheetContent = null
-                                    showRouteOnMap(routeId)
-                                },
-                            ) { Text(strings[TextKey.ShowMap]) }
-                            if (state.routes.any { it.id == routeId }) {
-                                FilledTonalButton(
-                                    onClick = { removalConfirmation = "$RouteSheetPrefix$routeId" },
-                                ) { Text(strings[TextKey.Remove]) }
-                            }
-                        }
+                val details =
+                    remember(state.network.network, routeId) {
+                        state.network.network?.let { GetRouteDetailsUseCase()(it, routeId) }
                     }
-                    item { Text(strings[TextKey.ScheduleNote], style = MaterialTheme.typography.bodySmall) }
-                    details.groups.forEach { (group, stops) ->
+                LazyColumn(
+                    Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = 32.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    if (details != null) {
                         item {
                             Text(
-                                stops.lastOrNull()?.stop?.let { stop -> stop.name.resolve(strings.language, stop.id) }
-                                    ?: strings[TextKey.Unspecified],
-                                style = MaterialTheme.typography.titleMedium,
+                                details.route.name.resolve(strings.language, details.route.id),
+                                style = MaterialTheme.typography.headlineSmall,
                             )
-                        }
-                        items(stops, key = { "$group:${it.stop.id}" }) { item ->
-                            StopCard(
-                                item.stop,
-                                onClick = {
-                                    sheetContent = null
-                                    showStopOnMap(item.stop.id)
-                                },
-                                subtitle =
-                                    item.service.times
-                                        .take(4)
-                                        .joinToString(" • ")
-                                        .ifEmpty { strings[TextKey.NoSchedule] },
-                            )
-                        }
-                    }
-                } else {
-                    item { EmptyPanel() }
-                }
-            }
-            }
-            selectedStopId?.let { stopId ->
-        val details =
-            remember(state.network.network, stopId) {
-                state.network.network?.let { GetStopDetailsUseCase()(it, stopId) }
-            }
-            LazyColumn(
-                Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = 32.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                if (details != null) {
-                    item {
-                        Text(
-                            details.stop.name.resolve(strings.language, details.stop.id),
-                            style = MaterialTheme.typography.headlineSmall,
-                        )
-                        Spacer(Modifier.height(16.dp))
-                        FlowRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                            Button(
-                                onClick = {
-                                    sheetContent = null
-                                    showStopOnMap(stopId)
-                                },
-                            ) { Text(strings[TextKey.ShowMap]) }
-                            if (state.stops.any { it.id == stopId }) {
-                                FilledTonalButton(
-                                    onClick = { removalConfirmation = "$StopSheetPrefix$stopId" },
-                                ) { Text(strings[TextKey.Remove]) }
+                            Spacer(Modifier.height(16.dp))
+                            FlowRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                Button(
+                                    onClick = {
+                                        sheetContent = null
+                                        showRouteOnMap(routeId)
+                                    },
+                                ) { Text(strings[TextKey.ShowMap]) }
+                                if (state.routes.any { it.id == routeId }) {
+                                    FilledTonalButton(
+                                        onClick = { removalConfirmation = "$RouteSheetPrefix$routeId" },
+                                    ) { Text(strings[TextKey.Remove]) }
+                                }
                             }
                         }
+                        item { Text(strings[TextKey.ScheduleNote], style = MaterialTheme.typography.bodySmall) }
+                        details.groups.forEach { (group, stops) ->
+                            item {
+                                Text(
+                                    stops.lastOrNull()?.stop?.let { stop -> stop.name.resolve(strings.language, stop.id) }
+                                        ?: strings[TextKey.Unspecified],
+                                    style = MaterialTheme.typography.titleMedium,
+                                )
+                            }
+                            items(stops, key = { "$group:${it.stop.id}" }) { item ->
+                                StopCard(
+                                    item.stop,
+                                    onClick = {
+                                        sheetContent = null
+                                        showStopOnMap(item.stop.id)
+                                    },
+                                    subtitle =
+                                        item.service.times
+                                            .take(4)
+                                            .joinToString(" • ")
+                                            .ifEmpty { strings[TextKey.NoSchedule] },
+                                )
+                            }
+                        }
+                    } else {
+                        item { EmptyPanel() }
                     }
-                    item { Text(strings[TextKey.ScheduleNote], style = MaterialTheme.typography.bodySmall) }
-                    details.routes
-                        .map { route ->
-                            val times =
-                                details.stop.services
-                                    .filter { it.routeId == route.id }
-                                    .flatMap { it.times }
-                            route to nearestScheduledDeparture(times)
-                        }
-                        .sortedBy { (route, _) ->
-                            val times =
-                                details.stop.services
-                                    .filter { it.routeId == route.id }
-                                    .flatMap { it.times }
-                            minutesUntilNextScheduledDeparture(times) ?: Int.MAX_VALUE
-                        }
-                        .forEach { (route, nextDeparture) ->
+                }
+            }
+            selectedStopId?.let { stopId ->
+                val details =
+                    remember(state.network.network, stopId) {
+                        state.network.network?.let { GetStopDetailsUseCase()(it, stopId) }
+                    }
+                LazyColumn(
+                    Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = 32.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    if (details != null) {
                         item {
-                            RouteCard(
-                                route,
-                                onClick = {
-                                    sheetContent = null
-                                    showRouteOnMap(route.id)
-                                },
-                                subtitle = strings[TextKey.Departure],
-                                trailingLabel = nextDeparture?.toString(),
+                            Text(
+                                details.stop.name.resolve(strings.language, details.stop.id),
+                                style = MaterialTheme.typography.headlineSmall,
                             )
+                            Spacer(Modifier.height(16.dp))
+                            FlowRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                Button(
+                                    onClick = {
+                                        sheetContent = null
+                                        showStopOnMap(stopId)
+                                    },
+                                ) { Text(strings[TextKey.ShowMap]) }
+                                if (state.stops.any { it.id == stopId }) {
+                                    FilledTonalButton(
+                                        onClick = { removalConfirmation = "$StopSheetPrefix$stopId" },
+                                    ) { Text(strings[TextKey.Remove]) }
+                                }
+                            }
                         }
+                        item { Text(strings[TextKey.ScheduleNote], style = MaterialTheme.typography.bodySmall) }
+                        details.routes
+                            .map { route ->
+                                val times =
+                                    details.stop.services
+                                        .filter { it.routeId == route.id }
+                                        .flatMap { it.times }
+                                route to nearestScheduledDeparture(times)
+                            }.sortedBy { (route, _) ->
+                                val times =
+                                    details.stop.services
+                                        .filter { it.routeId == route.id }
+                                        .flatMap { it.times }
+                                minutesUntilNextScheduledDeparture(times) ?: Int.MAX_VALUE
+                            }.forEach { (route, nextDeparture) ->
+                                item {
+                                    RouteCard(
+                                        route,
+                                        onClick = {
+                                            sheetContent = null
+                                            showRouteOnMap(route.id)
+                                        },
+                                        subtitle = strings[TextKey.Departure],
+                                        trailingLabel = nextDeparture?.toString(),
+                                    )
+                                }
+                            }
+                    } else {
+                        item { EmptyPanel() }
                     }
-                } else {
-                    item { EmptyPanel() }
                 }
             }
         }
-    }
     }
     removalConfirmation?.let { target ->
         RemoveFavoriteDialog(
@@ -391,7 +402,7 @@ private fun FavoriteSwipeToDismiss(
                         Alignment.CenterStart
                     } else {
                         Alignment.CenterEnd
-                }
+                    }
                 Box(
                     Modifier
                         .fillMaxSize()

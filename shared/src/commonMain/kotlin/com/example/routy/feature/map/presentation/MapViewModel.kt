@@ -88,7 +88,13 @@ class MapViewModel(
         }
 
     val uiState =
-        combine(transport.state, selectedRouteIds, selectedRoutes, favorites.state, searchRequest) { network, activeRouteIds, selection, saved, search ->
+        combine(
+            transport.state,
+            selectedRouteIds,
+            selectedRoutes,
+            favorites.state,
+            searchRequest,
+        ) { network, activeRouteIds, selection, saved, search ->
             val (selectedRouteIds, routeColorIndices) = selection
             val routes = network.network?.let { data -> activeRouteIds.mapNotNull { details(data, it) } }.orEmpty()
             val stops =
@@ -141,7 +147,9 @@ class MapViewModel(
                 LogEvent.MapFavoriteStopsUpdated,
                 "savedCount=${state.favoriteStopIds.size}, visibleCount=${state.stops.count { it.id in state.favoriteStopIds }}",
             )
-        }.flowOn(Dispatchers.Default).stateIn(viewModelScope, SharingStarted.WhileSubscribed(0), MapState())
+        }.flowOn(Dispatchers.Default)
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(0), MapState())
+
     init {
         viewModelScope.launch {
             combine(selectedRouteIds, vehicleSubscriberCount) { routeIds, subscriberCount -> routeIds to subscriberCount }
@@ -151,7 +159,10 @@ class MapViewModel(
         }
     }
 
-    private fun reconcileVehiclePolling(routeIds: List<String>, subscriberCount: Int) {
+    private fun reconcileVehiclePolling(
+        routeIds: List<String>,
+        subscriberCount: Int,
+    ) {
         if (subscriberCount == 0) {
             vehicleJobsByRoute.values.forEach(Job::cancel)
             vehicleJobsByRoute.clear()

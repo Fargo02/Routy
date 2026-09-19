@@ -14,8 +14,7 @@ class SearchRoutesUseCase {
                 val names = listOf(route.name.english, route.name.georgian, route.name.original)
                 names.any { it?.contains(term, ignoreCase = true) == true } ||
                     (names.all { it.isNullOrBlank() } && route.id.contains(term, ignoreCase = true))
-            }
-            .sortedBy { route ->
+            }.sortedBy { route ->
                 val names = listOf(route.name.english, route.name.georgian, route.name.original)
                 when {
                     names.any { it.equals(term, ignoreCase = true) } ||

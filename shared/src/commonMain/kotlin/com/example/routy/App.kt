@@ -9,14 +9,11 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -25,10 +22,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -40,7 +36,6 @@ import androidx.navigation.NavDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import com.example.routy.core.designsystem.Glyph
 import com.example.routy.core.designsystem.RoutyIcon
 import com.example.routy.core.designsystem.RoutyTheme
 import com.example.routy.core.di.AppGraph
@@ -214,7 +209,7 @@ private fun FloatingBottomNavigation(
                         targetValue = targetOffset,
                         animationSpec = tween(durationMillis = 260, easing = FastOutSlowInEasing),
                         label = "bottom-nav-selection",
-                )
+                    )
                 Surface(
                     modifier = Modifier.offset(x = selectionOffset, y = 12.dp).size(52.dp),
                     color = MaterialTheme.colorScheme.primary,
@@ -242,7 +237,7 @@ private fun FloatingBottomNavigation(
                                         ),
                                 color = Color.Transparent,
                                 contentColor =
-                                        if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
+                                    if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
                                 shape = CircleShape,
                             ) {
                                 Box(contentAlignment = Alignment.Center) { RoutyIcon(item.icon) }

@@ -10,9 +10,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.routy.core.designsystem.*
 import com.example.routy.core.localization.*
 import com.example.routy.core.mvi.CollectEffects
-import com.example.routy.feature.stop_details.presentation.state.*
-import com.example.routy.feature.stop_details.domain.nearestScheduledDeparture
 import com.example.routy.feature.stop_details.domain.minutesUntilNextScheduledDeparture
+import com.example.routy.feature.stop_details.domain.nearestScheduledDeparture
+import com.example.routy.feature.stop_details.presentation.state.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -53,15 +53,13 @@ fun StopDetailsScreen(
                             .filter { it.routeId == route.id }
                             .flatMap { it.times }
                     route to nearestScheduledDeparture(times)
-                }
-                .sortedBy { (route, _) ->
+                }.sortedBy { (route, _) ->
                     val times =
                         details.stop.services
                             .filter { it.routeId == route.id }
                             .flatMap { it.times }
                     minutesUntilNextScheduledDeparture(times) ?: Int.MAX_VALUE
-                }
-                .forEach { (route, nextDeparture) ->
+                }.forEach { (route, nextDeparture) ->
                     item {
                         RouteCard(
                             route = route,

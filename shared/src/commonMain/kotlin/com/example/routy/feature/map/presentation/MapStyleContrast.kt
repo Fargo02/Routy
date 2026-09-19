@@ -79,5 +79,7 @@ private fun boosted(channel: Double): Double = (ContrastPivot + (channel - Contr
 
 private fun rgb(channels: List<Double>): String = "rgb(${channels.joinToString(",") { (it * 255).roundToInt().toString() }})"
 
-private fun rgba(channels: List<Double>, alpha: String): String =
-    "rgba(${channels.joinToString(",") { (it * 255).roundToInt().toString() }},$alpha)"
+private fun rgba(
+    channels: List<Double>,
+    alpha: String,
+): String = "rgba(${channels.joinToString(",") { (it * 255).roundToInt().toString() }},$alpha)"

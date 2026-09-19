@@ -4,6 +4,7 @@ import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -22,18 +23,17 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
-import androidx.compose.material3.FilledTonalIconButton
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
@@ -70,11 +70,11 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.routy.PlatformBackHandler
-import com.example.routy.core.designsystem.Glyph
 import com.example.routy.core.designsystem.EmptyPanel
+import com.example.routy.core.designsystem.Glyph
 import com.example.routy.core.designsystem.LocalRoutyPalette
 import com.example.routy.core.designsystem.RouteCard
 import com.example.routy.core.designsystem.RoutyIcon
@@ -87,18 +87,15 @@ import com.example.routy.core.localization.LocalStrings
 import com.example.routy.core.localization.TextKey
 import com.example.routy.core.mvi.CollectEffects
 import com.example.routy.core.navigation.Destination
+import com.example.routy.core.transport.domain.Vehicle
+import com.example.routy.core.transport.domain.VehicleState
 import com.example.routy.feature.map.presentation.state.MapAction
 import com.example.routy.feature.map.presentation.state.MapCamera
 import com.example.routy.feature.map.presentation.state.MapEffect
-import com.example.routy.core.transport.domain.BusStop
-import com.example.routy.core.transport.domain.Vehicle
-import com.example.routy.core.transport.domain.VehicleState
 import com.example.routy.feature.route_details.domain.GetRouteDetailsUseCase
 import com.example.routy.feature.stop_details.domain.scheduledFrequencyMinutes
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import kotlinx.coroutines.yield
 import kotlinx.serialization.json.jsonPrimitive
 import org.jetbrains.compose.resources.painterResource
@@ -188,7 +185,11 @@ fun MapScreen(
             val shown =
                 selectedStop
                     ?.takeIf { id -> state.stops.none { it.id == id } }
-                    ?.let { id -> state.network.network?.stops?.firstOrNull { it.id == id } }
+                    ?.let { id ->
+                        state.network.network
+                            ?.stops
+                            ?.firstOrNull { it.id == id }
+                    }
             if (shown == null) state.stops else state.stops + shown
         }
 
@@ -672,128 +673,130 @@ fun MapScreen(
                         }
                     } ?: item { EmptyPanel() }
                 }
-            } else Column(
-                Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 8.dp)
-                    .pointerInput(routeIds, activeRouteId) {
-                        detectHorizontalDragGestures(
-                            onDragStart = { routeInfoSwipeDistance = 0f },
-                            onHorizontalDrag = { _, dragAmount -> routeInfoSwipeDistance += dragAmount },
-                            onDragEnd = {
-                                routeInfoRouteId =
-                                    when {
-                                        routeInfoSwipeDistance <= -48f -> routeIds.getOrNull(activeRouteIndex + 1)
-                                        routeInfoSwipeDistance >= 48f -> routeIds.getOrNull(activeRouteIndex - 1)
-                                        else -> routeInfoRouteId
+            } else {
+                Column(
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp)
+                        .pointerInput(routeIds, activeRouteId) {
+                            detectHorizontalDragGestures(
+                                onDragStart = { routeInfoSwipeDistance = 0f },
+                                onHorizontalDrag = { _, dragAmount -> routeInfoSwipeDistance += dragAmount },
+                                onDragEnd = {
+                                    routeInfoRouteId =
+                                        when {
+                                            routeInfoSwipeDistance <= -48f -> routeIds.getOrNull(activeRouteIndex + 1)
+                                            routeInfoSwipeDistance >= 48f -> routeIds.getOrNull(activeRouteIndex - 1)
+                                            else -> routeInfoRouteId
+                                        }
+                                },
+                            )
+                        },
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    AnimatedContent(
+                        targetState = activeRouteId,
+                        transitionSpec = {
+                            val forward = routeIds.indexOf(targetState) > routeIds.indexOf(initialState)
+                            if (forward) {
+                                slideInHorizontally { it } togetherWith slideOutHorizontally { -it }
+                            } else {
+                                slideInHorizontally { -it } togetherWith slideOutHorizontally { it }
+                            }
+                        },
+                        label = "route-info-transition",
+                    ) { displayedRouteId ->
+                        val displayedIndex = routeIds.indexOf(displayedRouteId)
+                        state.network.network
+                            ?.routes
+                            ?.firstOrNull { it.id == displayedRouteId }
+                            ?.let { route ->
+                                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                    Row(
+                                        Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = if (routeIds.size > 1) 12.dp else 24.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                    ) {
+                                        if (routeIds.size > 1) {
+                                            IconButton(
+                                                onClick = { routeInfoRouteId = routeIds.getOrNull(displayedIndex - 1) },
+                                                enabled = displayedIndex > 0,
+                                            ) { RoutyIcon(Glyph.Chevron, modifier = Modifier.graphicsLayer(rotationZ = 180f)) }
+                                        }
+                                        Text(
+                                            route.name.resolve(strings.language, route.id),
+                                            Modifier.weight(1f),
+                                            style = MaterialTheme.typography.headlineSmall,
+                                        )
+                                        if (routeIds.size > 1) {
+                                            IconButton(
+                                                onClick = { routeInfoRouteId = routeIds.getOrNull(displayedIndex + 1) },
+                                                enabled = displayedIndex in 0 until routeIds.lastIndex,
+                                            ) { RoutyIcon(Glyph.Chevron) }
+                                        }
                                     }
-                            },
-                        )
-                    },
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                AnimatedContent(
-                    targetState = activeRouteId,
-                    transitionSpec = {
-                        val forward = routeIds.indexOf(targetState) > routeIds.indexOf(initialState)
-                        if (forward) {
-                            slideInHorizontally { it } togetherWith slideOutHorizontally { -it }
-                        } else {
-                            slideInHorizontally { -it } togetherWith slideOutHorizontally { it }
-                        }
-                    },
-                    label = "route-info-transition",
-                ) { displayedRouteId ->
-                    val displayedIndex = routeIds.indexOf(displayedRouteId)
-                    state.network.network
-                        ?.routes
-                        ?.firstOrNull { it.id == displayedRouteId }
-                        ?.let { route ->
-                            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                                Row(
-                                    Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = if (routeIds.size > 1) 12.dp else 24.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                ) {
-                                    if (routeIds.size > 1) {
-                                        IconButton(
-                                            onClick = { routeInfoRouteId = routeIds.getOrNull(displayedIndex - 1) },
-                                            enabled = displayedIndex > 0,
-                                        ) { RoutyIcon(Glyph.Chevron, modifier = Modifier.graphicsLayer(rotationZ = 180f)) }
+                                    FilledTonalButton(
+                                        onClick = { model.actionHandler(MapAction.ToggleRouteFavorite(route.id)) },
+                                        modifier = Modifier.padding(horizontal = 24.dp),
+                                    ) {
+                                        RoutyIcon(
+                                            if (route.id in state.favoriteRouteIds) Glyph.StarFilled else Glyph.Star,
+                                        )
+                                        Spacer(Modifier.width(8.dp))
+                                        Text(strings[if (route.id in state.favoriteRouteIds) TextKey.Saved else TextKey.Save])
                                     }
-                                    Text(
-                                        route.name.resolve(strings.language, route.id),
-                                        Modifier.weight(1f),
-                                        style = MaterialTheme.typography.headlineSmall,
-                                    )
-                                    if (routeIds.size > 1) {
-                                        IconButton(
-                                            onClick = { routeInfoRouteId = routeIds.getOrNull(displayedIndex + 1) },
-                                            enabled = displayedIndex in 0 until routeIds.lastIndex,
-                                        ) { RoutyIcon(Glyph.Chevron) }
-                                    }
-                                }
-                                FilledTonalButton(
-                                    onClick = { model.actionHandler(MapAction.ToggleRouteFavorite(route.id)) },
-                                    modifier = Modifier.padding(horizontal = 24.dp),
-                                ) {
-                                    RoutyIcon(
-                                        if (route.id in state.favoriteRouteIds) Glyph.StarFilled else Glyph.Star,
-                                    )
-                                    Spacer(Modifier.width(8.dp))
-                                    Text(strings[if (route.id in state.favoriteRouteIds) TextKey.Saved else TextKey.Save])
                                 }
                             }
-                        }
-                }
-                routeFrequency?.let { frequency ->
+                    }
+                    routeFrequency?.let { frequency ->
+                        Text(
+                            strings.runsEvery(frequency),
+                            Modifier.padding(horizontal = 24.dp),
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                    }
                     Text(
-                        strings.runsEvery(frequency),
+                        strings[TextKey.Live],
                         Modifier.padding(horizontal = 24.dp),
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.primary,
+                        style = MaterialTheme.typography.titleMedium,
                     )
-                }
-                Text(
-                    strings[TextKey.Live],
-                    Modifier.padding(horizontal = 24.dp),
-                    style = MaterialTheme.typography.titleMedium,
-                )
-                Text(
-                    when {
-                        vehicles.isLoading -> strings[TextKey.Loading]
-                        vehicles.isStale -> strings[TextKey.Stale]
-                        activeVehicles.isEmpty() -> strings[TextKey.NoBuses]
-                        else -> strings.vehiclesCount(activeVehicles.size)
-                    },
-                    Modifier.padding(horizontal = 24.dp),
-                    style = MaterialTheme.typography.bodyMedium,
-                )
-                if (activeVehicles.isNotEmpty()) {
-                    LazyRow(
-                        Modifier.fillMaxWidth(),
-                        contentPadding = PaddingValues(horizontal = 24.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        items(activeVehicles, key = { it.id }) { vehicle ->
-                            AssistChip(
-                                onClick = {
-                                    routeInfoVisible = false
-                                    model.actionHandler(MapAction.SelectVehicle(vehicle.id))
-                                },
-                                label = { Text("${strings[TextKey.Vehicle]} ${vehicle.id}") },
-                            )
+                    Text(
+                        when {
+                            vehicles.isLoading -> strings[TextKey.Loading]
+                            vehicles.isStale -> strings[TextKey.Stale]
+                            activeVehicles.isEmpty() -> strings[TextKey.NoBuses]
+                            else -> strings.vehiclesCount(activeVehicles.size)
+                        },
+                        Modifier.padding(horizontal = 24.dp),
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                    if (activeVehicles.isNotEmpty()) {
+                        LazyRow(
+                            Modifier.fillMaxWidth(),
+                            contentPadding = PaddingValues(horizontal = 24.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            items(activeVehicles, key = { it.id }) { vehicle ->
+                                AssistChip(
+                                    onClick = {
+                                        routeInfoVisible = false
+                                        model.actionHandler(MapAction.SelectVehicle(vehicle.id))
+                                    },
+                                    label = { Text("${strings[TextKey.Vehicle]} ${vehicle.id}") },
+                                )
+                            }
                         }
                     }
+                    TextButton(
+                        onClick = {
+                            routeScheduleVisible = true
+                            scope.launch { routeInfoSheetState.expand() }
+                        },
+                        modifier = Modifier.padding(horizontal = 24.dp).padding(bottom = 12.dp),
+                    ) { Text(strings[TextKey.Details]) }
                 }
-                TextButton(
-                    onClick = {
-                        routeScheduleVisible = true
-                        scope.launch { routeInfoSheetState.expand() }
-                    },
-                    modifier = Modifier.padding(horizontal = 24.dp).padding(bottom = 12.dp),
-                ) { Text(strings[TextKey.Details]) }
             }
         }
     }
@@ -819,8 +822,10 @@ fun MapScreen(
                             searchFieldQuery = it
                             model.actionHandler(MapAction.SearchQueryChanged(it))
                         },
-                        modifier = Modifier.padding(horizontal = 20.dp)
-                            .focusRequester(searchFocusRequester),
+                        modifier =
+                            Modifier
+                                .padding(horizontal = 20.dp)
+                                .focusRequester(searchFocusRequester),
                         onClear = {
                             searchFieldQuery = ""
                             model.actionHandler(MapAction.ClearSearch)
@@ -911,24 +916,31 @@ fun MapScreen(
                         )
                     }
                 }
-                if (hasCurrentSearchResults) items(
-                    state.search.stops,
-                    key = { "stop:${it.id}" }) { stop ->
-                    Box(Modifier.padding(horizontal = 20.dp)) {
-                        StopCard(
-                            stop = stop,
-                            subtitle =
-                                stop.services
-                                    .map { it.routeId }
-                                    .distinct()
-                                    .joinToString(" · "),
-                            onClick = {
-                                model.actionHandler(MapAction.SelectSearchStop(stop.id))
-                            },
-                        )
+                if (hasCurrentSearchResults) {
+                    items(
+                        state.search.stops,
+                        key = { "stop:${it.id}" },
+                    ) { stop ->
+                        Box(Modifier.padding(horizontal = 20.dp)) {
+                            StopCard(
+                                stop = stop,
+                                subtitle =
+                                    stop.services
+                                        .map { it.routeId }
+                                        .distinct()
+                                        .joinToString(" · "),
+                                onClick = {
+                                    model.actionHandler(MapAction.SelectSearchStop(stop.id))
+                                },
+                            )
+                        }
                     }
                 }
-                if (hasCurrentSearchResults && searchFieldQuery.isNotBlank() && state.search.routes.isEmpty() && state.search.stops.isEmpty()) {
+                if (hasCurrentSearchResults &&
+                    searchFieldQuery.isNotBlank() &&
+                    state.search.routes.isEmpty() &&
+                    state.search.stops.isEmpty()
+                ) {
                     item { SearchEmptyState(Modifier.padding(horizontal = 20.dp)) }
                 }
             }
@@ -969,7 +981,9 @@ fun MapScreen(
                     TextButton({
                         vehicle?.let {
                             scope.launch {
-                                mapState.animateCameraPosition(CameraPosition(target = Position(it.position.longitude, it.position.latitude), zoom = 16.0))
+                                mapState.animateCameraPosition(
+                                    CameraPosition(target = Position(it.position.longitude, it.position.latitude), zoom = 16.0),
+                                )
                             }
                         }
                         vehicleDetailsVisible = false
