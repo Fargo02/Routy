@@ -1,7 +1,7 @@
 package ge.routy.transport
 
-import android.os.Bundle
 import android.content.res.Configuration
+import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -9,9 +9,9 @@ import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.core.view.WindowCompat
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.routy.App
 import com.example.routy.core.di.AppGraph
 import com.example.routy.core.logging.PlatformLogger
@@ -36,7 +36,8 @@ class MainActivity : ComponentActivity() {
             )[GraphModel::class.java]
         splash.setKeepOnScreenCondition { !model.graph.settings.state.value.loaded }
         setContent {
-            val preferences by model.graph.settings.state.collectAsStateWithLifecycle()
+            val preferences by model.graph.settings.state
+                .collectAsStateWithLifecycle()
             val dark =
                 preferences.appearance == Appearance.Dark ||
                     (
