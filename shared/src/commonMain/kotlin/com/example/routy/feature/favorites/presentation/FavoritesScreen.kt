@@ -25,6 +25,7 @@ import routy.shared.generated.resources.Res
 import routy.shared.generated.resources.favorites_backdrop
 import routy.shared.generated.resources.favorites_backdrop_dark
 
+private const val FavoriteCardAlpha = 0.55f
 private const val RouteSheetPrefix = "route:"
 private const val StopSheetPrefix = "stop:"
 
@@ -111,7 +112,7 @@ fun FavoritesScreen(
                                 sheetContent = "$RouteSheetPrefix${route.id}"
                             },
                             subtitle = frequency?.let(strings::runsEvery),
-                            containerColor = Color.Transparent,
+                            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = FavoriteCardAlpha),
                         )
                     }
                 }
@@ -343,7 +344,7 @@ private fun FavoriteStopCard(
     Card(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = FavoriteCardAlpha)),
     ) {
         Column(Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 16.dp)) {
             Row(
