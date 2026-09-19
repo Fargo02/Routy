@@ -21,6 +21,9 @@ coroutines = "1.10.2"
 serialization = "1.9.0"
 
 maplibre = "0.16.0"
+firebaseCrashlytics = "20.1.1"
+googleGmsGoogleServices = "4.5.0"
+googleFirebaseCrashlytics = "3.0.8"
 
 [libraries]
 maplibre-compose = { module = "org.maplibre.compose:maplibre-compose", version.ref = "maplibre" }
@@ -53,6 +56,7 @@ compose-material3 = { module = "org.jetbrains.compose.material3:material3", vers
 compose-ui = { module = "org.jetbrains.compose.ui:ui", version.ref = "composeMultiplatform" }
 compose-components-resources = { module = "org.jetbrains.compose.components:components-resources", version.ref = "composeMultiplatform" }
 compose-uiToolingPreview = { module = "org.jetbrains.compose.ui:ui-tooling-preview", version.ref = "composeMultiplatform" }
+firebase-crashlytics = { group = "com.google.firebase", name = "firebase-crashlytics", version.ref = "firebaseCrashlytics" }
 
 [plugins]
 ktlint = { id = "org.jlleitschuh.gradle.ktlint", version = "14.2.0" }
@@ -62,3 +66,5 @@ androidMultiplatformLibrary = { id = "com.android.kotlin.multiplatform.library",
 composeMultiplatform = { id = "org.jetbrains.compose", version.ref = "composeMultiplatform" }
 composeCompiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
+googleGmsGoogleServices = { id = "com.google.gms.google-services", version.ref = "googleGmsGoogleServices" }
+googleFirebaseCrashlytics = { id = "com.google.firebase.crashlytics", version.ref = "googleFirebaseCrashlytics" }

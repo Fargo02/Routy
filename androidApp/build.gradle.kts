@@ -4,6 +4,8 @@ plugins {
     alias(libs.plugins.ktlint)
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.composeCompiler)
+    alias(libs.plugins.googleGmsGoogleServices)
+    alias(libs.plugins.googleFirebaseCrashlytics)
 }
 
 kotlin {
@@ -13,6 +15,7 @@ kotlin {
 }
 dependencies {
     implementation(project(":shared"))
+    implementation(libs.firebase.crashlytics)
     implementation(libs.ktor.okhttp)
 
     implementation(libs.androidx.activity.compose)
