@@ -61,6 +61,10 @@ CI reads `ROUTY_KEYSTORE_FILE`, `ROUTY_KEYSTORE_PASSWORD`, `ROUTY_KEY_ALIAS` and
 Upload `androidApp/build/outputs/mapping/release/mapping.txt` with every release
 so Play Vitals deobfuscates stack traces.
 
+Play requires a public privacy policy URL. The text lives in
+[privacy policy](docs/privacy-policy.md); publish `docs/` with GitHub Pages and
+paste `https://fargo02.github.io/Routy/privacy-policy` into the Play Console.
+
 ## Verification
 
 The final test pass is deferred at the user's request; see
