@@ -467,15 +467,12 @@ fun MapScreen(
                 Modifier
                     .align(Alignment.TopCenter)
                     .fillMaxWidth()
-                    .padding(
-                        start = 16.dp,
-                        top = screenPadding.calculateTopPadding() + 16.dp,
-                        end = 16.dp,
-                    ),
+                    .padding(top = screenPadding.calculateTopPadding() + 16.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 Surface(
                     onClick = { model.actionHandler(MapAction.OpenSearch) },
+                    modifier = Modifier.padding(horizontal = 16.dp),
                     shape = MaterialTheme.shapes.large,
                     shadowElevation = 8.dp,
                 ) {
@@ -492,60 +489,57 @@ fun MapScreen(
                         )
                     }
                 }
-                if (state.network.network == null ||
-                    state.network.error != null
+                LazyRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentPadding = PaddingValues(horizontal = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    StatusPanel(state.network) { model.actionHandler(MapAction.Retry) }
+                    items(
+                        routes,
+                        key = { it.id },
+                    ) { route ->
+                        val selected = route.id in state.selectedRouteIds
+                        val routeColor = palette.routeColors[state.routeColorIndex(route.id).mod(palette.routeColors.size)]
+                        val selectedContentColor = if (routeColor.luminance() > 0.45f) Color(0xFF0F172A) else Color.White
+                        FilterChip(
+                            selected = selected,
+                            enabled = selected || state.selectedRouteIds.size < 7,
+                            onClick = { model.actionHandler(MapAction.SelectRoute(route.id)) },
+                            label = {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    if (route.id in state.favoriteRouteIds) {
+                                        CompositionLocalProvider(
+                                            LocalContentColor provides
+                                                if (selected) selectedContentColor else MaterialTheme.colorScheme.tertiary,
+                                        ) {
+                                            RoutyIcon(Glyph.StarFilled)
+                                        }
+                                        Spacer(Modifier.width(4.dp))
+                                    }
+                                    Text(route.name.resolve(strings.language, route.id))
+                                }
+                            },
+                            colors =
+                                FilterChipDefaults.filterChipColors(
+                                    containerColor = MaterialTheme.colorScheme.surface,
+                                    selectedContainerColor = routeColor,
+                                    selectedLabelColor = selectedContentColor,
+                                    selectedLeadingIconColor = selectedContentColor,
+                                ),
+                            border = null,
+                        )
+                    }
+                }
+                if (state.network.network == null || state.network.error != null) {
+                    Box(Modifier.padding(horizontal = 16.dp)) {
+                        StatusPanel(state.network) { model.actionHandler(MapAction.Retry) }
+                    }
                 }
                 if (mapError) {
                     Surface(
+                        modifier = Modifier.padding(horizontal = 16.dp),
                         shape = MaterialTheme.shapes.medium,
                     ) { Text(strings[TextKey.MapUnavailable], Modifier.padding(16.dp)) }
-                }
-            }
-            LazyRow(
-                modifier =
-                    Modifier
-                        .align(Alignment.TopCenter)
-                        .fillMaxWidth()
-                        .padding(top = screenPadding.calculateTopPadding() + 84.dp),
-                contentPadding = PaddingValues(horizontal = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                items(
-                    routes,
-                    key = { it.id },
-                ) { route ->
-                    val selected = route.id in state.selectedRouteIds
-                    val routeColor = palette.routeColors[state.routeColorIndex(route.id).mod(palette.routeColors.size)]
-                    val selectedContentColor = if (routeColor.luminance() > 0.45f) Color(0xFF0F172A) else Color.White
-                    FilterChip(
-                        selected = selected,
-                        enabled = selected || state.selectedRouteIds.size < 7,
-                        onClick = { model.actionHandler(MapAction.SelectRoute(route.id)) },
-                        label = {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                if (route.id in state.favoriteRouteIds) {
-                                    CompositionLocalProvider(
-                                        LocalContentColor provides
-                                            if (selected) selectedContentColor else MaterialTheme.colorScheme.tertiary,
-                                    ) {
-                                        RoutyIcon(Glyph.StarFilled)
-                                    }
-                                    Spacer(Modifier.width(4.dp))
-                                }
-                                Text(route.name.resolve(strings.language, route.id))
-                            }
-                        },
-                        colors =
-                            FilterChipDefaults.filterChipColors(
-                                containerColor = MaterialTheme.colorScheme.surface,
-                                selectedContainerColor = routeColor,
-                                selectedLabelColor = selectedContentColor,
-                                selectedLeadingIconColor = selectedContentColor,
-                            ),
-                        border = null,
-                    )
                 }
             }
             Column(
