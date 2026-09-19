@@ -183,7 +183,14 @@ fun MapScreen(
     var routeInfoSwipeDistance by remember { mutableStateOf(0f) }
     var selectedVehicle by rememberSaveable { mutableStateOf<String?>(null) }
     var selectedStop by rememberSaveable { mutableStateOf<String?>(null) }
-    val mapStops = state.stops
+    val mapStops =
+        remember(state.stops, state.network.network, selectedStop) {
+            val shown =
+                selectedStop
+                    ?.takeIf { id -> state.stops.none { it.id == id } }
+                    ?.let { id -> state.network.network?.stops?.firstOrNull { it.id == id } }
+            if (shown == null) state.stops else state.stops + shown
+        }
 
     fun selectMapStop(id: String) {
         selectedStop = id
