@@ -45,6 +45,7 @@ import com.example.routy.feature.settings.presentation.state.SettingsAction
 import kotlinx.coroutines.launch
 import routy.shared.generated.resources.Res
 import routy.shared.generated.resources.settings_backdrop
+import routy.shared.generated.resources.settings_backdrop_dark
 
 private enum class SettingsSheet { Language, ColorTheme, Appearance }
 
@@ -75,7 +76,11 @@ fun SettingsScreen(model: SettingsViewModel) {
         )
     }) { padding ->
         Box(Modifier.fillMaxSize()) {
-            ScreenBackdrop(Res.drawable.settings_backdrop)
+            ScreenBackdrop(
+                light = Res.drawable.settings_backdrop,
+                dark = Res.drawable.settings_backdrop_dark,
+                alignment = Alignment.BottomEnd,
+            )
             Column(
                 Modifier
                     .fillMaxSize()

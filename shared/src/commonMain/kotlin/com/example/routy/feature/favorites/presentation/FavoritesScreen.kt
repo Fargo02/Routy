@@ -23,6 +23,7 @@ import com.example.routy.feature.stop_details.domain.nearestScheduledDeparture
 import com.example.routy.feature.stop_details.domain.scheduledFrequencyMinutes
 import routy.shared.generated.resources.Res
 import routy.shared.generated.resources.favorites_backdrop
+import routy.shared.generated.resources.favorites_backdrop_dark
 
 private const val RouteSheetPrefix = "route:"
 private const val StopSheetPrefix = "stop:"
@@ -61,7 +62,11 @@ fun FavoritesScreen(
         },
     ) { screenPadding ->
         Box(Modifier.fillMaxSize()) {
-            ScreenBackdrop(Res.drawable.favorites_backdrop)
+            ScreenBackdrop(
+                light = Res.drawable.favorites_backdrop,
+                dark = Res.drawable.favorites_backdrop_dark,
+                alignment = Alignment.BottomEnd,
+            )
             LazyColumn(
                 Modifier.fillMaxSize(),
                 contentPadding =
@@ -106,6 +111,7 @@ fun FavoritesScreen(
                                 sheetContent = "$RouteSheetPrefix${route.id}"
                             },
                             subtitle = frequency?.let(strings::runsEvery),
+                            containerColor = Color.Transparent,
                         )
                     }
                 }
@@ -337,7 +343,7 @@ private fun FavoriteStopCard(
     Card(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
     ) {
         Column(Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 16.dp)) {
             Row(
