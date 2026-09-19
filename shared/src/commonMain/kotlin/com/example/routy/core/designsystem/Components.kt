@@ -4,12 +4,15 @@ import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
@@ -18,6 +21,7 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.semantics.*
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.example.routy.core.localization.*
 import com.example.routy.core.transport.domain.*
@@ -25,7 +29,7 @@ import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
 
 // Small, shared vector vocabulary; no platform icon fonts or bitmap dependencies.
-enum class Glyph { Map, Routes, Star, StarFilled, Search, Settings, Back, Stop, Location, Close, Chevron }
+enum class Glyph { Map, Routes, Star, StarFilled, Search, Settings, Back, Stop, Location, Close, Chevron, NoSignal }
 
 @Composable
 fun RoutyIcon(
@@ -151,6 +155,21 @@ fun RoutyIcon(
                 }
                 p.close()
                 drawPath(p, color)
+            }
+            Glyph.NoSignal -> {
+                for (r in listOf(4f, 8f, 12f)) {
+                    drawArc(
+                        color,
+                        205f,
+                        130f,
+                        false,
+                        Offset((12 - r) * u, (19 - r) * u),
+                        Size(2 * r * u, 2 * r * u),
+                        style = Stroke(2 * u),
+                    )
+                }
+                drawCircle(color, 1.6f * u, Offset(12 * u, 19 * u))
+                line(4f, 20f, 20f, 4f)
             }
             Glyph.Settings -> {
                 drawCircle(color, 8 * u, style = Stroke(2 * u))
@@ -297,26 +316,57 @@ fun SearchEmptyState(modifier: Modifier = Modifier) {
 }
 
 @Composable
+fun NetworkIssueBadge(
+    modifier: Modifier = Modifier,
+    size: Dp = 40.dp,
+    onClick: (() -> Unit)? = null,
+) {
+    val strings = LocalStrings.current
+    Box(
+        modifier
+            .size(size)
+            .clip(CircleShape)
+            .background(MaterialTheme.colorScheme.error, CircleShape)
+            .then(if (onClick == null) Modifier else Modifier.clickable(onClick = onClick))
+            .semantics {
+                liveRegion = LiveRegionMode.Polite
+                contentDescription = strings[TextKey.Offline]
+            },
+        contentAlignment = Alignment.Center,
+    ) {
+        CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.onError) {
+            RoutyIcon(Glyph.NoSignal, modifier = Modifier.size(size * 0.58f))
+        }
+    }
+}
+
+@Composable
 fun StatusPanel(
     state: NetworkState,
     retry: () -> Unit,
 ) {
     val strings = LocalStrings.current
+    val error = state.error
     when {
-        state.network == null && state.error == null -> LoadingIndicator()
-        state.error != null ->
+        state.network == null && error == null -> LoadingIndicator()
+        error != null ->
             Surface(color = MaterialTheme.colorScheme.surfaceContainer, shape = RoundedCornerShape(20.dp)) {
-                Column(Modifier.fillMaxWidth().padding(16.dp).semantics { liveRegion = LiveRegionMode.Polite }) {
-                    if (state.network != null && state.isStale) Text(strings[TextKey.Offline], style = MaterialTheme.typography.labelLarge)
-                    Text(strings.error(state.error), style = MaterialTheme.typography.bodyMedium)
-                    TextButton(retry) { Text(strings[TextKey.Retry]) }
+                Row(
+                    Modifier.fillMaxWidth().padding(16.dp).semantics { liveRegion = LiveRegionMode.Polite },
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    if (error.isConnectivity) NetworkIssueBadge()
+                    Column(Modifier.weight(1f)) {
+                        Text(strings.error(error), style = MaterialTheme.typography.bodyMedium)
+                        TextButton(retry) { Text(strings[TextKey.Retry]) }
+                    }
                 }
             }
         state.isRefreshing ->
             LinearProgressIndicator(
                 Modifier.fillMaxWidth().semantics { contentDescription = strings[TextKey.Refreshing] },
             )
-        state.isStale && state.network != null -> Text(strings[TextKey.Offline], style = MaterialTheme.typography.labelLarge)
     }
 }
 

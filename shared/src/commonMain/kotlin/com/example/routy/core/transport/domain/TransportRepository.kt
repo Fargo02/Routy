@@ -19,6 +19,12 @@ data class VehicleState(
     val error: AppError? = null,
 )
 
+val AppError.isConnectivity: Boolean
+    get() = this != AppError.StorageUnavailable
+
+val NetworkState.hasConnectivityIssue: Boolean
+    get() = error?.isConnectivity == true
+
 interface TransportRepository {
     val state: StateFlow<NetworkState>
 

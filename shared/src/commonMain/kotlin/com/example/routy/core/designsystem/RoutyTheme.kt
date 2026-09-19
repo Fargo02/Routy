@@ -161,6 +161,7 @@ private fun lightScheme(
         onSurfaceVariant = Color(0xFF64748B),
         outlineVariant = Color(0xFFE1E7EF),
         error = Color(0xFFEF4444),
+        onError = Color.White,
     )
 
 private fun darkScheme(
@@ -189,4 +190,5 @@ private fun darkScheme(
         onSurfaceVariant = Color(0xFFB0BBCB),
         outlineVariant = Color(0xFF3A4658),
         error = Color(0xFFFF6B6B),
+        onError = Color(0xFF3A0B0B),
     )

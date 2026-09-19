@@ -34,10 +34,12 @@ class RepositoryTest {
 
     private class Local(
         var cache: CachedDatabase? = null,
+        var writeFails: Boolean = false,
     ) : TransportLocalDataSource {
         override suspend fun read() = cache
 
         override suspend fun write(database: CachedDatabase) {
+            if (writeFails) error("disk full")
             cache = database
         }
     }
@@ -115,8 +117,32 @@ class RepositoryTest {
             runCurrent()
             assertNotNull(repository.state.value.network)
             assertTrue(repository.state.value.isRefreshing)
+            assertTrue(repository.state.value.isStale)
+            assertFalse(repository.state.value.hasConnectivityIssue)
             gate.complete(Unit)
             job.join()
+        }
+
+    @Test fun connectivityIssueFollowsReachabilityNotStorage() =
+        runTest {
+            val remote = Remote()
+            val local = Local(writeFails = true)
+            val repository =
+                OfflineTransportRepository(
+                    remote,
+                    local,
+                    TransportParser(),
+                    EpochClock { 10 },
+                    TransportConfig(),
+                    StandardTestDispatcher(testScheduler),
+                )
+            repository.refresh()
+            assertEquals(AppError.StorageUnavailable, repository.state.value.error)
+            assertFalse(repository.state.value.hasConnectivityIssue)
+
+            remote.failure = true
+            repository.refresh()
+            assertTrue(repository.state.value.hasConnectivityIssue)
         }
 
     @Test fun vehicleRetentionExpiresAndPollingCancels() =

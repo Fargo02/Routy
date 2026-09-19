@@ -6,6 +6,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -66,11 +67,16 @@ fun RouteDetailsScreen(
                     }
                 }
                 item {
-                    Text(strings[TextKey.Live], style = MaterialTheme.typography.titleMedium)
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(strings[TextKey.Live], style = MaterialTheme.typography.titleMedium)
+                        if (vehicles.isStale) NetworkIssueBadge(size = 28.dp)
+                    }
                     Text(
                         when {
                             vehicles.isLoading -> strings[TextKey.Loading]
-                            vehicles.isStale -> strings[TextKey.Stale]
                             vehicles.vehicles.isEmpty() -> strings[TextKey.NoBuses]
                             else -> vehicles.vehicles.joinToString(" • ") { it.id }
                         },

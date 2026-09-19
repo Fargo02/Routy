@@ -76,12 +76,12 @@ import com.example.routy.PlatformBackHandler
 import com.example.routy.core.designsystem.EmptyPanel
 import com.example.routy.core.designsystem.Glyph
 import com.example.routy.core.designsystem.LocalRoutyPalette
+import com.example.routy.core.designsystem.NetworkIssueBadge
 import com.example.routy.core.designsystem.RouteCard
 import com.example.routy.core.designsystem.RoutyIcon
 import com.example.routy.core.designsystem.ScreenScaffold
 import com.example.routy.core.designsystem.SearchEmptyState
 import com.example.routy.core.designsystem.SearchField
-import com.example.routy.core.designsystem.StatusPanel
 import com.example.routy.core.designsystem.StopCard
 import com.example.routy.core.localization.LocalStrings
 import com.example.routy.core.localization.TextKey
@@ -89,6 +89,7 @@ import com.example.routy.core.mvi.CollectEffects
 import com.example.routy.core.navigation.Destination
 import com.example.routy.core.transport.domain.Vehicle
 import com.example.routy.core.transport.domain.VehicleState
+import com.example.routy.core.transport.domain.hasConnectivityIssue
 import com.example.routy.feature.map.presentation.state.MapAction
 import com.example.routy.feature.map.presentation.state.MapCamera
 import com.example.routy.feature.map.presentation.state.MapEffect
@@ -531,11 +532,6 @@ fun MapScreen(
                         )
                     }
                 }
-                if (state.network.network == null || state.network.error != null) {
-                    Box(Modifier.padding(horizontal = 16.dp)) {
-                        StatusPanel(state.network) { model.actionHandler(MapAction.Retry) }
-                    }
-                }
                 if (mapError) {
                     Surface(
                         modifier = Modifier.padding(horizontal = 16.dp),
@@ -579,7 +575,11 @@ fun MapScreen(
                     .align(Alignment.BottomEnd)
                     .padding(end = 16.dp, bottom = 156.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
             ) {
+                if (state.network.hasConnectivityIssue || vehicles.isStale) {
+                    NetworkIssueBadge(onClick = { model.actionHandler(MapAction.Retry) })
+                }
                 if (state.selectedRouteIds.isNotEmpty()) {
                     SmallFloatingActionButton(
                         {
@@ -757,15 +757,17 @@ fun MapScreen(
                             color = MaterialTheme.colorScheme.primary,
                         )
                     }
-                    Text(
-                        strings[TextKey.Live],
+                    Row(
                         Modifier.padding(horizontal = 24.dp),
-                        style = MaterialTheme.typography.titleMedium,
-                    )
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(strings[TextKey.Live], style = MaterialTheme.typography.titleMedium)
+                        if (vehicles.isStale) NetworkIssueBadge(size = 28.dp)
+                    }
                     Text(
                         when {
                             vehicles.isLoading -> strings[TextKey.Loading]
-                            vehicles.isStale -> strings[TextKey.Stale]
                             activeVehicles.isEmpty() -> strings[TextKey.NoBuses]
                             else -> strings.vehiclesCount(activeVehicles.size)
                         },
@@ -976,7 +978,13 @@ fun MapScreen(
                 onDismissRequest = { vehicleDetailsVisible = false },
                 containerColor = MaterialTheme.colorScheme.surface,
                 title = { Text("${strings[TextKey.Vehicle]} $id") },
-                text = { Text(strings[if (vehicles.isStale || vehicle == null) TextKey.Stale else TextKey.Live]) },
+                text = {
+                    if (vehicles.isStale || vehicle == null) {
+                        NetworkIssueBadge()
+                    } else {
+                        Text(strings[TextKey.Live])
+                    }
+                },
                 confirmButton = {
                     TextButton({
                         vehicle?.let {
