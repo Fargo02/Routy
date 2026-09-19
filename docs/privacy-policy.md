@@ -1,3 +1,7 @@
+---
+title: Privacy Policy — Routy
+---
+
 # Privacy Policy — Routy
 
 **App:** Routy (Batumi public transport)
