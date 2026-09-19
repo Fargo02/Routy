@@ -13,6 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
@@ -211,12 +212,13 @@ fun RouteCard(
     stopCount: Int? = null,
     subtitle: String? = null,
     trailingLabel: String? = null,
+    containerColor: Color = MaterialTheme.colorScheme.surface,
 ) {
     val strings = LocalStrings.current
     Card(
         onClick,
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        colors = CardDefaults.cardColors(containerColor = containerColor),
     ) {
         Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
             Surface(color = MaterialTheme.colorScheme.primaryContainer, shape = RoundedCornerShape(16.dp)) {
@@ -355,21 +357,25 @@ fun ScreenScaffold(
 }
 
 @Composable
-fun ScreenBackdrop(image: DrawableResource) {
+fun ScreenBackdrop(
+    light: DrawableResource,
+    dark: DrawableResource,
+    alignment: Alignment = Alignment.BottomCenter,
+) {
     val surface = MaterialTheme.colorScheme.surface
     Image(
-        painter = painterResource(image),
+        painter = painterResource(if (LocalRoutyPalette.current.dark) dark else light),
         contentDescription = null,
         modifier = Modifier.fillMaxSize(),
         contentScale = ContentScale.Crop,
-        alignment = Alignment.BottomCenter,
+        alignment = alignment,
     )
     Box(
         Modifier.fillMaxSize().background(
             Brush.verticalGradient(
-                0f to surface.copy(alpha = 0.90f),
-                0.5f to surface.copy(alpha = 0.70f),
-                1f to surface.copy(alpha = 0f),
+                0f to surface.copy(alpha = 0.78f),
+                0.5f to surface.copy(alpha = 0.52f),
+                1f to surface.copy(alpha = 0.12f),
             ),
         ),
     )
