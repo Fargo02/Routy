@@ -68,7 +68,7 @@ class OfflineTransportRepository(
             launch { state.collect { send(it) } }
             while (isActive) {
                 refresh()
-                delay(config.databaseRefreshMillis)
+                delay(if (state.value.hasConnectivityIssue) config.databaseRetryMillis else config.databaseRefreshMillis)
             }
         }
 }

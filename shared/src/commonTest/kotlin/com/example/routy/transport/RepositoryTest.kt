@@ -145,6 +145,40 @@ class RepositoryTest {
             assertTrue(repository.state.value.hasConnectivityIssue)
         }
 
+    @Test fun anUnreachableDatabaseRetriesSoonerThanTheRefreshInterval() =
+        runTest {
+            val remote = Remote(failure = true)
+            val config = TransportConfig()
+            val repository =
+                OfflineTransportRepository(
+                    remote,
+                    Local(),
+                    TransportParser(),
+                    EpochClock { 10 },
+                    config,
+                    StandardTestDispatcher(testScheduler),
+                )
+            val job = launch { repository.observeNetwork().collect {} }
+            runCurrent()
+            assertTrue(repository.state.value.hasConnectivityIssue)
+
+            val afterFirstAttempt = remote.calls
+            advanceTimeBy(config.databaseRetryMillis + 1)
+            runCurrent()
+            assertTrue(remote.calls > afterFirstAttempt)
+
+            remote.failure = false
+            advanceTimeBy(config.databaseRetryMillis + 1)
+            runCurrent()
+            assertFalse(repository.state.value.hasConnectivityIssue)
+
+            val afterRecovery = remote.calls
+            advanceTimeBy(config.databaseRetryMillis * 4)
+            runCurrent()
+            assertEquals(afterRecovery, remote.calls)
+            job.cancelAndJoin()
+        }
+
     @Test fun vehicleRetentionExpiresAndPollingCancels() =
         runTest {
             val remote = Remote()

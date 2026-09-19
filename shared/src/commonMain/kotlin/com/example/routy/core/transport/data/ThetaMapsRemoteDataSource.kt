@@ -17,12 +17,14 @@ import kotlinx.serialization.SerializationException
 class TransportConfig(
     val baseUrl: String = "https://thetamaps.site:54321",
     val databaseRefreshMillis: Long = 600_000,
+    val databaseRetryMillis: Long = 15_000,
     val vehicleRefreshMillis: Long = 5_000,
     val vehicleRetentionMillis: Long = 30_000,
 ) {
     init {
         require(baseUrl.startsWith("https://"))
         require(databaseRefreshMillis >= 600_000 && vehicleRefreshMillis >= 4_000)
+        require(databaseRetryMillis in 5_000..databaseRefreshMillis)
         require(vehicleRetentionMillis >= vehicleRefreshMillis)
     }
 }
