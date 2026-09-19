@@ -116,7 +116,24 @@ class Strings(
             Language.Russian -> "Каждые $minutes мин."
         }
 
-    fun minutesShort(minutes: Int): String =
+    fun minutesShort(minutes: Int): String {
+        val hours = minutes / 60
+        val rest = minutes % 60
+        return when {
+            hours == 0 -> shortMinutes(rest)
+            rest == 0 -> shortHours(hours)
+            else -> "${shortHours(hours)} ${shortMinutes(rest)}"
+        }
+    }
+
+    private fun shortHours(hours: Int): String =
+        when (language) {
+            Language.English -> "$hours h"
+            Language.Georgian -> "$hours სთ"
+            Language.Russian -> "$hours ч"
+        }
+
+    private fun shortMinutes(minutes: Int): String =
         when (language) {
             Language.English -> "$minutes min"
             Language.Georgian -> "$minutes წთ"
