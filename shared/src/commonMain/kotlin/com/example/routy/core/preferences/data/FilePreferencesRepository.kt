@@ -43,8 +43,14 @@ class FilePreferencesRepository(
 
     private suspend fun readOnce() {
         if (loaded) return
-        files.read("preferences-v1.json")?.let { mutableState.value = json.decodeFromString<PreferencesRecord>(it).domain() }
+        val stored = files.read("preferences-v1.json")?.let { json.decodeFromString<PreferencesRecord>(it).domain() }
         loaded = true
+        mutableState.value = (stored ?: mutableState.value).copy(loaded = true)
+    }
+
+    private fun markLoaded() {
+        loaded = true
+        mutableState.value = mutableState.value.copy(loaded = true)
     }
 
     private suspend fun operation(block: suspend () -> Unit): Outcome<Unit> =
@@ -57,6 +63,7 @@ class FilePreferencesRepository(
         } catch (cancelled: CancellationException) {
             throw cancelled
         } catch (_: Exception) {
+            markLoaded()
             Outcome.Failure(AppError.StorageUnavailable)
         }
 

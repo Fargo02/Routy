@@ -14,6 +14,7 @@ data class Preferences(
     val colorTheme: ColorTheme = ColorTheme.Ocean,
     val routeIds: Set<String> = emptySet(),
     val stopIds: Set<String> = emptySet(),
+    val loaded: Boolean = false,
 )
 
 interface PreferencesRepository {

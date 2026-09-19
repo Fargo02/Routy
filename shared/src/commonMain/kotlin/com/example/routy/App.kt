@@ -73,6 +73,7 @@ import com.example.routy.feature.stops.navigation.stopsScreen
 fun App(graph: AppGraph) {
     val settings: SettingsViewModel = viewModel { SettingsViewModel(graph.settings) }
     val preferences by settings.uiState.collectAsStateWithLifecycle()
+    if (!preferences.loaded) return
     val strings = remember(preferences.language) { Strings(preferences.language) }
     val snackbar = remember { SnackbarHostState() }
     val navController = rememberNavController()

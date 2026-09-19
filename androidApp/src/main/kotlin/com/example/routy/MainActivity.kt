@@ -22,7 +22,7 @@ import io.ktor.client.engine.okhttp.OkHttp
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
-        installSplashScreen()
+        val splash = installSplashScreen()
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         val model =
@@ -34,6 +34,7 @@ class MainActivity : ComponentActivity() {
                         GraphModel(AppGraph(HttpClient(OkHttp), AndroidPersistentFiles(applicationContext), logger = PlatformLogger())) as T
                 },
             )[GraphModel::class.java]
+        splash.setKeepOnScreenCondition { !model.graph.settings.state.value.loaded }
         setContent {
             val preferences by model.graph.settings.state.collectAsStateWithLifecycle()
             val dark =

@@ -16,6 +16,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
 import kotlin.time.Clock
 
 class AppGraph(
@@ -44,6 +45,10 @@ class AppGraph(
     val mapStyle = CachingMapStyleSource(http, files)
     val settings = SettingsUseCase(preferences)
     val favorites = FavoritesUseCase(preferences)
+
+    init {
+        scope.launch { preferences.load() }
+    }
 
     fun close() {
         scope.cancel()
