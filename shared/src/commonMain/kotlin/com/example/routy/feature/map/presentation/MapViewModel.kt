@@ -78,9 +78,14 @@ class MapViewModel(
      * existing job and briefly replace its markers with the repository's initial empty state.
      */
     val vehicles: Flow<VehicleState> =
-        _vehicles
-            .onSubscription { vehicleSubscriberCount.update { it + 1 } }
-            .onCompletion { vehicleSubscriberCount.update { count -> (count - 1).coerceAtLeast(0) } }
+        combine(
+            _vehicles
+                .onSubscription { vehicleSubscriberCount.update { it + 1 } }
+                .onCompletion { vehicleSubscriberCount.update { count -> (count - 1).coerceAtLeast(0) } },
+            transport.state,
+        ) { state, network ->
+            state.copy(vehicles = alignHeadingsToRoutes(state.vehicles, network.network?.geometries.orEmpty()))
+        }
 
     val uiState =
         combine(transport.state, selectedRouteIds, selectedRoutes, favorites.state, searchRequest) { network, activeRouteIds, selection, saved, search ->
