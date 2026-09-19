@@ -1,4 +1,5 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import java.util.Properties
 
 plugins {
     alias(libs.plugins.ktlint)
@@ -24,6 +25,20 @@ dependencies {
     implementation(libs.compose.uiToolingPreview)
     debugImplementation(libs.compose.uiTooling)
 }
+
+fun keystoreProperties(): Properties? {
+    val file = rootProject.file("keystore.properties")
+    if (file.exists()) return Properties().apply { file.inputStream().use { load(it) } }
+    val store = System.getenv("ROUTY_KEYSTORE_FILE") ?: return null
+    return Properties().apply {
+        setProperty("storeFile", store)
+        setProperty("storePassword", System.getenv("ROUTY_KEYSTORE_PASSWORD").orEmpty())
+        setProperty("keyAlias", System.getenv("ROUTY_KEY_ALIAS").orEmpty())
+        setProperty("keyPassword", System.getenv("ROUTY_KEY_PASSWORD").orEmpty())
+    }
+}
+
+val keystore = keystoreProperties()
 
 android {
     namespace = "ge.routy.transport"
@@ -51,8 +66,19 @@ android {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
+    signingConfigs {
+        keystore?.let { properties ->
+            create("release") {
+                storeFile = rootProject.file(properties.getProperty("storeFile"))
+                storePassword = properties.getProperty("storePassword")
+                keyAlias = properties.getProperty("keyAlias")
+                keyPassword = properties.getProperty("keyPassword")
+            }
+        }
+    }
     buildTypes {
         release {
+            signingConfig = signingConfigs.findByName("release")
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(

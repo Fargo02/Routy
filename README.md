@@ -38,6 +38,29 @@ xcodebuild -project iosApp/iosApp.xcodeproj -scheme iosApp \
   -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO build
 ```
 
+## Release builds
+
+Play accepts the bundle, not the APK:
+
+```sh
+./gradlew :androidApp:bundleRelease
+```
+
+Signing reads `keystore.properties` in the repository root, which is
+machine-local and must not be committed:
+
+```properties
+storeFile=/absolute/path/to/routy.jks
+storePassword=...
+keyAlias=...
+keyPassword=...
+```
+
+CI reads `ROUTY_KEYSTORE_FILE`, `ROUTY_KEYSTORE_PASSWORD`, `ROUTY_KEY_ALIAS` and
+`ROUTY_KEY_PASSWORD` instead. Without either the release build stays unsigned.
+Upload `androidApp/build/outputs/mapping/release/mapping.txt` with every release
+so Play Vitals deobfuscates stack traces.
+
 ## Verification
 
 The final test pass is deferred at the user's request; see

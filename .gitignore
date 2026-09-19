@@ -19,3 +19,4 @@ androidApp/release/
 **/xcshareddata/WorkspaceSettings.xcsettings
 node_modules/
 google-services.json
+keystore.properties
