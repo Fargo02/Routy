@@ -33,6 +33,7 @@ import androidx.lifecycle.createSavedStateHandle
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavDestination
+import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
@@ -259,8 +260,7 @@ private fun NavDestination?.title(): TextKey =
         else -> TextKey.AppName
     }
 
-private inline fun <reified T : Any> NavDestination?.hasRouteType(): Boolean =
-    this?.route?.startsWith(T::class.qualifiedName.orEmpty()) == true
+private inline fun <reified T : Any> NavDestination?.hasRouteType(): Boolean = this?.hasRoute<T>() == true
 
 @Composable
 expect fun PlatformBackHandler(
