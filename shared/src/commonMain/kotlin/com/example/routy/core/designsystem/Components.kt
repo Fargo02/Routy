@@ -17,8 +17,8 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.semantics.*
@@ -28,6 +28,8 @@ import com.example.routy.core.localization.*
 import com.example.routy.core.transport.domain.*
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
+import routy.shared.generated.resources.Res
+import routy.shared.generated.resources.bus_stop_icon
 
 // Small, shared vector vocabulary; no platform icon fonts or bitmap dependencies.
 enum class Glyph { Map, Routes, Star, StarFilled, Search, Settings, Back, Stop, Location, Close, Chevron, NoSignal }
@@ -39,6 +41,15 @@ fun RoutyIcon(
     modifier: Modifier = Modifier,
 ) {
     val color = LocalContentColor.current
+    if (glyph == Glyph.Stop) {
+        Image(
+            painter = painterResource(Res.drawable.bus_stop_icon),
+            contentDescription = label,
+            modifier = modifier.size(24.dp),
+            colorFilter = ColorFilter.tint(color),
+        )
+        return
+    }
     Canvas(modifier.size(24.dp).then(if (label == null) Modifier else Modifier.semantics { contentDescription = label })) {
         val u = size.width / 24
 
@@ -74,51 +85,7 @@ fun RoutyIcon(
                 line(0f, 12f, 4f, 12f)
                 line(20f, 12f, 24f, 12f)
             }
-            Glyph.Stop -> {
-                fun bar(
-                    x: Float,
-                    y: Float,
-                    a: Float,
-                    b: Float,
-                    w: Float,
-                ) = drawLine(color, Offset(x * u, y * u), Offset(a * u, b * u), w * u, StrokeCap.Round)
-
-                val board = Stroke(1.9f * u, cap = StrokeCap.Round)
-                val detail = Stroke(1.2f * u, cap = StrokeCap.Round)
-                drawRoundRect(
-                    color,
-                    Offset(4 * u, 1.2f * u),
-                    Size(16 * u, 14.4f * u),
-                    androidx.compose.ui.geometry
-                        .CornerRadius(4 * u),
-                    style = board,
-                )
-                bar(12f, 15.6f, 12f, 22.3f, 1.9f)
-                bar(8.4f, 22.3f, 15.6f, 22.3f, 1.9f)
-                drawRoundRect(
-                    color,
-                    Offset(7.6f * u, 3.3f * u),
-                    Size(8.8f * u, 9f * u),
-                    androidx.compose.ui.geometry
-                        .CornerRadius(2.4f * u),
-                    style = detail,
-                )
-                bar(9.9f, 5.2f, 14.1f, 5.2f, 1.1f)
-                drawRoundRect(
-                    color,
-                    Offset(9.1f * u, 6.6f * u),
-                    Size(5.8f * u, 2.8f * u),
-                    androidx.compose.ui.geometry
-                        .CornerRadius(0.7f * u),
-                    style = detail,
-                )
-                drawCircle(color, 0.75f * u, Offset(9.8f * u, 10.8f * u))
-                drawCircle(color, 0.75f * u, Offset(14.2f * u, 10.8f * u))
-                bar(9.7f, 12.9f, 9.7f, 13.7f, 1.1f)
-                bar(14.3f, 12.9f, 14.3f, 13.7f, 1.1f)
-                bar(6.9f, 6.1f, 6.9f, 7.5f, 1.1f)
-                bar(17.1f, 6.1f, 17.1f, 7.5f, 1.1f)
-            }
+            Glyph.Stop -> Unit
             Glyph.Routes -> {
                 drawRoundRect(
                     color,
