@@ -352,9 +352,7 @@ private fun FavoriteStopCard(
                 horizontalArrangement = Arrangement.spacedBy(14.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.onSurfaceVariant) {
-                    RoutyIcon(Glyph.Stop)
-                }
+                RoutyIcon(Glyph.Stop, modifier = Modifier.size(28.dp))
                 Text(
                     stop.name.resolve(strings.language, stop.id),
                     modifier = Modifier.weight(1f),
@@ -365,13 +363,13 @@ private fun FavoriteStopCard(
             if (upcomingBuses.isEmpty()) {
                 Text(
                     fallbackSubtitle,
-                    modifier = Modifier.padding(start = 38.dp, top = 8.dp),
+                    modifier = Modifier.padding(start = 42.dp, top = 8.dp),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             } else {
                 FlowRow(
-                    modifier = Modifier.padding(start = 38.dp, top = 8.dp),
+                    modifier = Modifier.padding(start = 42.dp, top = 8.dp),
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalArrangement = Arrangement.spacedBy(6.dp),
                 ) {

@@ -18,6 +18,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.semantics.*
@@ -74,9 +75,49 @@ fun RoutyIcon(
                 line(20f, 12f, 24f, 12f)
             }
             Glyph.Stop -> {
-                drawCircle(color, 6 * u, Offset(12 * u, 8 * u), style = Stroke(2 * u))
-                line(12f, 14f, 12f, 23f)
-                line(7f, 23f, 17f, 23f)
+                fun bar(
+                    x: Float,
+                    y: Float,
+                    a: Float,
+                    b: Float,
+                    w: Float,
+                ) = drawLine(color, Offset(x * u, y * u), Offset(a * u, b * u), w * u, StrokeCap.Round)
+
+                val board = Stroke(1.9f * u, cap = StrokeCap.Round)
+                val detail = Stroke(1.2f * u, cap = StrokeCap.Round)
+                drawRoundRect(
+                    color,
+                    Offset(4 * u, 1.2f * u),
+                    Size(16 * u, 14.4f * u),
+                    androidx.compose.ui.geometry
+                        .CornerRadius(4 * u),
+                    style = board,
+                )
+                bar(12f, 15.6f, 12f, 22.3f, 1.9f)
+                bar(8.4f, 22.3f, 15.6f, 22.3f, 1.9f)
+                drawRoundRect(
+                    color,
+                    Offset(7.6f * u, 3.3f * u),
+                    Size(8.8f * u, 9f * u),
+                    androidx.compose.ui.geometry
+                        .CornerRadius(2.4f * u),
+                    style = detail,
+                )
+                bar(9.9f, 5.2f, 14.1f, 5.2f, 1.1f)
+                drawRoundRect(
+                    color,
+                    Offset(9.1f * u, 6.6f * u),
+                    Size(5.8f * u, 2.8f * u),
+                    androidx.compose.ui.geometry
+                        .CornerRadius(0.7f * u),
+                    style = detail,
+                )
+                drawCircle(color, 0.75f * u, Offset(9.8f * u, 10.8f * u))
+                drawCircle(color, 0.75f * u, Offset(14.2f * u, 10.8f * u))
+                bar(9.7f, 12.9f, 9.7f, 13.7f, 1.1f)
+                bar(14.3f, 12.9f, 14.3f, 13.7f, 1.1f)
+                bar(6.9f, 6.1f, 6.9f, 7.5f, 1.1f)
+                bar(17.1f, 6.1f, 17.1f, 7.5f, 1.1f)
             }
             Glyph.Routes -> {
                 drawRoundRect(
@@ -279,7 +320,7 @@ fun StopCard(
     val strings = LocalStrings.current
     Card(onClick, Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
         Row(Modifier.padding(18.dp), horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.CenterVertically) {
-            RoutyIcon(Glyph.Stop)
+            RoutyIcon(Glyph.Stop, modifier = Modifier.size(28.dp))
             Column(Modifier.weight(1f)) {
                 Text(stop.name.resolve(strings.language, stop.id), style = MaterialTheme.typography.titleMedium)
                 Text(
