@@ -15,6 +15,10 @@ kotlin {
     }
 }
 dependencies {
+    constraints {
+        implementation(libs.androidx.fragment)
+    }
+
     implementation(project(":shared"))
     implementation(libs.firebase.crashlytics)
     implementation(libs.ktor.okhttp)
@@ -57,8 +61,8 @@ android {
             libs.versions.android.targetSdk
                 .get()
                 .toInt()
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 3
+        versionName = "1.0.0"
         ndk { abiFilters += listOf("arm64-v8a", "armeabi-v7a", "x86_64") }
     }
     packaging {
