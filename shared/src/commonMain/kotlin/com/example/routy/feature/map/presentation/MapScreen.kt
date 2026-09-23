@@ -933,14 +933,24 @@ fun MapScreen(
                         state.search.stops,
                         key = { "stop:${it.id}" },
                     ) { stop ->
+                        val routeNames =
+                            remember(stop, state.network.network, strings.language) {
+                                val routesById =
+                                    state.network.network
+                                        ?.routes
+                                        .orEmpty()
+                                        .associateBy { it.id }
+                                stop.services
+                                    .map { it.routeId }
+                                    .distinct()
+                                    .mapNotNull { routesById[it] }
+                                    .joinToString(" • ") { it.name.resolve(strings.language, it.id) }
+                                    .ifBlank { null }
+                            }
                         Box(Modifier.padding(horizontal = 20.dp)) {
                             StopCard(
                                 stop = stop,
-                                subtitle =
-                                    stop.services
-                                        .map { it.routeId }
-                                        .distinct()
-                                        .joinToString(" · "),
+                                subtitle = routeNames,
                                 onClick = {
                                     model.actionHandler(MapAction.SelectSearchStop(stop.id))
                                 },
