@@ -107,6 +107,7 @@ import org.maplibre.compose.expressions.dsl.format
 import org.maplibre.compose.expressions.dsl.image
 import org.maplibre.compose.expressions.dsl.span
 import org.maplibre.compose.interaction.ClickResult
+import org.maplibre.compose.interaction.MapInteractions
 import org.maplibre.compose.layers.CircleLayer
 import org.maplibre.compose.layers.LineLayer
 import org.maplibre.compose.layers.SymbolLayer
@@ -255,6 +256,14 @@ fun MapScreen(
             GeoJsonOptions(
                 synchronousUpdate = true,
             )
+        }
+    val mapInteractions =
+        remember {
+            MapInteractions {
+                camera {
+                    rotate { enabled = false }
+                }
+            }
         }
     val mapState =
         rememberMapState(
@@ -463,6 +472,7 @@ fun MapScreen(
                         .fillMaxSize()
                         .semantics { contentDescription = strings[TextKey.Map] },
                 state = mapState,
+                interactions = mapInteractions,
                 overlay = {},
             )
             Column(
