@@ -1,5 +1,6 @@
 package com.example.routy.feature.map.presentation.ui
 
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -7,6 +8,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.unit.dp
+import com.example.routy.core.transport.domain.RouteGeometry
 import com.example.routy.feature.map.presentation.state.MapAction
 import com.example.routy.feature.map.presentation.state.MapCamera
 import com.example.routy.feature.map.presentation.state.MapState
@@ -14,6 +17,7 @@ import kotlinx.coroutines.delay
 import org.maplibre.compose.camera.CameraPosition
 import org.maplibre.compose.location.LocationPermission
 import org.maplibre.compose.location.LocationState
+import org.maplibre.spatialk.geojson.BoundingBox
 import org.maplibre.spatialk.geojson.Position
 import org.maplibre.compose.map.MapState as MaplibreMapState
 
@@ -97,4 +101,15 @@ internal fun MapCameraEffects(
             }
         }
     }
+}
+
+internal suspend fun MaplibreMapState.animateToRoute(geometry: RouteGeometry) {
+    val points = geometry.points.ifEmpty { return }
+    animateCameraToBounds(
+        BoundingBox(
+            Position(points.minOf { it.longitude }, points.minOf { it.latitude }),
+            Position(points.maxOf { it.longitude }, points.maxOf { it.latitude }),
+        ),
+        padding = PaddingValues(start = 40.dp, top = 180.dp, end = 80.dp, bottom = 180.dp),
+    )
 }

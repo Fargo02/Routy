@@ -41,6 +41,7 @@ import com.example.routy.feature.map.presentation.ui.RouteLayers
 import com.example.routy.feature.map.presentation.ui.StopLayers
 import com.example.routy.feature.map.presentation.ui.VehicleDetailsDialog
 import com.example.routy.feature.map.presentation.ui.VehicleLayers
+import com.example.routy.feature.map.presentation.ui.animateToRoute
 import com.example.routy.feature.map.presentation.ui.rememberMapBaseStyle
 import com.example.routy.feature.map.presentation.ui.rememberMapMarkerPainters
 import kotlinx.coroutines.launch
@@ -154,6 +155,12 @@ fun MapScreen(
     ObserveAsEvents(model.effects) {
         when (it) {
             is MapEffect.Navigate -> navigate(it.destination)
+
+            is MapEffect.FocusRoute ->
+                state.network.network
+                    ?.geometries
+                    ?.get(it.id)
+                    ?.let { geometry -> scope.launch { mapState.animateToRoute(geometry) } }
 
             MapEffect.RequestLocation -> {
                 focusLocation = true

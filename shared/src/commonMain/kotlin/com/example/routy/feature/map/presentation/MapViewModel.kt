@@ -263,7 +263,10 @@ class MapViewModel(
     fun actionHandler(action: MapAction) {
         when (action) {
             is MapAction.SelectRoute -> toggleRoute(action.id)
-            is MapAction.ShowRoute -> if (action.id !in selectedRouteIds.value) toggleRoute(action.id)
+            is MapAction.ShowRoute -> {
+                if (action.id !in selectedRouteIds.value) toggleRoute(action.id)
+                if (action.id in selectedRouteIds.value) sendEffect(MapEffect.FocusRoute(action.id))
+            }
             MapAction.ClearSelectedRoutes -> {
                 savedState["routeIds"] = emptyList<String>()
                 savedState["routeColorSlots"] = emptyList<String>()

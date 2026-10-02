@@ -10,6 +10,7 @@ import com.example.routy.core.transport.domain.*
 import com.example.routy.feature.favorites.domain.FavoritesUseCase
 import com.example.routy.feature.map.presentation.*
 import com.example.routy.feature.map.presentation.state.MapAction
+import com.example.routy.feature.map.presentation.state.MapEffect
 import com.example.routy.feature.map.presentation.state.MapRouteInfoState
 import com.example.routy.feature.route_details.domain.GetRouteDetailsUseCase
 import kotlinx.coroutines.*
@@ -146,11 +147,15 @@ class MapViewModelTest {
                     )
                 store.put("map", model)
                 val collector = launch(UnconfinedTestDispatcher(testScheduler)) { model.uiState.collect() }
+                val effects = mutableListOf<MapEffect>()
+                val effectCollector = launch(UnconfinedTestDispatcher(testScheduler)) { model.effects.toList(effects) }
                 model.actionHandler(MapAction.ShowRoute("r"))
                 assertEquals(listOf("r"), model.uiState.first { it.selectedRouteIds.isNotEmpty() }.selectedRouteIds)
                 model.actionHandler(MapAction.ShowRoute("r"))
                 runCurrent()
                 assertEquals(listOf("r"), model.uiState.value.selectedRouteIds)
+                assertEquals<List<MapEffect>>(List(2) { MapEffect.FocusRoute("r") }, effects)
+                effectCollector.cancelAndJoin()
                 collector.cancelAndJoin()
                 runCurrent()
             } finally {
