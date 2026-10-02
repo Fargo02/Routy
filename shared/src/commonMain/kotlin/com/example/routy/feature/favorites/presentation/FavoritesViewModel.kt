@@ -40,7 +40,7 @@ class FavoritesViewModel(
         when (action) {
             is FavoritesAction.RemoveRoute -> viewModelScope.launch { favorites.route(action.id) }
             is FavoritesAction.RemoveStop -> viewModelScope.launch { favorites.stop(action.id) }
-            FavoritesAction.Retry -> viewModelScope.launch { transport.refresh() }
+            is FavoritesAction.Retry -> viewModelScope.launch { transport.refresh() }
         }
     }
 }

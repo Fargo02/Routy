@@ -35,13 +35,13 @@ class StopDetailsViewModel(
 
     fun actionHandler(action: StopDetailsAction) {
         when (action) {
-            StopDetailsAction.ToggleFavorite ->
+            is StopDetailsAction.ToggleFavorite ->
                 viewModelScope.launch {
                     val result = favorites.stop(stopId)
                     if (result is Outcome.Failure) sendEffect(StopDetailsEffect.Error(result.error))
                 }
             is StopDetailsAction.SelectRoute -> sendEffect(StopDetailsEffect.ShowRouteOnMap(action.id))
-            StopDetailsAction.Retry -> viewModelScope.launch { transport.refresh() }
+            is StopDetailsAction.Retry -> viewModelScope.launch { transport.refresh() }
         }
     }
 

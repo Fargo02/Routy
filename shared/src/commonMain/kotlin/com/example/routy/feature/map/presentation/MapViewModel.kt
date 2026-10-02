@@ -262,19 +262,19 @@ class MapViewModel(
                 if (action.id !in selectedRouteIds.value) toggleRoute(action.id)
                 if (action.id in selectedRouteIds.value) sendEffect(MapEffect.FocusRoute(action.id))
             }
-            MapAction.ClearSelectedRoutes -> {
+            is MapAction.ClearSelectedRoutes -> {
                 savedState["routeIds"] = emptyList<String>()
                 savedState["routeColorSlots"] = emptyList<String>()
                 closeRoutePanels()
             }
-            MapAction.ClearSelectedStop -> updateInteraction { copy(selectedStopId = null) }
+            is MapAction.ClearSelectedStop -> updateInteraction { copy(selectedStopId = null) }
             is MapAction.LoadMapStyle -> loadMapStyle(action.uri)
             is MapAction.SaveCamera -> saveCamera(action.camera)
             is MapAction.ToggleRouteFavorite -> viewModelScope.launch { favorites.route(action.id) }
-            MapAction.OpenSearch -> setSearchOpen(true)
-            MapAction.CloseSearch -> closeSearch()
+            is MapAction.OpenSearch -> setSearchOpen(true)
+            is MapAction.CloseSearch -> closeSearch()
             is MapAction.SearchQueryChanged -> setSearchQuery(action.query)
-            MapAction.ClearSearch -> setSearchQuery("")
+            is MapAction.ClearSearch -> setSearchQuery("")
             is MapAction.SelectSearchRoute -> {
                 closeSearch()
                 toggleRoute(action.id)
@@ -289,8 +289,8 @@ class MapViewModel(
             }
             is MapAction.ShowStopOnMap -> updateInteraction { copy(selectedStopId = action.id, routeInfo = null) }
             is MapAction.SelectVehicle -> updateInteraction { copy(selectedVehicleId = action.id, routeInfo = null) }
-            MapAction.DismissVehicle -> updateInteraction { copy(selectedVehicleId = null) }
-            MapAction.OpenRouteInfo ->
+            is MapAction.DismissVehicle -> updateInteraction { copy(selectedVehicleId = null) }
+            is MapAction.OpenRouteInfo ->
                 selectedRouteIds.value.lastOrNull()?.let { id ->
                     updateInteraction { copy(routeInfo = MapRouteInfoState(id)) }
                 }
@@ -298,18 +298,18 @@ class MapViewModel(
                 if (action.id in selectedRouteIds.value) {
                     updateInteraction { copy(routeInfo = routeInfo?.copy(routeId = action.id)) }
                 }
-            MapAction.OpenRouteSchedule -> updateInteraction { copy(routeInfo = routeInfo?.copy(isScheduleVisible = true)) }
-            MapAction.CloseRouteSchedule -> updateInteraction { copy(routeInfo = routeInfo?.copy(isScheduleVisible = false)) }
-            MapAction.CloseRouteInfo -> updateInteraction { copy(routeInfo = null) }
-            MapAction.OpenStops -> sendEffect(MapEffect.Navigate(Stops))
+            is MapAction.OpenRouteSchedule -> updateInteraction { copy(routeInfo = routeInfo?.copy(isScheduleVisible = true)) }
+            is MapAction.CloseRouteSchedule -> updateInteraction { copy(routeInfo = routeInfo?.copy(isScheduleVisible = false)) }
+            is MapAction.CloseRouteInfo -> updateInteraction { copy(routeInfo = null) }
+            is MapAction.OpenStops -> sendEffect(MapEffect.Navigate(Stops))
             is MapAction.OpenRouteDetails -> sendEffect(MapEffect.Navigate(RouteDetails(action.id)))
-            MapAction.MyLocation -> {
+            is MapAction.MyLocation -> {
                 updateInteraction { copy(isLocationEnabled = true) }
                 sendEffect(MapEffect.RequestLocation)
             }
-            MapAction.LocationAvailable -> updateInteraction { copy(isLocationEnabled = true) }
-            MapAction.InitialCameraPlaced -> updateInteraction { copy(isInitialCameraPlaced = true) }
-            MapAction.Retry -> viewModelScope.launch { transport.refresh() }
+            is MapAction.LocationAvailable -> updateInteraction { copy(isLocationEnabled = true) }
+            is MapAction.InitialCameraPlaced -> updateInteraction { copy(isInitialCameraPlaced = true) }
+            is MapAction.Retry -> viewModelScope.launch { transport.refresh() }
         }
     }
 

@@ -44,14 +44,14 @@ class RouteDetailsViewModel(
 
     fun actionHandler(action: RouteDetailsAction) {
         when (action) {
-            RouteDetailsAction.ToggleFavorite ->
+            is RouteDetailsAction.ToggleFavorite ->
                 viewModelScope.launch {
                     val result = favorites.route(routeId)
                     if (result is Outcome.Failure) sendEffect(RouteDetailsEffect.Error(result.error))
                 }
             is RouteDetailsAction.SelectStop -> sendEffect(RouteDetailsEffect.Navigate(StopDetails(action.id)))
-            RouteDetailsAction.ShowMap -> sendEffect(RouteDetailsEffect.ShowMap(routeId))
-            RouteDetailsAction.Retry -> viewModelScope.launch { transport.refresh() }
+            is RouteDetailsAction.ShowMap -> sendEffect(RouteDetailsEffect.ShowMap(routeId))
+            is RouteDetailsAction.Retry -> viewModelScope.launch { transport.refresh() }
         }
     }
 

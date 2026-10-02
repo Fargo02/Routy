@@ -33,7 +33,7 @@ class StopsViewModel(
         when (action) {
             is StopsAction.Search -> query.value = action.query
             is StopsAction.Select -> sendEffect(StopsEffect.Navigate(StopDetails(action.id)))
-            StopsAction.Retry -> viewModelScope.launch { transport.refresh() }
+            is StopsAction.Retry -> viewModelScope.launch { transport.refresh() }
         }
     }
 
