@@ -67,9 +67,6 @@ paste `https://fargo02.github.io/Routy/privacy-policy` into the Play Console.
 
 ## Verification
 
-The final test pass is deferred at the user's request; see
-[implementation status](docs/IMPLEMENTATION_STATUS.md) for checks already run.
-
 ```sh
 ./gradlew ktlintCheck :shared:allTests :androidApp:lintDebug :androidApp:assembleDebug
 ./gradlew :shared:linkDebugFrameworkIosArm64
@@ -81,9 +78,6 @@ check enforce platform/static rules. GitHub Actions contains Android and iOS job
 it has not run remotely because GitHub authentication is not configured locally.
 
 ## Architecture and configuration
-
-Read [architecture](docs/KMP_PROJECT_ARCHITECTURE.md) and
-[API contract](docs/THETAMAPS_API_KMP.md) before changing implementation.
 
 ```text
 Android / iOS composition roots → AppGraph
