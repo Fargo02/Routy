@@ -8,8 +8,8 @@ import kotlin.math.abs
 import kotlin.math.atan2
 import kotlin.math.cos
 
-private const val MaxSnapDegrees = 0.0012
-private const val DegreesPerRadian = 180.0 / PI
+private const val MAX_SNAP_DEGREES = 0.0012
+private const val DEGREES_PER_RADIAN = 180.0 / PI
 
 fun alignHeadingsToRoutes(
     vehicles: List<Vehicle>,
@@ -26,8 +26,8 @@ fun routeHeading(
     points: List<GeoPoint>,
     observedDegrees: Float?,
 ): Float? {
-    val longitudeScale = cos(position.latitude / DegreesPerRadian)
-    var nearestDistance = MaxSnapDegrees * MaxSnapDegrees
+    val longitudeScale = cos(position.latitude / DEGREES_PER_RADIAN)
+    var nearestDistance = MAX_SNAP_DEGREES * MAX_SNAP_DEGREES
     var forward: Double? = null
     for (index in 0 until points.lastIndex) {
         val from = points[index]
@@ -44,7 +44,7 @@ fun routeHeading(
         val distance = awayX * awayX + awayY * awayY
         if (distance >= nearestDistance) continue
         nearestDistance = distance
-        forward = (atan2(segmentX, segmentY) * DegreesPerRadian + 360.0) % 360.0
+        forward = (atan2(segmentX, segmentY) * DEGREES_PER_RADIAN + 360.0) % 360.0
     }
     val along = forward ?: return observedDegrees
     val observed = observedDegrees?.toDouble() ?: return along.toFloat()

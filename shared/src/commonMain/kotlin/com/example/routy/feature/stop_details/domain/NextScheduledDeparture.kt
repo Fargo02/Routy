@@ -3,15 +3,15 @@ package com.example.routy.feature.stop_details.domain
 import com.example.routy.core.transport.domain.ScheduleTime
 import kotlin.time.Clock
 
-private const val MinutesPerDay = 24 * 60
-private const val BatumiUtcOffsetMinutes = 4 * 60
+private const val MINUTES_PER_DAY = 24 * 60
+private const val BATUMI_UTC_OFFSET_MINUTES = 4 * 60
 
 fun nearestScheduledDeparture(
     times: List<ScheduleTime>,
     currentMinutes: Int = batumiMinutesNow(),
 ): ScheduleTime? =
     times.minByOrNull { time ->
-        (time.hour * 60 + time.minute - currentMinutes + MinutesPerDay) % MinutesPerDay
+        (time.hour * 60 + time.minute - currentMinutes + MINUTES_PER_DAY) % MINUTES_PER_DAY
     }
 
 fun minutesUntilNextScheduledDeparture(
@@ -19,7 +19,8 @@ fun minutesUntilNextScheduledDeparture(
     currentMinutes: Int = batumiMinutesNow(),
 ): Int? =
     nearestScheduledDeparture(times, currentMinutes)?.let { time ->
-        (time.hour * 60 + time.minute - currentMinutes + MinutesPerDay) % MinutesPerDay
+        (time.hour * 60 + time.minute - currentMinutes + MINUTES_PER_DAY) % MINUTES_PER_DAY
     }
 
-private fun batumiMinutesNow(): Int = ((Clock.System.now().toEpochMilliseconds() / 60_000 + BatumiUtcOffsetMinutes) % MinutesPerDay).toInt()
+private fun batumiMinutesNow(): Int =
+    ((Clock.System.now().toEpochMilliseconds() / 60_000 + BATUMI_UTC_OFFSET_MINUTES) % MINUTES_PER_DAY).toInt()

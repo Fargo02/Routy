@@ -10,11 +10,11 @@ import com.example.routy.core.transport.domain.GeoPoint
 import com.example.routy.core.transport.domain.Vehicle
 import com.example.routy.core.transport.domain.VehicleState
 
-private const val DefaultStepMillis = 5_000L
-private const val MinStepMillis = 700L
-private const val EmitIntervalMillis = 32L
-private const val MaxAnimatedDegrees = 0.02
-private const val NanosPerMilli = 1_000_000L
+private const val DEFAULT_STEP_MILLIS = 5_000L
+private const val MIN_STEP_MILLIS = 700L
+private const val EMIT_INTERVAL_MILLIS = 32L
+private const val MAX_ANIMATED_DEGREES = 0.02
+private const val NANOS_PER_MILLI = 1_000_000L
 
 data class VehicleSegment(
     val from: GeoPoint,
@@ -37,7 +37,7 @@ fun rememberAnimatedVehicles(state: VehicleState): State<List<Vehicle>> {
         var emittedNanos = frameNanos
         while (current.values.any { frameNanos < it.endNanos }) {
             frameNanos = withFrameNanos { it }
-            if (frameNanos - emittedNanos < EmitIntervalMillis * NanosPerMilli) continue
+            if (frameNanos - emittedNanos < EMIT_INTERVAL_MILLIS * NANOS_PER_MILLI) continue
             emittedNanos = frameNanos
             animated.value = vehiclesAt(current, state.vehicles, frameNanos)
         }
@@ -96,8 +96,8 @@ private fun isAnimatable(
 ): Boolean {
     val latitudeDelta = to.latitude - from.latitude
     val longitudeDelta = to.longitude - from.longitude
-    return latitudeDelta * latitudeDelta + longitudeDelta * longitudeDelta <= MaxAnimatedDegrees * MaxAnimatedDegrees
+    return latitudeDelta * latitudeDelta + longitudeDelta * longitudeDelta <= MAX_ANIMATED_DEGREES * MAX_ANIMATED_DEGREES
 }
 
 private fun stepNanos(sinceLastMoveNanos: Long): Long =
-    sinceLastMoveNanos.coerceIn(MinStepMillis * NanosPerMilli, DefaultStepMillis * NanosPerMilli)
+    sinceLastMoveNanos.coerceIn(MIN_STEP_MILLIS * NANOS_PER_MILLI, DEFAULT_STEP_MILLIS * NANOS_PER_MILLI)

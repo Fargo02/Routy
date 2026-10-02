@@ -24,7 +24,7 @@ import com.example.routy.core.localization.LocalStrings
 import com.example.routy.core.localization.TextKey
 import com.example.routy.core.transport.domain.BusStop
 
-internal const val FavoriteCardAlpha = 0.55f
+internal const val FAVORITE_CARD_ALPHA = 0.55f
 
 internal data class UpcomingBus(
     val routeName: String,
@@ -44,7 +44,7 @@ internal fun FavoriteStopCard(
     Card(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = FavoriteCardAlpha)),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = FAVORITE_CARD_ALPHA)),
     ) {
         Column(Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 16.dp)) {
             Row(

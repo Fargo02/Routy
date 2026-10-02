@@ -24,8 +24,8 @@ import routy.shared.generated.resources.Res
 import routy.shared.generated.resources.favorites_backdrop
 import routy.shared.generated.resources.favorites_backdrop_dark
 
-private const val RouteSheetPrefix = "route:"
-private const val StopSheetPrefix = "stop:"
+private const val ROUTE_SHEET_PREFIX = "route:"
+private const val STOP_SHEET_PREFIX = "stop:"
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -37,8 +37,8 @@ fun FavoritesScreen(
     val state by model.uiState.collectAsStateWithLifecycle()
     val strings = LocalStrings.current
     var sheetContent by rememberSaveable { mutableStateOf<String?>(null) }
-    val selectedRouteId = sheetContent?.removePrefix(RouteSheetPrefix)?.takeIf { sheetContent?.startsWith(RouteSheetPrefix) == true }
-    val selectedStopId = sheetContent?.removePrefix(StopSheetPrefix)?.takeIf { sheetContent?.startsWith(StopSheetPrefix) == true }
+    val selectedRouteId = sheetContent?.removePrefix(ROUTE_SHEET_PREFIX)?.takeIf { sheetContent?.startsWith(ROUTE_SHEET_PREFIX) == true }
+    val selectedStopId = sheetContent?.removePrefix(STOP_SHEET_PREFIX)?.takeIf { sheetContent?.startsWith(STOP_SHEET_PREFIX) == true }
     var removalConfirmation by rememberSaveable { mutableStateOf<String?>(null) }
     val detailsSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     ScreenScaffold(
@@ -101,10 +101,10 @@ fun FavoritesScreen(
                         RouteCard(
                             route = route,
                             onClick = {
-                                sheetContent = "$RouteSheetPrefix${route.id}"
+                                sheetContent = "$ROUTE_SHEET_PREFIX${route.id}"
                             },
                             subtitle = frequency?.let(strings::runsEvery),
-                            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = FavoriteCardAlpha),
+                            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = FAVORITE_CARD_ALPHA),
                         )
                     }
                 }
@@ -141,7 +141,7 @@ fun FavoritesScreen(
                             stop = stop,
                             upcomingBuses = upcomingBuses,
                             onClick = {
-                                sheetContent = "$StopSheetPrefix${stop.id}"
+                                sheetContent = "$STOP_SHEET_PREFIX${stop.id}"
                             },
                             fallbackSubtitle =
                                 strings.vehiclesCount(
@@ -191,7 +191,7 @@ fun FavoritesScreen(
                                 ) { Text(strings[TextKey.ShowMap]) }
                                 if (state.routes.any { it.id == routeId }) {
                                     FilledTonalButton(
-                                        onClick = { removalConfirmation = "$RouteSheetPrefix$routeId" },
+                                        onClick = { removalConfirmation = "$ROUTE_SHEET_PREFIX$routeId" },
                                     ) { Text(strings[TextKey.Remove]) }
                                 }
                             }
@@ -251,7 +251,7 @@ fun FavoritesScreen(
                                 ) { Text(strings[TextKey.ShowMap]) }
                                 if (state.stops.any { it.id == stopId }) {
                                     FilledTonalButton(
-                                        onClick = { removalConfirmation = "$StopSheetPrefix$stopId" },
+                                        onClick = { removalConfirmation = "$STOP_SHEET_PREFIX$stopId" },
                                     ) { Text(strings[TextKey.Remove]) }
                                 }
                             }
@@ -296,10 +296,10 @@ fun FavoritesScreen(
                 removalConfirmation = null
                 sheetContent = null
                 val action =
-                    if (target.startsWith(RouteSheetPrefix)) {
-                        FavoritesAction.RemoveRoute(target.removePrefix(RouteSheetPrefix))
+                    if (target.startsWith(ROUTE_SHEET_PREFIX)) {
+                        FavoritesAction.RemoveRoute(target.removePrefix(ROUTE_SHEET_PREFIX))
                     } else {
-                        FavoritesAction.RemoveStop(target.removePrefix(StopSheetPrefix))
+                        FavoritesAction.RemoveStop(target.removePrefix(STOP_SHEET_PREFIX))
                     }
                 model.actionHandler(action)
             },

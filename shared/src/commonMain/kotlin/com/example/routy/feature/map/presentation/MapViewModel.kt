@@ -320,13 +320,13 @@ class MapViewModel(
             id in selected -> {
                 savedState["routeIds"] = selected - id
                 savedState["routeColorSlots"] =
-                    slots.map { if (it == id) FreeColorSlot else it }.dropLastWhile { it == FreeColorSlot }
+                    slots.map { if (it == id) FREE_COLOR_SLOT else it }.dropLastWhile { it == FREE_COLOR_SLOT }
                 closeRoutePanels()
             }
-            selected.size >= MaxSelectedRoutes -> Unit
+            selected.size >= MAX_SELECTED_ROUTES -> Unit
             else -> {
                 savedState["routeIds"] = selected + id
-                val freeSlot = slots.indexOf(FreeColorSlot)
+                val freeSlot = slots.indexOf(FREE_COLOR_SLOT)
                 savedState["routeColorSlots"] =
                     if (freeSlot >= 0) slots.toMutableList().also { it[freeSlot] = id } else slots + id
                 closeRoutePanels()
@@ -338,9 +338,9 @@ class MapViewModel(
         routeIds: List<String>,
         slots: List<String>,
     ): Map<String, Int> {
-        val assigned = slots.map { if (it in routeIds) it else FreeColorSlot }.toMutableList()
+        val assigned = slots.map { if (it in routeIds) it else FREE_COLOR_SLOT }.toMutableList()
         routeIds.filterNot { it in assigned }.forEach { routeId ->
-            val freeSlot = assigned.indexOf(FreeColorSlot)
+            val freeSlot = assigned.indexOf(FREE_COLOR_SLOT)
             if (freeSlot >= 0) assigned[freeSlot] = routeId else assigned += routeId
         }
         return routeIds.associateWith { assigned.indexOf(it) }
@@ -393,8 +393,8 @@ class MapViewModel(
     }
 
     private companion object {
-        const val MaxSelectedRoutes = 7
-        const val FreeColorSlot = ""
+        const val MAX_SELECTED_ROUTES = 7
+        const val FREE_COLOR_SLOT = ""
     }
 }
 

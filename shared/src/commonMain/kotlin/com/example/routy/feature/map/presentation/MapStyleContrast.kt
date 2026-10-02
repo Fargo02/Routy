@@ -7,8 +7,8 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlin.math.roundToInt
 
-private const val ContrastPivot = 0.05
-private const val ContrastGain = 2.4
+private const val CONTRAST_PIVOT = 0.05
+private const val CONTRAST_GAIN = 2.4
 
 fun contrastBoostedStyle(style: String): String {
     val root = runCatching { Json.parseToJsonElement(style) }.getOrNull() as? JsonObject ?: return style
@@ -75,7 +75,7 @@ private fun components(color: String): List<String>? =
         .map { it.trim() }
         .takeIf { it.size == 3 || it.size == 4 }
 
-private fun boosted(channel: Double): Double = (ContrastPivot + (channel - ContrastPivot) * ContrastGain).coerceIn(0.0, 1.0)
+private fun boosted(channel: Double): Double = (CONTRAST_PIVOT + (channel - CONTRAST_PIVOT) * CONTRAST_GAIN).coerceIn(0.0, 1.0)
 
 private fun rgb(channels: List<Double>): String = "rgb(${channels.joinToString(",") { (it * 255).roundToInt().toString() }})"
 
