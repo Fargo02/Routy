@@ -10,6 +10,7 @@ import com.example.routy.core.transport.domain.*
 import com.example.routy.feature.favorites.domain.FavoritesUseCase
 import com.example.routy.feature.map.presentation.*
 import com.example.routy.feature.map.presentation.state.MapAction
+import com.example.routy.feature.map.presentation.state.MapRouteInfoState
 import com.example.routy.feature.route_details.domain.GetRouteDetailsUseCase
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
@@ -202,6 +203,63 @@ class MapViewModelTest {
                 assertEquals(-1, refilled.routeColorIndex("r"))
                 model.actionHandler(MapAction.ClearSelectedRoutes)
                 assertEquals(emptyMap(), model.uiState.first { it.selectedRouteIds.isEmpty() }.routeColorIndices)
+                collector.cancelAndJoin()
+                runCurrent()
+            } finally {
+                store.clear()
+                Dispatchers.resetMain()
+            }
+        }
+
+    @Test fun routePanelsCloseWhenSelectedRoutesChange() =
+        runTest {
+            Dispatchers.setMain(StandardTestDispatcher(testScheduler))
+            val store = ViewModelStore()
+            try {
+                val transport =
+                    object : TransportRepository {
+                        override val state = MutableStateFlow(NetworkState(TransportParser().network(TransportParserTest.fixture)))
+
+                        override suspend fun refresh() = Unit
+
+                        override fun observeNetwork() = state
+                    }
+                val vehicles =
+                    object : VehicleRepository {
+                        override fun observeVehicles(routeId: String): Flow<VehicleState> = flowOf(VehicleState(isLoading = false))
+                    }
+                val handle = SavedStateHandle()
+                val model =
+                    MapViewModel(
+                        ObserveTransportUseCase(transport),
+                        ObserveRouteVehiclesUseCase(vehicles),
+                        GetRouteDetailsUseCase(),
+                        FavoritesUseCase(StubPreferences()),
+                        savedState = handle,
+                    )
+                store.put("map", model)
+                val collector = launch(UnconfinedTestDispatcher(testScheduler)) { model.uiState.collect() }
+                listOf("r", "another").forEach { model.actionHandler(MapAction.SelectRoute(it)) }
+                model.actionHandler(MapAction.OpenRouteInfo)
+                val opened = model.uiState.first { it.routeInfo != null }
+                assertEquals("another", opened.routeInfo?.routeId)
+                model.actionHandler(MapAction.ShowRouteInfo("third"))
+                model.actionHandler(MapAction.ShowRouteInfo("r"))
+                model.actionHandler(MapAction.OpenRouteSchedule)
+                assertEquals(
+                    MapRouteInfoState("r", isScheduleVisible = true),
+                    model.uiState.first { it.routeInfo?.isScheduleVisible == true }.routeInfo,
+                )
+                model.actionHandler(MapAction.SelectVehicle("v"))
+                val vehicleShown = model.uiState.first { it.selectedVehicleId == "v" }
+                assertNull(vehicleShown.routeInfo)
+                model.actionHandler(MapAction.SelectRoute("third"))
+                assertNull(model.uiState.first { "third" in it.selectedRouteIds }.selectedVehicleId)
+                model.actionHandler(MapAction.ShowStopOnMap("s"))
+                assertEquals("s", model.uiState.first { it.selectedStopId != null }.selectedStopId)
+                assertEquals("s", handle.get<String>("selectedStopId"))
+                model.actionHandler(MapAction.ClearSelectedStop)
+                assertNull(model.uiState.first { it.selectedStopId == null }.selectedStopId)
                 collector.cancelAndJoin()
                 runCurrent()
             } finally {

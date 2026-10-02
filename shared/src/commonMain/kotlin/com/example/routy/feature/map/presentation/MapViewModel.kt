@@ -67,6 +67,14 @@ class MapViewModel(
     private val searchOpen = MutableStateFlow(savedState.get<Boolean>("searchOpen") ?: false)
     private val searchQuery = MutableStateFlow(savedState.get<String>("searchQuery") ?: "")
     private val searchRequest = combine(searchOpen, searchQuery) { isOpen, query -> isOpen to query }
+    private val interaction =
+        MutableStateFlow(
+            MapInteraction(
+                selectedStopId = savedState["selectedStopId"],
+                isLocationEnabled = savedState["locationEnabled"] ?: false,
+                isInitialCameraPlaced = savedState["initialCameraPlaced"] ?: false,
+            ),
+        )
     private val vehicleStatesByRoute = mutableMapOf<String, VehicleState>()
     private val vehicleJobsByRoute = mutableMapOf<String, Job>()
     private val vehicleSubscriberCount = MutableStateFlow(0)
@@ -87,7 +95,7 @@ class MapViewModel(
             state.copy(vehicles = alignHeadingsToRoutes(state.vehicles, network.network?.geometries.orEmpty()))
         }
 
-    val uiState =
+    private val content =
         combine(
             transport.state,
             selectedRouteIds,
@@ -146,6 +154,17 @@ class MapViewModel(
             logger.diagnostic(
                 LogEvent.MapFavoriteStopsUpdated,
                 "savedCount=${state.favoriteStopIds.size}, visibleCount=${state.stops.count { it.id in state.favoriteStopIds }}",
+            )
+        }
+
+    val uiState =
+        combine(content, interaction) { content, interaction ->
+            content.copy(
+                selectedStopId = interaction.selectedStopId,
+                selectedVehicleId = interaction.selectedVehicleId,
+                routeInfo = interaction.routeInfo,
+                isLocationEnabled = interaction.isLocationEnabled,
+                isInitialCameraPlaced = interaction.isInitialCameraPlaced,
             )
         }.flowOn(Dispatchers.Default)
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(0), MapState())
@@ -239,8 +258,9 @@ class MapViewModel(
             MapAction.ClearSelectedRoutes -> {
                 savedState["routeIds"] = emptyList<String>()
                 savedState["routeColorSlots"] = emptyList<String>()
+                closeRoutePanels()
             }
-            MapAction.ClearSelectedStop -> sendEffect(MapEffect.ClearStopSelection)
+            MapAction.ClearSelectedStop -> updateInteraction { copy(selectedStopId = null) }
             is MapAction.LoadMapStyle -> loadMapStyle(action.uri)
             is MapAction.SaveCamera -> saveCamera(action.camera)
             is MapAction.ToggleRouteFavorite -> viewModelScope.launch { favorites.route(action.id) }
@@ -256,12 +276,32 @@ class MapViewModel(
                 closeSearch()
                 sendEffect(MapEffect.Navigate(StopDetails(action.id)))
             }
-            is MapAction.SelectStop -> sendEffect(MapEffect.Navigate(StopDetails(action.id)))
-            is MapAction.ShowStopOnMap -> sendEffect(MapEffect.ShowStopOnMap(action.id))
-            is MapAction.SelectVehicle -> sendEffect(MapEffect.ShowVehicle(action.id))
+            is MapAction.SelectStop -> {
+                updateInteraction { copy(selectedStopId = action.id) }
+                sendEffect(MapEffect.Navigate(StopDetails(action.id)))
+            }
+            is MapAction.ShowStopOnMap -> updateInteraction { copy(selectedStopId = action.id, routeInfo = null) }
+            is MapAction.SelectVehicle -> updateInteraction { copy(selectedVehicleId = action.id, routeInfo = null) }
+            MapAction.DismissVehicle -> updateInteraction { copy(selectedVehicleId = null) }
+            MapAction.OpenRouteInfo ->
+                selectedRouteIds.value.lastOrNull()?.let { id ->
+                    updateInteraction { copy(routeInfo = MapRouteInfoState(id)) }
+                }
+            is MapAction.ShowRouteInfo ->
+                if (action.id in selectedRouteIds.value) {
+                    updateInteraction { copy(routeInfo = routeInfo?.copy(routeId = action.id)) }
+                }
+            MapAction.OpenRouteSchedule -> updateInteraction { copy(routeInfo = routeInfo?.copy(isScheduleVisible = true)) }
+            MapAction.CloseRouteSchedule -> updateInteraction { copy(routeInfo = routeInfo?.copy(isScheduleVisible = false)) }
+            MapAction.CloseRouteInfo -> updateInteraction { copy(routeInfo = null) }
             MapAction.OpenStops -> sendEffect(MapEffect.Navigate(Stops))
             is MapAction.OpenRouteDetails -> sendEffect(MapEffect.Navigate(RouteDetails(action.id)))
-            MapAction.MyLocation -> sendEffect(MapEffect.RequestLocation)
+            MapAction.MyLocation -> {
+                updateInteraction { copy(isLocationEnabled = true) }
+                sendEffect(MapEffect.RequestLocation)
+            }
+            MapAction.LocationAvailable -> updateInteraction { copy(isLocationEnabled = true) }
+            MapAction.InitialCameraPlaced -> updateInteraction { copy(isInitialCameraPlaced = true) }
             MapAction.Retry -> viewModelScope.launch { transport.refresh() }
         }
     }
@@ -274,6 +314,7 @@ class MapViewModel(
                 savedState["routeIds"] = selected - id
                 savedState["routeColorSlots"] =
                     slots.map { if (it == id) FreeColorSlot else it }.dropLastWhile { it == FreeColorSlot }
+                closeRoutePanels()
             }
             selected.size >= MaxSelectedRoutes -> Unit
             else -> {
@@ -281,6 +322,7 @@ class MapViewModel(
                 val freeSlot = slots.indexOf(FreeColorSlot)
                 savedState["routeColorSlots"] =
                     if (freeSlot >= 0) slots.toMutableList().also { it[freeSlot] = id } else slots + id
+                closeRoutePanels()
             }
         }
     }
@@ -330,7 +372,24 @@ class MapViewModel(
         savedState["searchQuery"] = query
     }
 
+    private fun closeRoutePanels() = updateInteraction { copy(selectedVehicleId = null, routeInfo = null) }
+
+    private fun updateInteraction(transform: MapInteraction.() -> MapInteraction) {
+        val value = interaction.updateAndGet(transform)
+        savedState["selectedStopId"] = value.selectedStopId
+        savedState["locationEnabled"] = value.isLocationEnabled
+        savedState["initialCameraPlaced"] = value.isInitialCameraPlaced
+    }
+
     private fun sendEffect(effect: MapEffect) {
         viewModelScope.launch { _effects.send(effect) }
     }
 }
+
+private data class MapInteraction(
+    val selectedStopId: String? = null,
+    val selectedVehicleId: String? = null,
+    val routeInfo: MapRouteInfoState? = null,
+    val isLocationEnabled: Boolean = false,
+    val isInitialCameraPlaced: Boolean = false,
+)

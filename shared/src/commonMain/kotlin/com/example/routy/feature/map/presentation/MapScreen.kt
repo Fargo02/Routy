@@ -1,56 +1,26 @@
 package com.example.routy.feature.map.presentation
 
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
-import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.WindowInsetsSides
-import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.navigationBars
-import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawing
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.AssistChip
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilledTonalButton
-import androidx.compose.material3.FilledTonalIconButton
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.SmallFloatingActionButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
-import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -59,30 +29,19 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.luminance
-import androidx.compose.ui.graphics.painter.Painter
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.routy.PlatformBackHandler
-import com.example.routy.core.designsystem.EmptyPanel
 import com.example.routy.core.designsystem.Glyph
 import com.example.routy.core.designsystem.LocalRoutyPalette
 import com.example.routy.core.designsystem.NetworkIssueBadge
-import com.example.routy.core.designsystem.RouteCard
 import com.example.routy.core.designsystem.RoutyIcon
 import com.example.routy.core.designsystem.ScreenScaffold
-import com.example.routy.core.designsystem.SearchEmptyState
-import com.example.routy.core.designsystem.SearchField
-import com.example.routy.core.designsystem.StopCard
 import com.example.routy.core.localization.LocalStrings
 import com.example.routy.core.localization.TextKey
 import com.example.routy.core.mvi.CollectEffects
@@ -93,8 +52,13 @@ import com.example.routy.core.transport.domain.hasConnectivityIssue
 import com.example.routy.feature.map.presentation.state.MapAction
 import com.example.routy.feature.map.presentation.state.MapCamera
 import com.example.routy.feature.map.presentation.state.MapEffect
-import com.example.routy.feature.route_details.domain.GetRouteDetailsUseCase
-import com.example.routy.feature.stop_details.domain.scheduledFrequencyMinutes
+import com.example.routy.feature.map.presentation.ui.LocationPromptDialog
+import com.example.routy.feature.map.presentation.ui.MapRouteChip
+import com.example.routy.feature.map.presentation.ui.MapSearchSheet
+import com.example.routy.feature.map.presentation.ui.MapZoomButton
+import com.example.routy.feature.map.presentation.ui.RouteInfoSheet
+import com.example.routy.feature.map.presentation.ui.VehicleDetailsDialog
+import com.example.routy.feature.map.presentation.ui.VehicleLayers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.yield
@@ -102,10 +66,7 @@ import kotlinx.serialization.json.jsonPrimitive
 import org.jetbrains.compose.resources.painterResource
 import org.maplibre.compose.camera.CameraPosition
 import org.maplibre.compose.expressions.dsl.const
-import org.maplibre.compose.expressions.dsl.feature
-import org.maplibre.compose.expressions.dsl.format
 import org.maplibre.compose.expressions.dsl.image
-import org.maplibre.compose.expressions.dsl.span
 import org.maplibre.compose.interaction.ClickResult
 import org.maplibre.compose.interaction.MapInteractions
 import org.maplibre.compose.layers.CircleLayer
@@ -122,7 +83,6 @@ import org.maplibre.compose.sources.GeoJsonData
 import org.maplibre.compose.sources.GeoJsonOptions
 import org.maplibre.compose.sources.rememberGeoJsonSource
 import org.maplibre.compose.style.BaseStyle
-import org.maplibre.compose.util.MaplibreComposable
 import org.maplibre.spatialk.geojson.Position
 import routy.shared.generated.resources.Res
 import routy.shared.generated.resources.azure_bus
@@ -166,26 +126,17 @@ fun MapScreen(
     val scope = rememberCoroutineScope()
     val searchFocusRequester = remember { FocusRequester() }
     val keyboard = LocalSoftwareKeyboardController.current
-    val searchBottomPadding =
-        WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + 16.dp
     val searchSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val routeInfoSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
     var searchFieldQuery by rememberSaveable { mutableStateOf("") }
-    var locationEnabled by rememberSaveable { mutableStateOf(false) }
     var focusLocation by remember { mutableStateOf(false) }
-    var initialStopFocused by rememberSaveable { mutableStateOf(false) }
-    var initialLocationCheckFinished by rememberSaveable { mutableStateOf(false) }
-    var vehicleDetailsVisible by rememberSaveable { mutableStateOf(false) }
-    var routeInfoVisible by rememberSaveable { mutableStateOf(false) }
-    var routeInfoRouteId by rememberSaveable { mutableStateOf<String?>(null) }
-    var routeScheduleVisible by rememberSaveable { mutableStateOf(false) }
-    var routeInfoSwipeDistance by remember { mutableStateOf(0f) }
-    var selectedVehicle by rememberSaveable { mutableStateOf<String?>(null) }
-    var selectedStop by rememberSaveable { mutableStateOf<String?>(null) }
+    var initialLocationCheckFinished by remember { mutableStateOf(false) }
+    var locationPrompt by remember { mutableStateOf(false) }
+    var mapError by remember { mutableStateOf(false) }
     val mapStops =
-        remember(state.stops, state.network.network, selectedStop) {
+        remember(state.stops, state.network.network, state.selectedStopId) {
             val shown =
-                selectedStop
+                state.selectedStopId
                     ?.takeIf { id -> state.stops.none { it.id == id } }
                     ?.let { id ->
                         state.network.network
@@ -195,16 +146,10 @@ fun MapScreen(
             if (shown == null) state.stops else state.stops + shown
         }
 
-    fun selectMapStop(id: String) {
-        selectedStop = id
-        model.actionHandler(MapAction.SelectStop(id))
-    }
-
     PlatformBackHandler(enabled = isActive && state.selectedRouteIds.isNotEmpty()) {
         model.actionHandler(MapAction.ClearSelectedRoutes)
     }
 
-    var mapError by remember { mutableStateOf(false) }
     val busDirectionPainter = painterResource(Res.drawable.bus)
     val favoriteStopPainter = painterResource(Res.drawable.favorite_stop)
     val routeBusPainters =
@@ -217,9 +162,8 @@ fun MapScreen(
             painterResource(Res.drawable.pink_bus),
             painterResource(Res.drawable.dark_blue_bus),
         )
-    val location = rememberLocationState(enabled = locationEnabled)
+    val location = rememberLocationState(enabled = state.isLocationEnabled)
     val systemSettings = rememberSystemSettingsLauncher()
-    var locationPrompt by remember { mutableStateOf(false) }
     val animatedVehicles = rememberAnimatedVehicles(vehicles)
     val vehicleRouteCount = remember(vehicles.vehicles) { vehicles.vehicles.distinctBy(Vehicle::routeId).size }
     SideEffect {
@@ -237,7 +181,7 @@ fun MapScreen(
                 .orEmpty()
         }
     val selectedStopJson =
-        remember(mapStops, selectedStop) { stopsGeoJson(mapStops.filter { it.id == selectedStop }) }
+        remember(mapStops, state.selectedStopId) { stopsGeoJson(mapStops.filter { it.id == state.selectedStopId }) }
     val mapStopsGeoJson =
         remember(mapStops, state.favoriteStopIds) { stopsGeoJson(mapStops, state.favoriteStopIds) }
     val favoriteStopsGeoJson =
@@ -312,7 +256,7 @@ fun MapScreen(
                 hitPadding = 18.dp,
                 onClick = { features ->
                     features.firstOrNull()?.properties?.get("id")?.jsonPrimitive?.content?.let { id ->
-                        selectMapStop(id)
+                        model.actionHandler(MapAction.SelectStop(id))
                     }
                     ClickResult.Consume
                 },
@@ -334,7 +278,7 @@ fun MapScreen(
                     iconAllowOverlap = const(true),
                     onClick = { features ->
                         features.firstOrNull()?.properties?.get("id")?.jsonPrimitive?.content?.let { id ->
-                            selectMapStop(id)
+                            model.actionHandler(MapAction.SelectStop(id))
                         }
                         ClickResult.Consume
                     },
@@ -350,23 +294,14 @@ fun MapScreen(
                 onDetached = model::logVehicleLayerDetached,
                 onVehicleClick = { model.actionHandler(MapAction.SelectVehicle(it)) },
             )
-            if (locationEnabled) LocationPuck(idPrefix = "user", locationState = location)
+            if (state.isLocationEnabled) LocationPuck(idPrefix = "user", locationState = location)
         }
 
     CollectEffects(model.effects) {
         when (it) {
             is MapEffect.Navigate -> navigate(it.destination)
-            is MapEffect.ShowVehicle -> {
-                selectedVehicle = it.id
-                vehicleDetailsVisible = true
-            }
-
-            is MapEffect.ShowStopOnMap -> selectedStop = it.id
-
-            MapEffect.ClearStopSelection -> selectedStop = null
 
             MapEffect.RequestLocation -> {
-                locationEnabled = true
                 focusLocation = true
                 val permission = location.permission
                 if (permission is LocationPermission.NotGranted && (permission.shouldShowRationale || permission.canRequest == false)) {
@@ -409,14 +344,8 @@ fun MapScreen(
             keyboard?.hide()
         }
     }
-    LaunchedEffect(state.selectedRouteIds) {
-        selectedVehicle = null
-        vehicleDetailsVisible = false
-        routeInfoVisible = false
-        routeScheduleVisible = false
-    }
-    LaunchedEffect(selectedStop) {
-        state.network.network?.stops?.firstOrNull { it.id == selectedStop }?.let {
+    LaunchedEffect(state.selectedStopId) {
+        state.network.network?.stops?.firstOrNull { it.id == state.selectedStopId }?.let {
             mapState.animateCameraPosition(
                 mapState.cameraPosition.copy(
                     target =
@@ -430,16 +359,22 @@ fun MapScreen(
     }
     LaunchedEffect(location.permission) {
         if (location.permission !is LocationPermission.NotGranted) {
-            locationEnabled = true
+            model.actionHandler(MapAction.LocationAvailable)
             delay(1_500)
         }
         initialLocationCheckFinished = true
     }
-    LaunchedEffect(location.lastLocation, state.network.network, state.favoriteStopIds, initialStopFocused, initialLocationCheckFinished) {
-        if (initialStopFocused) return@LaunchedEffect
+    LaunchedEffect(
+        location.lastLocation,
+        state.network.network,
+        state.favoriteStopIds,
+        state.isInitialCameraPlaced,
+        initialLocationCheckFinished,
+    ) {
+        if (state.isInitialCameraPlaced) return@LaunchedEffect
         location.lastLocation?.let { userLocation ->
             mapState.animateCameraPosition(CameraPosition(target = userLocation.position, zoom = 14.0))
-            initialStopFocused = true
+            model.actionHandler(MapAction.InitialCameraPlaced)
             return@LaunchedEffect
         }
         if (!initialLocationCheckFinished) return@LaunchedEffect
@@ -454,7 +389,7 @@ fun MapScreen(
                 zoom = 14.0,
             ),
         )
-        initialStopFocused = true
+        model.actionHandler(MapAction.InitialCameraPlaced)
     }
     LaunchedEffect(focusLocation, location.lastLocation) {
         if (focusLocation) {
@@ -511,34 +446,14 @@ fun MapScreen(
                         key = { it.id },
                     ) { route ->
                         val selected = route.id in state.selectedRouteIds
-                        val routeColor = palette.routeColors[state.routeColorIndex(route.id).mod(palette.routeColors.size)]
-                        val selectedContentColor = if (routeColor.luminance() > 0.45f) Color(0xFF0F172A) else Color.White
-                        FilterChip(
+                        MapRouteChip(
+                            route = route,
+                            colorIndex = state.routeColorIndex(route.id),
                             selected = selected,
                             enabled = selected || state.selectedRouteIds.size < 7,
+                            favorite = route.id in state.favoriteRouteIds,
                             onClick = { model.actionHandler(MapAction.SelectRoute(route.id)) },
-                            label = {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    if (route.id in state.favoriteRouteIds) {
-                                        CompositionLocalProvider(
-                                            LocalContentColor provides
-                                                if (selected) selectedContentColor else MaterialTheme.colorScheme.tertiary,
-                                        ) {
-                                            RoutyIcon(Glyph.StarFilled)
-                                        }
-                                        Spacer(Modifier.width(4.dp))
-                                    }
-                                    Text(route.name.resolve(strings.language, route.id))
-                                }
-                            },
-                            colors =
-                                FilterChipDefaults.filterChipColors(
-                                    containerColor = MaterialTheme.colorScheme.surface,
-                                    selectedContainerColor = routeColor,
-                                    selectedLabelColor = selectedContentColor,
-                                    selectedLeadingIconColor = selectedContentColor,
-                                ),
-                            border = null,
+                            showBorder = false,
                         )
                     }
                 }
@@ -592,10 +507,7 @@ fun MapScreen(
                 }
                 if (state.selectedRouteIds.isNotEmpty()) {
                     SmallFloatingActionButton(
-                        {
-                            routeInfoRouteId = state.routeId
-                            routeInfoVisible = true
-                        },
+                        { model.actionHandler(MapAction.OpenRouteInfo) },
                         containerColor = MaterialTheme.colorScheme.surface,
                     ) {
                         RoutyIcon(Glyph.Routes, strings[TextKey.Live])
@@ -612,491 +524,58 @@ fun MapScreen(
             }
         }
     }
-    if (routeInfoVisible) {
-        val routeIds = state.selectedRouteIds
-        val activeRouteId = routeInfoRouteId?.takeIf { it in routeIds } ?: routeIds.lastOrNull()
-        val activeRouteIndex = routeIds.indexOf(activeRouteId)
-        val activeVehicles = vehicles.vehicles.filter { it.routeId == activeRouteId }
-        val routeSchedule =
-            remember(state.network.network, activeRouteId) {
-                activeRouteId?.let { id -> state.network.network?.let { GetRouteDetailsUseCase()(it, id) } }
-            }
-        val routeFrequency =
-            routeSchedule
-                ?.groups
-                ?.values
-                ?.asSequence()
-                ?.flatten()
-                ?.mapNotNull { scheduledFrequencyMinutes(it.service.times) }
-                ?.firstOrNull()
-        ModalBottomSheet(
-            onDismissRequest = {
-                routeInfoVisible = false
-                routeScheduleVisible = false
-            },
+    state.routeInfo?.let { routeInfo ->
+        RouteInfoSheet(
+            state = state,
+            routeInfo = routeInfo,
+            vehicles = vehicles,
             sheetState = routeInfoSheetState,
-            containerColor = MaterialTheme.colorScheme.surface,
-            contentWindowInsets = { WindowInsets.safeDrawing.only(WindowInsetsSides.Top) },
-        ) {
-            if (routeScheduleVisible) {
-                LazyColumn(
-                    Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = 32.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    item {
-                        TextButton(onClick = { routeScheduleVisible = false }) {
-                            RoutyIcon(Glyph.Back, strings[TextKey.Back])
-                            Spacer(Modifier.width(8.dp))
-                            Text(strings[TextKey.Back])
-                        }
-                        routeSchedule?.let { details ->
-                            Text(
-                                details.route.name.resolve(strings.language, details.route.id),
-                                style = MaterialTheme.typography.headlineSmall,
-                            )
-                        }
-                    }
-                    item { Text(strings[TextKey.ScheduleNote], style = MaterialTheme.typography.bodySmall) }
-                    routeSchedule?.groups?.forEach { (group, stops) ->
-                        item {
-                            Text(
-                                stops.lastOrNull()?.stop?.let { stop -> stop.name.resolve(strings.language, stop.id) }
-                                    ?: strings[TextKey.Unspecified],
-                                style = MaterialTheme.typography.titleMedium,
-                            )
-                        }
-                        items(stops, key = { "$group:${it.stop.id}" }) { routeStop ->
-                            StopCard(
-                                stop = routeStop.stop,
-                                onClick = {
-                                    routeScheduleVisible = false
-                                    routeInfoVisible = false
-                                    model.actionHandler(MapAction.ShowStopOnMap(routeStop.stop.id))
-                                },
-                                subtitle =
-                                    routeStop.service.times
-                                        .take(4)
-                                        .joinToString(" • ")
-                                        .ifEmpty { strings[TextKey.NoSchedule] },
-                            )
-                        }
-                    } ?: item { EmptyPanel() }
-                }
-            } else {
-                Column(
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 8.dp)
-                        .pointerInput(routeIds, activeRouteId) {
-                            detectHorizontalDragGestures(
-                                onDragStart = { routeInfoSwipeDistance = 0f },
-                                onHorizontalDrag = { _, dragAmount -> routeInfoSwipeDistance += dragAmount },
-                                onDragEnd = {
-                                    routeInfoRouteId =
-                                        when {
-                                            routeInfoSwipeDistance <= -48f -> routeIds.getOrNull(activeRouteIndex + 1)
-                                            routeInfoSwipeDistance >= 48f -> routeIds.getOrNull(activeRouteIndex - 1)
-                                            else -> routeInfoRouteId
-                                        }
-                                },
-                            )
-                        },
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    AnimatedContent(
-                        targetState = activeRouteId,
-                        transitionSpec = {
-                            val forward = routeIds.indexOf(targetState) > routeIds.indexOf(initialState)
-                            if (forward) {
-                                slideInHorizontally { it } togetherWith slideOutHorizontally { -it }
-                            } else {
-                                slideInHorizontally { -it } togetherWith slideOutHorizontally { it }
-                            }
-                        },
-                        label = "route-info-transition",
-                    ) { displayedRouteId ->
-                        val displayedIndex = routeIds.indexOf(displayedRouteId)
-                        state.network.network
-                            ?.routes
-                            ?.firstOrNull { it.id == displayedRouteId }
-                            ?.let { route ->
-                                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                                    Row(
-                                        Modifier
-                                            .fillMaxWidth()
-                                            .padding(horizontal = if (routeIds.size > 1) 12.dp else 24.dp),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                    ) {
-                                        if (routeIds.size > 1) {
-                                            IconButton(
-                                                onClick = { routeInfoRouteId = routeIds.getOrNull(displayedIndex - 1) },
-                                                enabled = displayedIndex > 0,
-                                            ) { RoutyIcon(Glyph.Chevron, modifier = Modifier.graphicsLayer(rotationZ = 180f)) }
-                                        }
-                                        Text(
-                                            route.name.resolve(strings.language, route.id),
-                                            Modifier.weight(1f),
-                                            style = MaterialTheme.typography.headlineSmall,
-                                        )
-                                        if (routeIds.size > 1) {
-                                            IconButton(
-                                                onClick = { routeInfoRouteId = routeIds.getOrNull(displayedIndex + 1) },
-                                                enabled = displayedIndex in 0 until routeIds.lastIndex,
-                                            ) { RoutyIcon(Glyph.Chevron) }
-                                        }
-                                    }
-                                    FilledTonalButton(
-                                        onClick = { model.actionHandler(MapAction.ToggleRouteFavorite(route.id)) },
-                                        modifier = Modifier.padding(horizontal = 24.dp),
-                                    ) {
-                                        RoutyIcon(
-                                            if (route.id in state.favoriteRouteIds) Glyph.StarFilled else Glyph.Star,
-                                        )
-                                        Spacer(Modifier.width(8.dp))
-                                        Text(strings[if (route.id in state.favoriteRouteIds) TextKey.Saved else TextKey.Save])
-                                    }
-                                }
-                            }
-                    }
-                    routeFrequency?.let { frequency ->
-                        Text(
-                            strings.runsEvery(frequency),
-                            Modifier.padding(horizontal = 24.dp),
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.primary,
-                        )
-                    }
-                    Row(
-                        Modifier.padding(horizontal = 24.dp),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text(strings[TextKey.Live], style = MaterialTheme.typography.titleMedium)
-                        if (vehicles.isStale) NetworkIssueBadge(size = 28.dp)
-                    }
-                    Text(
-                        when {
-                            vehicles.isLoading -> strings[TextKey.Loading]
-                            activeVehicles.isEmpty() -> strings[TextKey.NoBuses]
-                            else -> strings.vehiclesCount(activeVehicles.size)
-                        },
-                        Modifier.padding(horizontal = 24.dp),
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
-                    if (activeVehicles.isNotEmpty()) {
-                        LazyRow(
-                            Modifier.fillMaxWidth(),
-                            contentPadding = PaddingValues(horizontal = 24.dp),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        ) {
-                            items(activeVehicles, key = { it.id }) { vehicle ->
-                                AssistChip(
-                                    onClick = {
-                                        routeInfoVisible = false
-                                        model.actionHandler(MapAction.SelectVehicle(vehicle.id))
-                                    },
-                                    label = { Text("${strings[TextKey.Vehicle]} ${vehicle.id}") },
-                                )
-                            }
-                        }
-                    }
-                    TextButton(
-                        onClick = {
-                            routeScheduleVisible = true
-                            scope.launch { routeInfoSheetState.expand() }
-                        },
-                        modifier = Modifier.padding(horizontal = 24.dp).padding(bottom = 12.dp),
-                    ) { Text(strings[TextKey.Details]) }
-                }
-            }
-        }
+            onAction = model::actionHandler,
+        )
     }
     if (state.search.isOpen) {
-        val hasCurrentSearchResults = state.search.query == searchFieldQuery
-        ModalBottomSheet(
-            onDismissRequest = { model.actionHandler(MapAction.CloseSearch) },
+        MapSearchSheet(
+            state = state,
+            query = searchFieldQuery,
+            onQueryChange = {
+                searchFieldQuery = it
+                model.actionHandler(MapAction.SearchQueryChanged(it))
+            },
+            onClear = {
+                searchFieldQuery = ""
+                model.actionHandler(MapAction.ClearSearch)
+            },
             sheetState = searchSheetState,
-            containerColor = MaterialTheme.colorScheme.surface,
-            scrimColor = Color.Black.copy(alpha = 0.32f),
-            contentWindowInsets = { WindowInsets.safeDrawing.only(WindowInsetsSides.Top) },
-        ) {
-            LazyColumn(
-                Modifier.fillMaxSize().imePadding(),
-                contentPadding = PaddingValues(top = 8.dp, bottom = searchBottomPadding),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                item {
-                    SearchField(
-                        value = searchFieldQuery,
-                        placeholder = strings[TextKey.Search],
-                        onChange = {
-                            searchFieldQuery = it
-                            model.actionHandler(MapAction.SearchQueryChanged(it))
-                        },
-                        modifier =
-                            Modifier
-                                .padding(horizontal = 20.dp)
-                                .focusRequester(searchFocusRequester),
-                        onClear = {
-                            searchFieldQuery = ""
-                            model.actionHandler(MapAction.ClearSearch)
-                        },
-                    )
-                }
-                if (searchFieldQuery.isBlank()) {
-                    item {
-                        Text(
-                            strings[TextKey.QuickSelect],
-                            Modifier.padding(horizontal = 20.dp),
-                            style = MaterialTheme.typography.titleMedium,
-                        )
-                    }
-                    item {
-                        LazyRow(
-                            modifier = Modifier.fillParentMaxWidth(),
-                            contentPadding = PaddingValues(horizontal = 20.dp),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        ) {
-                            items(state.search.quickRoutes, key = { it.id }) { route ->
-                                val selected = route.id in state.selectedRouteIds
-                                val routeColor = palette.routeColors[state.routeColorIndex(route.id).mod(palette.routeColors.size)]
-                                val selectedContentColor = if (routeColor.luminance() > 0.45f) Color(0xFF0F172A) else Color.White
-                                FilterChip(
-                                    selected = selected,
-                                    enabled = selected || state.selectedRouteIds.size < 7,
-                                    onClick = {
-                                        model.actionHandler(
-                                            MapAction.SelectSearchRoute(
-                                                route.id,
-                                            ),
-                                        )
-                                    },
-                                    label = {
-                                        Row(verticalAlignment = Alignment.CenterVertically) {
-                                            if (route.id in state.favoriteRouteIds) {
-                                                CompositionLocalProvider(
-                                                    LocalContentColor provides
-                                                        if (selected) selectedContentColor else MaterialTheme.colorScheme.tertiary,
-                                                ) {
-                                                    RoutyIcon(
-                                                        Glyph.StarFilled,
-                                                        strings[TextKey.Favorites],
-                                                    )
-                                                }
-                                                Spacer(Modifier.width(4.dp))
-                                            }
-                                            Text(route.name.resolve(strings.language, route.id))
-                                        }
-                                    },
-                                    colors =
-                                        FilterChipDefaults.filterChipColors(
-                                            containerColor = MaterialTheme.colorScheme.surface,
-                                            selectedContainerColor = routeColor,
-                                            selectedLabelColor = selectedContentColor,
-                                            selectedLeadingIconColor = selectedContentColor,
-                                        ),
-                                )
-                            }
-                        }
-                    }
-                }
-                if (hasCurrentSearchResults && state.search.routes.isNotEmpty()) {
-                    item {
-                        Text(
-                            strings[TextKey.Routes],
-                            Modifier.padding(horizontal = 20.dp),
-                            style = MaterialTheme.typography.titleMedium,
-                        )
-                    }
-                    items(state.search.routes, key = { "route:${it.id}" }) { route ->
-                        Box(Modifier.padding(horizontal = 20.dp)) {
-                            RouteCard(
-                                route = route,
-                                stopCount = state.search.routeStopCounts[route.id],
-                                onClick = { model.actionHandler(MapAction.SelectSearchRoute(route.id)) },
-                            )
-                        }
-                    }
-                }
-                if (hasCurrentSearchResults && state.search.stops.isNotEmpty()) {
-                    item {
-                        Text(
-                            strings[TextKey.Stops],
-                            Modifier.padding(horizontal = 20.dp),
-                            style = MaterialTheme.typography.titleMedium,
-                        )
-                    }
-                }
-                if (hasCurrentSearchResults) {
-                    items(
-                        state.search.stops,
-                        key = { "stop:${it.id}" },
-                    ) { stop ->
-                        val routeNames =
-                            remember(stop, state.network.network, strings.language) {
-                                val routesById =
-                                    state.network.network
-                                        ?.routes
-                                        .orEmpty()
-                                        .associateBy { it.id }
-                                stop.services
-                                    .map { it.routeId }
-                                    .distinct()
-                                    .mapNotNull { routesById[it] }
-                                    .joinToString(" • ") { it.name.resolve(strings.language, it.id) }
-                                    .ifBlank { null }
-                            }
-                        Box(Modifier.padding(horizontal = 20.dp)) {
-                            StopCard(
-                                stop = stop,
-                                subtitle = routeNames,
-                                onClick = {
-                                    model.actionHandler(MapAction.SelectSearchStop(stop.id))
-                                },
-                            )
-                        }
-                    }
-                }
-                if (hasCurrentSearchResults &&
-                    searchFieldQuery.isNotBlank() &&
-                    state.search.routes.isEmpty() &&
-                    state.search.stops.isEmpty()
-                ) {
-                    item { SearchEmptyState(Modifier.padding(horizontal = 20.dp)) }
-                }
-            }
-        }
+            focusRequester = searchFocusRequester,
+            onAction = model::actionHandler,
+        )
     }
     if (locationPrompt) {
-        AlertDialog(
-            onDismissRequest = { locationPrompt = false },
-            containerColor = MaterialTheme.colorScheme.surface,
-            title = { Text(strings[TextKey.MyLocation]) },
-            text = { Text(strings[TextKey.LocationHelp]) },
-            confirmButton = {
-                TextButton({
-                    locationPrompt = false
-                    if ((location.permission as? LocationPermission.NotGranted)?.canRequest == false) {
-                        systemSettings.openApplicationSettings()
-                    } else {
-                        location.requestPermission()
-                    }
-                }) { Text(strings[TextKey.MyLocation]) }
+        LocationPromptDialog(
+            onConfirm = {
+                locationPrompt = false
+                if ((location.permission as? LocationPermission.NotGranted)?.canRequest == false) {
+                    systemSettings.openApplicationSettings()
+                } else {
+                    location.requestPermission()
+                }
             },
-            dismissButton = {
-                TextButton({
-                    locationPrompt = false
-                }) { Text(strings[TextKey.Close]) }
-            },
+            onDismiss = { locationPrompt = false },
         )
     }
-    if (vehicleDetailsVisible) {
-        selectedVehicle?.let { id ->
-            val vehicle = vehicles.vehicles.firstOrNull { it.id == id }
-            AlertDialog(
-                onDismissRequest = { vehicleDetailsVisible = false },
-                containerColor = MaterialTheme.colorScheme.surface,
-                title = { Text("${strings[TextKey.Vehicle]} $id") },
-                text = {
-                    if (vehicles.isStale || vehicle == null) {
-                        NetworkIssueBadge()
-                    } else {
-                        Text(strings[TextKey.Live])
-                    }
-                },
-                confirmButton = {
-                    TextButton({
-                        vehicle?.let {
-                            scope.launch {
-                                mapState.animateCameraPosition(
-                                    CameraPosition(target = Position(it.position.longitude, it.position.latitude), zoom = 16.0),
-                                )
-                            }
-                        }
-                        vehicleDetailsVisible = false
-                    }) { Text(strings[TextKey.ShowMap]) }
-                },
-                dismissButton = {
-                    TextButton({ vehicleDetailsVisible = false }) { Text(strings[TextKey.Close]) }
-                },
-            )
-        }
-    }
-}
-
-@Composable
-private fun MapZoomButton(
-    label: String,
-    symbol: String,
-    onClick: () -> Unit,
-) {
-    FilledTonalIconButton(
-        onClick = onClick,
-        modifier = Modifier.size(48.dp),
-        shape = RoundedCornerShape(12.dp),
-        colors =
-            androidx.compose.material3.IconButtonDefaults.filledTonalIconButtonColors(
-                containerColor = MaterialTheme.colorScheme.surface,
-                contentColor = MaterialTheme.colorScheme.primary,
-            ),
-    ) {
-        Text(
-            text = symbol,
-            style = MaterialTheme.typography.headlineMedium,
-            modifier = Modifier.semantics { contentDescription = label },
+    state.selectedVehicleId?.let { id ->
+        VehicleDetailsDialog(
+            vehicleId = id,
+            vehicle = vehicles.vehicles.firstOrNull { it.id == id },
+            isStale = vehicles.isStale,
+            onShowOnMap = { vehicle ->
+                scope.launch {
+                    mapState.animateCameraPosition(
+                        CameraPosition(target = Position(vehicle.position.longitude, vehicle.position.latitude), zoom = 16.0),
+                    )
+                }
+            },
+            onDismiss = { model.actionHandler(MapAction.DismissVehicle) },
         )
-    }
-}
-
-@Composable
-@MaplibreComposable
-private fun VehicleLayers(
-    vehicles: State<List<Vehicle>>,
-    routeColorIndex: (String) -> Int,
-    routeLabels: Map<String, String>,
-    routeBusPainters: List<Painter>,
-    busDirectionPainter: Painter,
-    onAttached: (Int) -> Unit,
-    onDetached: () -> Unit,
-    onVehicleClick: (String) -> Unit,
-) {
-    val vehiclesByRoute = vehicles.value.groupBy { it.routeId }
-    vehiclesByRoute.entries.sortedBy { it.key }.forEach { (routeId, routeVehicles) ->
-        key(routeId) {
-            DisposableEffect(routeId) {
-                onAttached(routeVehicles.size)
-                onDispose { onDetached() }
-            }
-            val routeVehicleSource =
-                rememberGeoJsonSource(GeoJsonData.JsonString(vehiclesGeoJson(routeVehicles)))
-            val selectedRouteIndex = routeColorIndex(routeId)
-            val routeLabel = routeLabels[routeId] ?: routeId
-            SymbolLayer(
-                "vehicles-$routeId",
-                routeVehicleSource,
-                iconImage = image(routeBusPainters.getOrNull(selectedRouteIndex) ?: busDirectionPainter),
-                iconSize = const(if (selectedRouteIndex >= 0) 0.4f else 0.32f),
-                iconRotate = feature["heading"].cast(),
-                iconAllowOverlap = const(true),
-                textField = format(span(routeLabel)),
-                textColor = const(Color(0xFF0F172A)),
-                textHaloColor = const(Color.White),
-                textHaloWidth = const(1.dp),
-                textFont = const(listOf("Noto Sans Bold")),
-                textSize = const(12.sp),
-                textAllowOverlap = const(true),
-                onClick = { features ->
-                    features
-                        .firstOrNull()
-                        ?.properties
-                        ?.get("id")
-                        ?.jsonPrimitive
-                        ?.content
-                        ?.let(onVehicleClick)
-                    ClickResult.Consume
-                },
-            )
-        }
     }
 }

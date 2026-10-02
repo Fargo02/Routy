@@ -55,6 +55,20 @@ sealed interface MapAction {
         val id: String,
     ) : MapAction
 
+    data object DismissVehicle : MapAction
+
+    data object OpenRouteInfo : MapAction
+
+    data class ShowRouteInfo(
+        val id: String,
+    ) : MapAction
+
+    data object OpenRouteSchedule : MapAction
+
+    data object CloseRouteSchedule : MapAction
+
+    data object CloseRouteInfo : MapAction
+
     data object OpenStops : MapAction
 
     data class OpenRouteDetails(
@@ -62,6 +76,10 @@ sealed interface MapAction {
     ) : MapAction
 
     data object MyLocation : MapAction
+
+    data object LocationAvailable : MapAction
+
+    data object InitialCameraPlaced : MapAction
 
     data object Retry : MapAction
 }

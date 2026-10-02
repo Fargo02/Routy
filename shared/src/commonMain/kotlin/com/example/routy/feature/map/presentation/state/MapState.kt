@@ -22,6 +22,11 @@ data class MapState(
     val geometries: List<RouteGeometry> = emptyList(),
     val stopGeoJson: String = EMPTY_GEOJSON,
     val search: MapSearchState = MapSearchState(),
+    val selectedStopId: String? = null,
+    val selectedVehicleId: String? = null,
+    val routeInfo: MapRouteInfoState? = null,
+    val isLocationEnabled: Boolean = false,
+    val isInitialCameraPlaced: Boolean = false,
 ) {
     val routeId: String?
         get() = selectedRouteIds.lastOrNull()
@@ -36,4 +41,9 @@ data class MapSearchState(
     val routes: List<Route> = emptyList(),
     val stops: List<BusStop> = emptyList(),
     val routeStopCounts: Map<String, Int> = emptyMap(),
+)
+
+data class MapRouteInfoState(
+    val routeId: String,
+    val isScheduleVisible: Boolean = false,
 )
