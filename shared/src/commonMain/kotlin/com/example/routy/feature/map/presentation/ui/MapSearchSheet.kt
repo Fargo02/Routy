@@ -18,14 +18,21 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.SheetState
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.unit.dp
 import com.example.routy.core.designsystem.RouteCard
 import com.example.routy.core.designsystem.SearchEmptyState
@@ -35,19 +42,28 @@ import com.example.routy.core.localization.LocalStrings
 import com.example.routy.core.localization.TextKey
 import com.example.routy.feature.map.presentation.state.MapAction
 import com.example.routy.feature.map.presentation.state.MapState
+import kotlinx.coroutines.yield
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun MapSearchSheet(
     state: MapState,
-    query: String,
-    onQueryChange: (String) -> Unit,
-    onClear: () -> Unit,
-    sheetState: SheetState,
-    focusRequester: FocusRequester,
     onAction: (MapAction) -> Unit,
 ) {
     val strings = LocalStrings.current
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val focusRequester = remember { FocusRequester() }
+    val keyboard = LocalSoftwareKeyboardController.current
+    var query by rememberSaveable { mutableStateOf(state.search.query) }
+    LaunchedEffect(Unit) {
+        yield()
+        focusRequester.requestFocus()
+        keyboard?.show()
+        sheetState.expand()
+    }
+    DisposableEffect(Unit) {
+        onDispose { keyboard?.hide() }
+    }
     val bottomPadding = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + 16.dp
     val hasCurrentSearchResults = state.search.query == query
     ModalBottomSheet(
@@ -66,12 +82,18 @@ internal fun MapSearchSheet(
                 SearchField(
                     value = query,
                     placeholder = strings[TextKey.Search],
-                    onChange = onQueryChange,
+                    onChange = {
+                        query = it
+                        onAction(MapAction.SearchQueryChanged(it))
+                    },
                     modifier =
                         Modifier
                             .padding(horizontal = 20.dp)
                             .focusRequester(focusRequester),
-                    onClear = onClear,
+                    onClear = {
+                        query = ""
+                        onAction(MapAction.ClearSearch)
+                    },
                 )
             }
             if (query.isBlank()) {

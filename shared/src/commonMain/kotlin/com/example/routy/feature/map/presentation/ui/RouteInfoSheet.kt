@@ -27,9 +27,9 @@ import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.SheetState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -62,11 +62,11 @@ internal fun RouteInfoSheet(
     state: MapState,
     routeInfo: MapRouteInfoState,
     vehicles: VehicleState,
-    sheetState: SheetState,
     onAction: (MapAction) -> Unit,
 ) {
     val strings = LocalStrings.current
     val scope = rememberCoroutineScope()
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
     var swipeDistance by remember { mutableStateOf(0f) }
     val routeIds = state.selectedRouteIds
     val activeRouteId = routeInfo.routeId

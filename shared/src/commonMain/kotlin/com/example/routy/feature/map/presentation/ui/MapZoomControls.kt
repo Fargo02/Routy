@@ -1,5 +1,7 @@
 package com.example.routy.feature.map.presentation.ui
 
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.FilledTonalIconButton
@@ -11,6 +13,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+
+@Composable
+internal fun MapZoomControls(
+    onZoomIn: () -> Unit,
+    onZoomOut: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        MapZoomButton(label = "Приблизить карту", symbol = "+", onClick = onZoomIn)
+        MapZoomButton(label = "Отдалить карту", symbol = "−", onClick = onZoomOut)
+    }
+}
 
 @Composable
 internal fun MapZoomButton(

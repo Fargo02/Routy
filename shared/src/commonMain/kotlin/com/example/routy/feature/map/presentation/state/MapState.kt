@@ -19,6 +19,7 @@ data class MapState(
     val favoriteRouteIds: Set<String> = emptySet(),
     val favoriteStopIds: Set<String> = emptySet(),
     val stops: List<BusStop> = emptyList(),
+    val mapStops: List<BusStop> = emptyList(),
     val geometries: List<RouteGeometry> = emptyList(),
     val stopGeoJson: String = EMPTY_GEOJSON,
     val search: MapSearchState = MapSearchState(),

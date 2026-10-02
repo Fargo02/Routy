@@ -159,7 +159,16 @@ class MapViewModel(
 
     val uiState =
         combine(content, interaction) { content, interaction ->
+            val selectedStop =
+                interaction.selectedStopId
+                    ?.takeIf { id -> content.stops.none { it.id == id } }
+                    ?.let { id ->
+                        content.network.network
+                            ?.stops
+                            ?.firstOrNull { it.id == id }
+                    }
             content.copy(
+                mapStops = if (selectedStop == null) content.stops else content.stops + selectedStop,
                 selectedStopId = interaction.selectedStopId,
                 selectedVehicleId = interaction.selectedVehicleId,
                 routeInfo = interaction.routeInfo,
