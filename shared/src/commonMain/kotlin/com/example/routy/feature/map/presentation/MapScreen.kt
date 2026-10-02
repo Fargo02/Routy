@@ -44,7 +44,7 @@ import com.example.routy.core.designsystem.RoutyIcon
 import com.example.routy.core.designsystem.ScreenScaffold
 import com.example.routy.core.localization.LocalStrings
 import com.example.routy.core.localization.TextKey
-import com.example.routy.core.mvi.CollectEffects
+import com.example.routy.core.mvi.ObserveAsEvents
 import com.example.routy.core.navigation.Destination
 import com.example.routy.core.transport.domain.Vehicle
 import com.example.routy.core.transport.domain.VehicleState
@@ -297,7 +297,7 @@ fun MapScreen(
             if (state.isLocationEnabled) LocationPuck(idPrefix = "user", locationState = location)
         }
 
-    CollectEffects(model.effects) {
+    ObserveAsEvents(model.effects) {
         when (it) {
             is MapEffect.Navigate -> navigate(it.destination)
 

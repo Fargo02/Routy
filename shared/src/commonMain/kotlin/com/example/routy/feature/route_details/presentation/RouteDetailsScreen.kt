@@ -13,7 +13,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.routy.core.designsystem.*
 import com.example.routy.core.localization.*
-import com.example.routy.core.mvi.CollectEffects
+import com.example.routy.core.mvi.ObserveAsEvents
 import com.example.routy.core.navigation.Destination
 import com.example.routy.feature.route_details.presentation.state.*
 
@@ -27,7 +27,7 @@ fun RouteDetailsScreen(
     val state by model.uiState.collectAsStateWithLifecycle()
     val vehicles by model.vehicles.collectAsStateWithLifecycle()
     val strings = LocalStrings.current
-    CollectEffects(model.effects) {
+    ObserveAsEvents(model.effects, key1 = strings) {
         when (it) {
             is RouteDetailsEffect.Navigate -> navigate(it.destination)
             is RouteDetailsEffect.ShowMap -> showMap(it.routeId)

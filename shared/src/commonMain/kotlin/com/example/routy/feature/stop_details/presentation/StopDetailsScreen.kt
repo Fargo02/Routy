@@ -9,7 +9,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.routy.core.designsystem.*
 import com.example.routy.core.localization.*
-import com.example.routy.core.mvi.CollectEffects
+import com.example.routy.core.mvi.ObserveAsEvents
 import com.example.routy.feature.stop_details.domain.minutesUntilNextScheduledDeparture
 import com.example.routy.feature.stop_details.domain.nearestScheduledDeparture
 import com.example.routy.feature.stop_details.presentation.state.*
@@ -23,7 +23,7 @@ fun StopDetailsScreen(
 ) {
     val state by model.uiState.collectAsStateWithLifecycle()
     val strings = LocalStrings.current
-    CollectEffects(model.effects) {
+    ObserveAsEvents(model.effects, key1 = strings) {
         when (it) {
             is StopDetailsEffect.ShowRouteOnMap -> showRouteOnMap(it.id)
             is StopDetailsEffect.Error -> message(strings.error(it.error))

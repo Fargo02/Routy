@@ -12,7 +12,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.routy.core.designsystem.*
 import com.example.routy.core.localization.*
-import com.example.routy.core.mvi.CollectEffects
+import com.example.routy.core.mvi.ObserveAsEvents
 import com.example.routy.core.navigation.Destination
 import com.example.routy.feature.stops.presentation.state.*
 
@@ -23,7 +23,7 @@ fun StopsScreen(
 ) {
     val state by model.uiState.collectAsStateWithLifecycle()
     val strings = LocalStrings.current
-    CollectEffects(model.effects) {
+    ObserveAsEvents(model.effects) {
         when (it) {
             is StopsEffect.Navigate -> navigate(it.destination)
         }

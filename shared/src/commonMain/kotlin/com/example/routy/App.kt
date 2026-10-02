@@ -43,7 +43,7 @@ import com.example.routy.core.di.AppGraph
 import com.example.routy.core.localization.LocalStrings
 import com.example.routy.core.localization.Strings
 import com.example.routy.core.localization.TextKey
-import com.example.routy.core.mvi.CollectEffects
+import com.example.routy.core.mvi.ObserveAsEvents
 import com.example.routy.core.navigation.BottomNavigationItem
 import com.example.routy.core.navigation.Destination
 import com.example.routy.core.navigation.navigateTo
@@ -105,7 +105,7 @@ fun App(graph: AppGraph) {
 
     CompositionLocalProvider(LocalStrings provides strings) {
         RoutyTheme(preferences.appearance, preferences.colorTheme) {
-            CollectEffects(settings.effects) {
+            ObserveAsEvents(settings.effects, key1 = strings) {
                 when (it) {
                     is SettingsEffect.Error -> snackbar.showSnackbar(strings.error(it.error))
                 }
