@@ -1,9 +1,7 @@
 package com.example.routy.feature.favorites.presentation
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.*
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -16,6 +14,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.routy.core.designsystem.*
 import com.example.routy.core.localization.*
 import com.example.routy.feature.favorites.presentation.state.*
+import com.example.routy.feature.favorites.presentation.ui.*
 import com.example.routy.feature.route_details.domain.GetRouteDetailsUseCase
 import com.example.routy.feature.stop_details.domain.GetStopDetailsUseCase
 import com.example.routy.feature.stop_details.domain.minutesUntilNextScheduledDeparture
@@ -25,15 +24,8 @@ import routy.shared.generated.resources.Res
 import routy.shared.generated.resources.favorites_backdrop
 import routy.shared.generated.resources.favorites_backdrop_dark
 
-private const val FavoriteCardAlpha = 0.55f
 private const val RouteSheetPrefix = "route:"
 private const val StopSheetPrefix = "stop:"
-
-private data class UpcomingBus(
-    val routeName: String,
-    val minutes: Int,
-    val routeColorIndex: Int,
-)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -312,134 +304,6 @@ fun FavoritesScreen(
                 model.actionHandler(action)
             },
             onDismiss = { removalConfirmation = null },
-        )
-    }
-}
-
-@Composable
-private fun RemoveFavoriteDialog(
-    onConfirm: () -> Unit,
-    onDismiss: () -> Unit,
-) {
-    val strings = LocalStrings.current
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        containerColor = MaterialTheme.colorScheme.surface,
-        title = { Text(strings[TextKey.RemoveFavoriteTitle]) },
-        text = { Text(strings[TextKey.RemoveFavoriteBody]) },
-        confirmButton = { TextButton(onClick = onConfirm) { Text(strings[TextKey.Remove]) } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(strings[TextKey.Close]) } },
-    )
-}
-
-@Composable
-private fun FavoriteStopCard(
-    stop: com.example.routy.core.transport.domain.BusStop,
-    upcomingBuses: List<UpcomingBus>,
-    fallbackSubtitle: String,
-    onClick: () -> Unit,
-) {
-    val strings = LocalStrings.current
-    val palette = LocalRoutyPalette.current
-    Card(
-        onClick = onClick,
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = FavoriteCardAlpha)),
-    ) {
-        Column(Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 16.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(14.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                RoutyIcon(Glyph.Stop, modifier = Modifier.size(28.dp))
-                Text(
-                    stop.name.resolve(strings.language, stop.id),
-                    modifier = Modifier.weight(1f),
-                    style = MaterialTheme.typography.titleMedium,
-                )
-                RoutyIcon(Glyph.Chevron, strings[TextKey.Details])
-            }
-            if (upcomingBuses.isEmpty()) {
-                Text(
-                    fallbackSubtitle,
-                    modifier = Modifier.padding(start = 42.dp, top = 8.dp),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            } else {
-                FlowRow(
-                    modifier = Modifier.padding(start = 42.dp, top = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
-                ) {
-                    upcomingBuses.forEach { bus ->
-                        val color = palette.routeColors[bus.routeColorIndex % palette.routeColors.size]
-                        Surface(
-                            color = color.copy(alpha = 0.13f),
-                            shape = RoundedCornerShape(10.dp),
-                        ) {
-                            Text(
-                                "${bus.routeName} · ${strings.minutesShort(bus.minutes)}",
-                                modifier = Modifier.padding(horizontal = 9.dp, vertical = 5.dp),
-                                style = MaterialTheme.typography.labelLarge,
-                                color = MaterialTheme.colorScheme.onSurface,
-                            )
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun FavoriteSwipeToDismiss(
-    onDismiss: () -> Unit,
-    content: @Composable RowScope.() -> Unit,
-) {
-    val strings = LocalStrings.current
-    var removalConfirmationVisible by rememberSaveable { mutableStateOf(false) }
-    val dismissState =
-        rememberSwipeToDismissBoxState(
-            confirmValueChange = { value ->
-                if (value != SwipeToDismissBoxValue.Settled) removalConfirmationVisible = true
-                false
-            },
-            positionalThreshold = { distance -> distance * 0.7f },
-        )
-    SwipeToDismissBox(
-        state = dismissState,
-        enableDismissFromStartToEnd = false,
-        backgroundContent = {
-            val isDismissInProgress = dismissState.dismissDirection != SwipeToDismissBoxValue.Settled
-            if (isDismissInProgress) {
-                val alignment =
-                    if (dismissState.dismissDirection == SwipeToDismissBoxValue.StartToEnd) {
-                        Alignment.CenterStart
-                    } else {
-                        Alignment.CenterEnd
-                    }
-                Box(
-                    Modifier
-                        .fillMaxSize()
-                        .background(MaterialTheme.colorScheme.errorContainer, MaterialTheme.shapes.medium)
-                        .padding(horizontal = 24.dp),
-                    contentAlignment = alignment,
-                ) {
-                    Text(strings[TextKey.Remove], color = MaterialTheme.colorScheme.onErrorContainer)
-                }
-            }
-        },
-        content = content,
-    )
-    if (removalConfirmationVisible) {
-        RemoveFavoriteDialog(
-            onConfirm = {
-                removalConfirmationVisible = false
-                onDismiss()
-            },
-            onDismiss = { removalConfirmationVisible = false },
         )
     }
 }
