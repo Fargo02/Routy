@@ -35,11 +35,6 @@ class MapViewModel(
     private val savedState: SavedStateHandle = SavedStateHandle(),
     private val logger: AppLogger = SilentLogger,
 ) : ViewModel() {
-    private companion object {
-        const val MaxSelectedRoutes = 7
-        const val FreeColorSlot = ""
-    }
-
     private val _effects = Channel<MapEffect>(Channel.BUFFERED)
     val effects = _effects.receiveAsFlow()
     private val _mapStyleJson = MutableStateFlow<String?>(null)
@@ -395,6 +390,11 @@ class MapViewModel(
 
     private fun sendEffect(effect: MapEffect) {
         viewModelScope.launch { _effects.send(effect) }
+    }
+
+    private companion object {
+        const val MaxSelectedRoutes = 7
+        const val FreeColorSlot = ""
     }
 }
 
