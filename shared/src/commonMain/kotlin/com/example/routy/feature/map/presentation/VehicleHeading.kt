@@ -3,6 +3,7 @@ package com.example.routy.feature.map.presentation
 import com.example.routy.core.transport.domain.GeoPoint
 import com.example.routy.core.transport.domain.RouteGeometry
 import com.example.routy.core.transport.domain.Vehicle
+import com.example.routy.core.transport.domain.VehicleState
 import kotlin.math.PI
 import kotlin.math.abs
 import kotlin.math.atan2
@@ -20,6 +21,20 @@ fun alignHeadingsToRoutes(
         val heading = routeHeading(vehicle.position, points, vehicle.headingDegrees)
         if (heading == vehicle.headingDegrees) vehicle else vehicle.copy(headingDegrees = heading)
     }
+
+fun keepKnownHeadings(
+    update: VehicleState,
+    known: VehicleState,
+): VehicleState {
+    if (update.isLoading && update.vehicles.isEmpty()) return known
+    val knownHeadings = known.vehicles.associate { it.id to it.headingDegrees }
+    return update.copy(
+        vehicles =
+            update.vehicles.map { vehicle ->
+                if (vehicle.headingDegrees != null) vehicle else vehicle.copy(headingDegrees = knownHeadings[vehicle.id])
+            },
+    )
+}
 
 fun routeHeading(
     position: GeoPoint,

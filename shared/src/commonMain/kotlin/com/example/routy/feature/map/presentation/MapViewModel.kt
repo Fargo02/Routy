@@ -212,7 +212,8 @@ class MapViewModel(
                                 "activeRoutes=${vehicleJobsByRoute.size}",
                             )
                         }.collect { state ->
-                            vehicleStatesByRoute[routeId] = state
+                            vehicleStatesByRoute[routeId] =
+                                vehicleStatesByRoute[routeId]?.let { known -> keepKnownHeadings(state, known) } ?: state
                             publishVehicleState(activeVehicleRouteIds)
                         }
                 }

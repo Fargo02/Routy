@@ -3,7 +3,9 @@ package com.example.routy.transport
 import com.example.routy.core.transport.domain.GeoPoint
 import com.example.routy.core.transport.domain.RouteGeometry
 import com.example.routy.core.transport.domain.Vehicle
+import com.example.routy.core.transport.domain.VehicleState
 import com.example.routy.feature.map.presentation.alignHeadingsToRoutes
+import com.example.routy.feature.map.presentation.keepKnownHeadings
 import com.example.routy.feature.map.presentation.routeHeading
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -63,5 +65,22 @@ class VehicleHeadingTest {
                 mapOf("7" to RouteGeometry("7", eastbound)),
             )
         assertEquals(listOf(90f, 270f), aligned.map { it.headingDegrees })
+    }
+
+    @Test fun keepsTheKnownHeadingOfABusAfterPollingRestarts() {
+        val known = VehicleState(listOf(bus(GeoPoint(latitude = 41.6401, longitude = 41.6500), headingDegrees = 270f)), isLoading = false)
+        val restarted = VehicleState(listOf(bus(GeoPoint(latitude = 41.6401, longitude = 41.6490))), isLoading = false)
+        assertEquals(270f, keepKnownHeadings(restarted, known).vehicles.single().headingDegrees)
+    }
+
+    @Test fun prefersTheFreshHeadingOverTheKnownOne() {
+        val known = VehicleState(listOf(bus(GeoPoint(latitude = 41.6401, longitude = 41.6500), headingDegrees = 270f)), isLoading = false)
+        val update = VehicleState(listOf(bus(GeoPoint(latitude = 41.6401, longitude = 41.6510), headingDegrees = 90f)), isLoading = false)
+        assertEquals(90f, keepKnownHeadings(update, known).vehicles.single().headingDegrees)
+    }
+
+    @Test fun keepsTheKnownVehiclesWhilePollingRestarts() {
+        val known = VehicleState(listOf(bus(GeoPoint(latitude = 41.6401, longitude = 41.6500), headingDegrees = 270f)), isLoading = false)
+        assertEquals(known, keepKnownHeadings(VehicleState(), known))
     }
 }
