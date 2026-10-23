@@ -12,8 +12,11 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
@@ -89,6 +92,8 @@ internal fun RouteInfoSheet(
         id?.let { onAction(MapAction.ShowRouteInfo(it)) }
     }
 
+    val navigationBarPadding = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+
     ModalBottomSheet(
         onDismissRequest = { onAction(MapAction.CloseRouteInfo) },
         sheetState = sheetState,
@@ -98,7 +103,7 @@ internal fun RouteInfoSheet(
         if (routeInfo.isScheduleVisible) {
             LazyColumn(
                 Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = 32.dp),
+                contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = 32.dp + navigationBarPadding),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 item {
@@ -140,6 +145,7 @@ internal fun RouteInfoSheet(
             Column(
                 Modifier
                     .fillMaxWidth()
+                    .navigationBarsPadding()
                     .padding(vertical = 8.dp)
                     .pointerInput(routeIds, activeRouteId) {
                         detectHorizontalDragGestures(
