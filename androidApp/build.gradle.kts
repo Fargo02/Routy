@@ -61,7 +61,7 @@ android {
             libs.versions.android.targetSdk
                 .get()
                 .toInt()
-        versionCode = 6
+        versionCode = 7
         versionName = "1.0.0"
         ndk { abiFilters += listOf("arm64-v8a", "armeabi-v7a", "x86_64") }
     }
